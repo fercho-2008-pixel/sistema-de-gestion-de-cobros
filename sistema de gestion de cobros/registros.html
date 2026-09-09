@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Registrar cliente</title>
+
+    <link rel="stylesheet" href="regristros.css">
+</head>
+
+<body>
+
+    <main class="formulario-pagina">
+
+        <section class="formulario-tarjeta">
+
+            <div class="formulario-encabezado">
+                <span class="etiqueta">NUEVO REGISTRO</span>
+
+                <h1>Registrar cliente</h1>
+
+                <p>
+                    Completa la información para agregar un nuevo cliente.
+                </p>
+            </div>
+
+            <form id="formularioRegistroCliente">
+
+                <div class="form-grid">
+
+                    <div class="campo campo-completo">
+                        <label for="nombre">
+                            Nombre completo
+                        </label>
+
+                        <input
+                            type="text"
+                            id="nombre"
+                            name="nombre"
+                            placeholder="Ej. María González"
+                            required
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="correo">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            type="email"
+                            id="correo"
+                            name="correo"
+                            placeholder="cliente@correo.com"
+                            required
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="telefono">
+                            Teléfono
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="telefono"
+                            name="telefono"
+                            placeholder="+57 300 000 0000"
+                            required
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="documento">
+                            Número de documento
+                        </label>
+
+                        <input
+                            type="text"
+                            id="documento"
+                            name="documento"
+                            placeholder="Ej. 1.000.000.000"
+                            required
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="estado">
+                            Estado del cliente
+                        </label>
+
+                        <select
+                            id="estado"
+                            name="estado"
+                            required
+                        >
+                            <option value="">Selecciona una opción</option>
+                            <option value="Activo">Activo</option>
+                            <option value="Inactivo">Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="campo campo-completo">
+                        <label for="direccion">
+                            Dirección
+                        </label>
+
+                        <input
+                            type="text"
+                            id="direccion"
+                            name="direccion"
+                            placeholder="Ej. Calle 10 # 20-30"
+                        >
+                    </div>
+
+                    <div class="campo campo-completo">
+                        <label for="observaciones">
+                            Observaciones
+                        </label>
+
+                        <textarea
+                            id="observaciones"
+                            name="observaciones"
+                            rows="4"
+                            placeholder="Escribe información adicional del cliente..."
+                        ></textarea>
+                    </div>
+
+                </div>
+
+                <div class="formulario-acciones">
+
+                    <button
+                        type="reset"
+                        class="btn-secundario"
+                    >
+                        Limpiar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn-principal"
+                    >
+                        Guardar cliente
+                    </button>
+                    
+
+                </div>
+
+            </form>
+
+            <p
+                id="mensajeGuardado"
+                class="mensaje-guardado"
+                aria-live="polite"
+            ></p>
+        </section>
+    </main>
+<a href="menu2.html">
+  <button class="btn-principal">
+    inicio
+  </button>
+</a>
+
+    <script>
+        const formulario =
+            document.getElementById("formularioRegistroCliente");
+
+        const mensaje =
+            document.getElementById("mensajeGuardado");
+
+        formulario.addEventListener("submit", function (evento) {
+            evento.preventDefault();
+
+            mensaje.textContent =
+                "El cliente se guardó correctamente.";
+
+            mensaje.classList.add("mostrar");
+
+            formulario.reset();
+
+            setTimeout(function () {
+                mensaje.classList.remove("mostrar");
+                mensaje.textContent = "";
+            }, 4000);
+        });
+    </script>
+
+</body>
+</html>

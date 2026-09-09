@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="stylesheet" href="estilosmenu2.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Gestión de Cobros</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Sistema de Gestión de Cobros</h1>
+        <p>Control simple, moderno y confiable</p>
+      </div>
+
+      <nav class="menu">
+        <a href="menu.html" class="active">Inicio</a>
+        <a href="consulta.html">Consultar clientes</a>
+        <a href="registros.html">registrar clientes</a>
+        <a href="pagos.html">Pagos</a>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h2>Panel principal</h2>
+          <p>Resumen general de cobros y préstamos</p>
+        </div>
+         <a href="registros.html">
+        <button class="btn">+ Nuevo préstamo</button>
+         </a>
+      </div>
+
+      <section class="cards">
+        <div class="card">
+          <span>Clientes registrados</span>
+          <h3>100</h3>
+        </div>
+        <div class="card">
+          <span>Préstamos activos</span>
+          <h3>50</h3>
+        </div>
+        <div class="card">
+          <span>Pagos del día</span>
+          <h3>20</h3>
+        </div>
+        <div class="card">
+          <span>Saldo pendiente</span>
+          <h3>$5.M</h3>
+        </div>
+      </section>
+
+      <section class="section">
+        <h3>Últimos movimientos</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Valor</th>
+              <th>Fecha</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>María Pérez</td>
+              <td>$150.000</td>
+              <td>06/08/2026</td>
+              <td><span class="status paid">Pagado</span></td>
+            </tr>
+            <tr>
+              <td>Juan Torres</td>
+              <td>$250.000</td>
+              <td>05/08/2026</td>
+              <td><span class="status pending">Pendiente</span></td>
+            </tr>
+            <tr>
+              <td>Luisa Ramírez</td>
+              <td>$180.000</td>
+              <td>05/08/2026</td>
+              <td><span class="status paid">Pagado</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
