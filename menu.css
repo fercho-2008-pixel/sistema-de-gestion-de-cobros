@@ -1,0 +1,361 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap');
+
+:root {
+    --navy-deep: #0F2749;
+    --navy: #16335F;
+    --navy-mid: #1E3F73;
+    --blue-accent: #2354A6;
+    --bg: #F3F4F7;
+    --white: #FFFFFF;
+    --text-muted: #7C8598;
+    --line: rgba(15,39,73,0.08);
+    --gold: #C8A15C;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: 'Manrope', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--navy-deep);
+}
+
+.stage {
+    min-height: 100vh;
+    display: flex;
+    align-items: stretch;
+}
+
+/* PANEL IZQUIERDO */
+.left {
+    flex: 1 1 46%;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(255,255,255,0.05) 0%, transparent 45%),
+        linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 100%);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 64px 60px;
+    overflow: hidden;
+    color: #EAF0FB;
+}
+
+.left::before {
+    content: "";
+    position: absolute;
+    right: -120px;
+    top: -120px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.left::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    bottom: -160px;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 2;
+}
+
+.brand-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--gold), #E9C98A);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.brand-mark svg {
+    width: 22px;
+    height: 22px;
+}
+
+.brand-name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+}
+
+.brand-name span {
+    display: block;
+    font-weight: 500;
+    font-size: 12.5px;
+    color: rgba(234,240,251,0.55);
+}
+
+.hero {
+    position: relative;
+    z-index: 2;
+    max-width: 440px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 700;
+    margin-bottom: 22px;
+}
+
+.hero h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 44px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: #fff;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: rgba(234,240,251,0.68);
+    font-weight: 400;
+}
+
+.stat-row {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    gap: 36px;
+    padding-top: 36px;
+    margin-top: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.stat-row div b {
+    display: block;
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.stat-row div span {
+    font-size: 12px;
+    color: rgba(234,240,251,0.55);
+    letter-spacing: 0.02em;
+}
+
+.left-foot {
+    position: relative;
+    z-index: 2;
+    font-size: 12px;
+    color: rgba(234,240,251,0.4);
+    letter-spacing: 0.02em;
+    margin-top: 28px;
+}
+
+/* PANEL DERECHO */
+.right {
+    flex: 1 1 54%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: var(--white);
+}
+
+.card {
+    width: 100%;
+    max-width: 400px;
+}
+
+.card-head {
+    margin-bottom: 38px;
+}
+
+.card-head .kicker {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue-accent);
+    margin-bottom: 10px;
+}
+
+.card-head h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--navy-deep);
+    margin-bottom: 8px;
+}
+
+.card-head p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.field {
+    margin-bottom: 20px;
+}
+
+.field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 8px;
+    letter-spacing: 0.01em;
+}
+
+.field .input {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: #FAFBFC;
+    font-size: 14.5px;
+    color: var(--navy-deep);
+    font-family: inherit;
+}
+
+.field .input.filled {
+    color: #B7BEC9;
+}
+
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    font-size: 13px;
+}
+
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+}
+
+.forgot {
+    color: var(--blue-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.cta {
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, var(--navy-mid), var(--navy-deep));
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 12px 24px -10px rgba(15,39,73,0.45);
+}
+
+.cta svg {
+    width: 16px;
+    height: 16px;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 26px 0;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+}
+
+.ghost-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--navy);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.foot-note {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.foot-note a {
+    color: var(--blue-accent);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* RESPONSIVO */
+@media (max-width: 880px) {
+    .stage {
+        flex-direction: column;
+    }
+
+    .left {
+        padding: 48px 32px;
+    }
+
+    .hero h1 {
+        font-size: 32px;
+    }
+
+    .stat-row {
+        gap: 24px;
+    }
+
+    .right {
+        padding: 48px 24px;
+    }
+}

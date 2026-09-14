@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Módulo de Pagos</title>
+<link rel="stylesheet" href="pagos.css">
+</head>
+
+<body>
+
+<div class="main">
+
+    <div class="top">
+        <div>
+            <h1>Registrar Pago</h1>
+            <p>Sistema de Gestión de Cobros / Pagos</p>
+        </div>
+
+        <div class="code">
+            #PG-2048
+        </div>
+    </div>
+
+    <div class="grid">
+
+        <!-- FORMULARIO -->
+        <div class="card">
+
+            <h2>Información del cliente</h2>
+
+            <div class="form">
+
+                <div class="group full">
+                    <label>Cliente</label>
+                    <input type="text" placeholder="Nombre">
+                </div>
+
+                <div class="group">
+                    <label>Monto a pagar</label>
+                    <input type="number" placeholder="0">
+                </div>
+
+                <div class="group">
+                    <label>Fecha</label>
+                    <input type="date">
+                </div>
+
+                <div class="group">
+                    <label>Método de pago</label>
+                    <select>
+                        <option>Efectivo</option>
+                        <option>Transferencia</option>
+                        <option>Tarjeta</option>
+                    </select>
+                </div>
+
+                <div class="group">
+                    <label>Referencia</label>
+                    <input type="text" placeholder="TRX-984521">
+                </div>
+
+                <div class="group full">
+                    <label>Observaciones</label>
+                    <textarea rows="4"></textarea>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- RESUMEN -->
+        <div class="summary">
+
+            <h3>Resumen</h3>
+
+            <div class="line">
+                <span>Saldo pendiente</span>
+                <strong>$0</strong>
+            </div>
+
+            <div class="line">
+                <span>Estado</span>
+                <span class="status">Pendiente</span>
+            </div>
+
+            <button class="save">
+                Guardar pago
+            </button>
+
+            <button class="back" onclick="history.back()">
+                ← Regresar
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
