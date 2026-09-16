@@ -35,7 +35,7 @@ html, body {
 .left {
     flex: 1 1 46%;
     background:
-        radial-gradient(circle at 15% 20%, rgba(255,255,255,0.05) 0%, transparent 45%),
+        radial-gradient(circle at 15% 20%, rgba(20, 4, 4, 0.05) 0%, transparent 45%),
         linear-gradient(160deg, var(--navy-deep) 0%, var(--navy) 55%, var(--navy-mid) 100%);
     position: relative;
     display: flex;
