@@ -7,6 +7,8 @@
     <title>Registrar cliente</title>
 
     <link rel="stylesheet" href="regristros.css">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -114,6 +116,21 @@
                         >
                     </div>
 
+                    <div class="campo">
+                        <label for="monto_deuda">
+                            Monto inicial / Préstamo (COP)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="monto_deuda"
+                            name="monto_deuda"
+                            placeholder="0"
+                            min="0"
+                            value="0"
+                        >
+                    </div>
+
                     <div class="campo campo-completo">
                         <label for="observaciones">
                             Observaciones
@@ -140,6 +157,7 @@
 
                     <button
                         type="submit"
+                        id="btnGuardar"
                         class="btn-principal"
                     >
                         Guardar cliente
@@ -150,40 +168,82 @@
 
             </form>
 
-            <p
+            <div
                 id="mensajeGuardado"
                 class="mensaje-guardado"
                 aria-live="polite"
-            ></p>
+                style="display:none; margin-top:16px; padding:12px 16px; border-radius:8px; font-size:14px; line-height:1.4;"
+            ></div>
         </section>
     </main>
-<a href="menu2.html">
-  <button class="btn-principal">
-    inicio
-  </button>
-</a>
 
-    <script>
-        const formulario =
-            document.getElementById("formularioRegistroCliente");
+    <div style="text-align: center; margin: 20px auto 40px;">
+        <a href="menu2.html" style="text-decoration:none;">
+          <button class="btn-principal" style="background:#0F2749;">
+            ← Volver al panel principal
+          </button>
+        </a>
+    </div>
 
-        const mensaje =
-            document.getElementById("mensajeGuardado");
+    <!-- Script de integración con Supabase -->
+    <script type="module">
+        import { registrarCliente } from './supabase.js';
 
-        formulario.addEventListener("submit", function (evento) {
+        const formulario = document.getElementById("formularioRegistroCliente");
+        const mensaje = document.getElementById("mensajeGuardado");
+        const btnGuardar = document.getElementById("btnGuardar");
+
+        function mostrarMensaje(texto, esError = false) {
+            mensaje.textContent = texto;
+            mensaje.style.display = "block";
+            if (esError) {
+                mensaje.style.backgroundColor = "#fee2e2";
+                mensaje.style.color = "#991b1b";
+                mensaje.style.border = "1px solid #f87171";
+            } else {
+                mensaje.style.backgroundColor = "#dcfce7";
+                mensaje.style.color = "#166534";
+                mensaje.style.border = "1px solid #86efac";
+            }
+        }
+
+        formulario.addEventListener("submit", async function (evento) {
             evento.preventDefault();
 
-            mensaje.textContent =
-                "El cliente se guardó correctamente.";
+            const datos = {
+                nombre: document.getElementById("nombre").value,
+                correo: document.getElementById("correo").value,
+                telefono: document.getElementById("telefono").value,
+                documento: document.getElementById("documento").value,
+                estado: document.getElementById("estado").value,
+                direccion: document.getElementById("direccion").value,
+                observaciones: document.getElementById("observaciones").value,
+                monto_deuda: document.getElementById("monto_deuda").value || 0
+            };
 
-            mensaje.classList.add("mostrar");
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = "Guardando en Supabase...";
+            mensaje.style.display = "none";
 
-            formulario.reset();
-
-            setTimeout(function () {
-                mensaje.classList.remove("mostrar");
-                mensaje.textContent = "";
-            }, 4000);
+            try {
+                const clienteGuardado = await registrarCliente(datos);
+                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado correctamente en la base de datos de Supabase.`, false);
+                formulario.reset();
+            } catch (error) {
+                console.error("Error al registrar cliente:", error);
+                let msg = error.message || "Error al conectar con Supabase.";
+                if (msg.includes("Could not find the table") || msg.includes("schema cache")) {
+                    msg = "La tabla 'clientes' no existe aún en tu base de datos de Supabase. Por favor copia y ejecuta el script 'schema.sql' en el Editor SQL de tu proyecto en Supabase.";
+                } else if (msg.includes("violates row-level security") || error.code === "42501") {
+                    msg = "Error de permisos RLS en Supabase: Asegúrate de habilitar las políticas de inserción ejecutando el archivo 'schema.sql'.";
+                } else if (msg.includes("duplicate key") || msg.includes("unique constraint")) {
+                    msg = "Ya existe un cliente registrado con ese número de documento / cédula.";
+                }
+                mostrarMensaje(msg, true);
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = "Guardar cliente";
+            }
         });
     </script>
 

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Cobros</title>
+    <meta name="description" content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
+    <meta property="og:title" content="Sistema de Gestión de Cobros">
+    <meta property="og:description" content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
+    <link rel="stylesheet" href="menu.css">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="left">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z" fill="#0F2749"/></svg>
+      </div>
+      <div class="brand-name">Sistema de Gestión de Cobros<span>Panel administrativo</span></div>
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">Acceso al panel</div>
+      <h1>Cada préstamo, cada pago, en un solo lugar.</h1>
+      <p>Ingresa con tu cuenta para revisar clientes, préstamos activos y el estado de tus cobros en tiempo real.</p>
+    </div>
+
+    <div>
+      <div class="stat-row">
+        <div><b>128</b><span>Clientes registrados</span></div>
+        <div><b>86</b><span>Préstamos activos</span></div>
+        <div><b>$45,800</b><span>Saldo pendiente</span></div>
+      </div>
+      <div class="left-foot" style="margin-top:28px;">© 2024 Sistema de Gestión de Cobros</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="card">
+      <div class="card-head">
+        <div class="kicker">Bienvenido de nuevo</div>
+        <h2>Inicia sesión</h2>
+        <p>Ingresa tus credenciales para continuar al panel principal.</p>
+      </div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="correo">Correo electrónico</label>
+          <input id="correo" class="input filled" type="email" placeholder="usuario@cobros.com" required />
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input id="password" class="input filled" type="password" placeholder="**********" required />
+        </div>
+
+        <div class="row-between">
+          <div class="remember"><div class="checkbox"></div> Recordarme</div>
+          <a class="forgot" href="#">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer;">
+          Iniciar sesión
+        </button>
+      </form>
+
+      <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
+
+      <div class="divider">o</div>
+
+      <a href="menu2.html" style="text-decoration:none;">
+        <button class="ghost-btn" type="button">Acceder como invitado / Demo</button>
+      </a>
+
+      <div class="foot-note">¿No tienes cuenta? <a href="menu2.html">Ingresar al panel</a></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { db } from './supabase.js';
+
+  const loginForm = document.getElementById('loginForm');
+  const btnIniciar = document.getElementById('btnIniciarSesion');
+  const loginMsg = document.getElementById('loginMsg');
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('correo').value.trim();
+    const password = document.getElementById('password').value;
+
+    btnIniciar.disabled = true;
+    btnIniciar.textContent = 'Verificando con Supabase...';
+    loginMsg.style.display = 'none';
+
+    try {
+      if (!db || !db.auth) {
+        window.location.href = 'menu2.html';
+        return;
+      }
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        loginMsg.style.display = 'block';
+        loginMsg.style.backgroundColor = '#fee2e2';
+        loginMsg.style.color = '#991b1b';
+        loginMsg.style.border = '1px solid #f87171';
+        loginMsg.textContent = 'Error: ' + (error.message || 'Credenciales incorrectas');
+      } else {
+        loginMsg.style.display = 'block';
+        loginMsg.style.backgroundColor = '#dcfce7';
+        loginMsg.style.color = '#166534';
+        loginMsg.textContent = '¡Sesión iniciada! Redirigiendo...';
+        setTimeout(() => {
+          window.location.href = 'menu2.html';
+        }, 800);
+      }
+    } catch (err) {
+      console.error(err);
+      window.location.href = 'menu2.html';
+    } finally {
+      btnIniciar.disabled = false;
+      btnIniciar.textContent = 'Iniciar sesión';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Gestión de Cobros",
+  "description": "Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
