@@ -43,7 +43,7 @@
     <div class="top">
         <div>
             <h1>Registrar Pago</h1>
-            <p>Sistema de Gestión de Cobros / Registro en Supabase</p>
+            <p>Sistema de Gestión de Cobros / Registro de Recibos</p>
         </div>
 
         <div class="code" id="codigoPago">
@@ -127,7 +127,7 @@
             </div>
 
             <button type="submit" class="save" id="btnGuardarPago">
-                Guardar pago en Supabase
+                Guardar pago
             </button>
 
             <a href="menu2.html" style="text-decoration:none; display:block;">
@@ -260,7 +260,7 @@
       };
 
       btnGuardar.disabled = true;
-      btnGuardar.textContent = 'Guardando en Supabase...';
+      btnGuardar.textContent = 'Guardando pago...';
       mensajePago.style.display = 'none';
 
       try {
@@ -268,7 +268,7 @@
 
         mensajePago.className = 'notification notification-success';
         mensajePago.style.display = 'block';
-        mensajePago.innerHTML = `¡Pago de <strong>$${pagoData.monto.toLocaleString('es-CO')} COP</strong> registrado exitosamente en Supabase!<br><small>Referencia: ${pagoData.referencia}</small>`;
+        mensajePago.innerHTML = `¡Pago de <strong>$${pagoData.monto.toLocaleString('es-CO')} COP</strong> registrado exitosamente en el sistema!<br><small>Referencia: ${pagoData.referencia}</small>`;
 
         // Actualizar deuda local
         deudaActual = Math.max(0, deudaActual - pagoData.monto);
@@ -286,13 +286,13 @@
         mensajePago.className = 'notification notification-error';
         mensajePago.style.display = 'block';
         if (err.message && err.message.includes('schema cache')) {
-          mensajePago.innerHTML = "La tabla 'pagos' no existe aún en Supabase. Ejecuta el archivo <code>schema.sql</code> en el SQL Editor de Supabase.";
+          mensajePago.innerHTML = "La tabla de pagos aún no está lista en la base de datos. Ejecuta el archivo <code>schema.sql</code> en tu base de datos.";
         } else {
           mensajePago.textContent = 'Error al registrar pago: ' + (err.message || err);
         }
       } finally {
         btnGuardar.disabled = false;
-        btnGuardar.textContent = 'Guardar pago en Supabase';
+        btnGuardar.textContent = 'Guardar pago';
       }
     });
 </script>

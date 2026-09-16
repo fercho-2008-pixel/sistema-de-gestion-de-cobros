@@ -283,7 +283,7 @@
       <div class="topbar">
         <div>
           <h2>Gestión y Registro de Usuarios</h2>
-          <p>Crea cuentas de acceso con credenciales seguras en Supabase Auth y administra roles del personal.</p>
+          <p>Crea cuentas de acceso con credenciales seguras y administra roles del personal.</p>
         </div>
         <div>
           <a href="index.html" style="text-decoration:none;">
@@ -329,7 +329,7 @@
                   👁️
                 </button>
               </div>
-              <div class="pass-rules">Debe tener al menos 6 caracteres (requisito de Supabase).</div>
+              <div class="pass-rules">Debe tener al menos 6 caracteres.</div>
             </div>
 
             <div class="field-group">
@@ -339,7 +339,7 @@
             </div>
 
             <button type="submit" id="btnRegistrarUsuario" class="btn-submit">
-              Registrar usuario en Supabase
+              Registrar usuario
             </button>
           </form>
 
@@ -376,7 +376,7 @@
             <tbody id="tablaUsuariosCuerpo">
               <tr>
                 <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
-                  Cargando directorio desde Supabase...
+                  Cargando directorio de usuarios...
                 </td>
               </tr>
             </tbody>
@@ -454,7 +454,7 @@
       }
 
       btnRegistrar.disabled = true;
-      btnRegistrar.textContent = 'Registrando en Supabase...';
+      btnRegistrar.textContent = 'Registrando usuario...';
       mensajeNotificacion.style.display = 'none';
 
       try {
@@ -465,7 +465,7 @@
           rol: selectRol.value
         });
 
-        mostrarMensaje(`¡Usuario "${inputNombre.value}" registrado con éxito en Supabase Auth con rol ${selectRol.value}!`, false);
+        mostrarMensaje(`¡Usuario "${inputNombre.value}" registrado con éxito con rol ${selectRol.value}!`, false);
         
         // Agregar a la lista local para feedback instantáneo
         const nuevoUsuarioLocal = {
@@ -482,7 +482,7 @@
         pwdMatchNotice.style.display = 'none';
 
         // Recargar desde base de datos
-        setTimeout(cargarUsuarios, 1000);
+        setTimeout(cargarUsuarios, 800);
       } catch (err) {
         console.error('Error al registrar usuario:', err);
         let msg = err.message || 'Error al procesar el registro.';
@@ -494,7 +494,7 @@
         mostrarMensaje(msg, true);
       } finally {
         btnRegistrar.disabled = false;
-        btnRegistrar.textContent = 'Registrar usuario en Supabase';
+        btnRegistrar.textContent = 'Registrar usuario';
       }
     });
 

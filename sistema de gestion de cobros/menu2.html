@@ -68,7 +68,7 @@
         <h1>Sistema de Gestión de Cobros</h1>
         <p>Control simple, moderno y confiable</p>
         <div class="db-badge" id="supabaseBadge">
-          <span class="db-dot"></span> Supabase Conectado
+          <span class="db-dot"></span> Base de datos en línea
         </div>
       </div>
 
@@ -86,7 +86,7 @@
       <div class="topbar">
         <div>
           <h2>Panel principal</h2>
-          <p>Resumen general sincronizado en tiempo real con Supabase</p>
+          <p>Resumen general sincronizado en tiempo real</p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
           <button class="btn-refresh" id="btnRecargar">
@@ -101,8 +101,8 @@
       <!-- Banner de estado del esquema -->
       <div id="bannerEsquema" class="banner-alerta" style="display:none;">
         <div>
-          <strong>Información de Supabase:</strong>
-          <span id="textoAlerta">Las tablas se están sincronizando. Si aún no las has creado, recuerda ejecutar <code>schema.sql</code>.</span>
+          <strong>Información del sistema:</strong>
+          <span id="textoAlerta">Las tablas se están sincronizando con el servidor. Si aún no las has creado, recuerda ejecutar <code>schema.sql</code>.</span>
         </div>
       </div>
 
@@ -144,7 +144,7 @@
           <tbody id="tablaMovimientos">
             <tr>
               <td colspan="4" style="text-align:center; padding: 24px; color: #64748b;">
-                Cargando movimientos desde Supabase...
+                Cargando movimientos recientes...
               </td>
             </tr>
           </tbody>
@@ -175,7 +175,7 @@
         const check = await verificarConexion();
         if (!check.ok && check.error && check.error.includes('schema cache')) {
           bannerEsquema.style.display = 'flex';
-          textoAlerta.innerHTML = "Se requiere ejecutar el archivo <strong>schema.sql</strong> en el SQL Editor de tu proyecto Supabase para crear las tablas <code>clientes</code> y <code>pagos</code>.";
+          textoAlerta.innerHTML = "Se requiere ejecutar el archivo <strong>schema.sql</strong> en tu base de datos para habilitar las tablas <code>clientes</code> y <code>pagos</code>.";
         }
 
         const data = await obtenerResumenDashboard();
@@ -202,7 +202,7 @@
           tablaMovimientos.innerHTML = `
             <tr>
               <td colspan="4" style="text-align:center; padding: 28px; color:#64748b;">
-                No hay movimientos registrados todavía en Supabase.<br>
+                No hay movimientos registrados todavía en el sistema.<br>
                 <a href="registros.html" style="color:#2563eb; text-decoration:underline; font-weight:500;">Registrar el primer cliente</a> o 
                 <a href="pagos.html" style="color:#2563eb; text-decoration:underline; font-weight:500;">registrar un pago</a>.
               </td>
@@ -218,7 +218,7 @@
         tablaMovimientos.innerHTML = `
           <tr>
             <td colspan="4" style="text-align:center; padding: 24px; color:#ef4444;">
-              Error al consultar datos en Supabase: ${err.message || err}
+              Error al consultar datos del sistema: ${err.message || err}
             </td>
           </tr>
         `;

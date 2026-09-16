@@ -222,20 +222,20 @@
             };
 
             btnGuardar.disabled = true;
-            btnGuardar.textContent = "Guardando en Supabase...";
+            btnGuardar.textContent = "Guardando cliente...";
             mensaje.style.display = "none";
 
             try {
                 const clienteGuardado = await registrarCliente(datos);
-                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado correctamente en la base de datos de Supabase.`, false);
+                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado correctamente en el sistema.`, false);
                 formulario.reset();
             } catch (error) {
                 console.error("Error al registrar cliente:", error);
-                let msg = error.message || "Error al conectar con Supabase.";
+                let msg = error.message || "Error al conectar con la base de datos.";
                 if (msg.includes("Could not find the table") || msg.includes("schema cache")) {
-                    msg = "La tabla 'clientes' no existe aún en tu base de datos de Supabase. Por favor copia y ejecuta el script 'schema.sql' en el Editor SQL de tu proyecto en Supabase.";
+                    msg = "La tabla de clientes aún no existe en la base de datos. Por favor ejecuta el script 'schema.sql' en tu base de datos.";
                 } else if (msg.includes("violates row-level security") || error.code === "42501") {
-                    msg = "Error de permisos RLS en Supabase: Asegúrate de habilitar las políticas de inserción ejecutando el archivo 'schema.sql'.";
+                    msg = "Error de permisos de base de datos: Asegúrate de habilitar las políticas de inserción ejecutando el archivo 'schema.sql'.";
                 } else if (msg.includes("duplicate key") || msg.includes("unique constraint")) {
                     msg = "Ya existe un cliente registrado con ese número de documento / cédula.";
                 }

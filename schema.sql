@@ -1,6 +1,6 @@
 -- ==========================================================
--- ESQUEMA SQL PARA SUPABASE - SISTEMA DE GESTIÓN DE COBROS
--- Copia y pega este script en: Supabase > SQL Editor > Run
+-- ESQUEMA SQL - SISTEMA DE GESTIÓN DE COBROS
+-- Copia y ejecuta este script en el editor SQL de tu base de datos
 -- ==========================================================
 
 -- 1. Habilitar extensión para UUIDs (si no está activa)

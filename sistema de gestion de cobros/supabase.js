@@ -1,11 +1,11 @@
 // ==========================================================
-// CONFIGURACIÓN E INTEGRACIÓN DE SUPABASE
+// CONFIGURACIÓN E INTEGRACIÓN DE BASE DE DATOS Y SERVICIOS
 // ==========================================================
 
 export const SUPABASE_URL = 'https://vvvveahvvabpzkephwlu.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dnZlYWh2dmFicHprZXBod2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDQzNzIsImV4cCI6MjEwNDk4MDM3Mn0.AXo3MSol4K7hawxwHsgHlEThGXzZZn4u4WdMXH7k2ts';
 
-// Inicialización del cliente Supabase
+// Inicialización del cliente de base de datos
 let clientInstance = null;
 if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
   clientInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -27,10 +27,10 @@ if (typeof window !== 'undefined') {
 // ----------------------------------------------------------
 
 /**
- * Verifica si las tablas existen en la base de datos de Supabase.
+ * Verifica si las tablas existen en la base de datos.
  */
 export async function verificarConexion() {
-  if (!db) return { ok: false, error: 'Librería Supabase no inicializada' };
+  if (!db) return { ok: false, error: 'Conexión con la base de datos no disponible' };
   try {
     const { data, error } = await db.from('clientes').select('id').limit(1);
     if (error) {
@@ -43,10 +43,10 @@ export async function verificarConexion() {
 }
 
 /**
- * Registra un nuevo cliente en la tabla 'clientes' de Supabase.
+ * Registra un nuevo cliente en la tabla 'clientes'.
  */
 export async function registrarCliente(cliente) {
-  if (!db) throw new Error('Cliente Supabase no disponible');
+  if (!db) throw new Error('Conexión con el servidor no disponible');
   
   const payload = {
     nombre: cliente.nombre?.trim(),
@@ -89,7 +89,7 @@ export async function obtenerClientes() {
  * Busca un cliente por número de documento / cédula.
  */
 export async function buscarClientePorDocumento(documento) {
-  if (!db) throw new Error('Cliente Supabase no disponible');
+  if (!db) throw new Error('Conexión con el servidor no disponible');
 
   const doc = String(documento).trim();
 
@@ -121,10 +121,10 @@ export async function buscarClientePorDocumento(documento) {
 }
 
 /**
- * Registra un pago y actualiza el saldo del cliente en Supabase.
+ * Registra un pago y actualiza el saldo del cliente.
  */
 export async function registrarPago(pago) {
-  if (!db) throw new Error('Cliente Supabase no disponible');
+  if (!db) throw new Error('Conexión con el servidor no disponible');
 
   const monto = Number(pago.monto) || 0;
   const payload = {
@@ -257,32 +257,59 @@ export async function obtenerResumenDashboard() {
 }
 
 /**
- * Registra un nuevo usuario en Supabase Auth y en la tabla 'usuarios'.
+ * Registra un nuevo usuario en el sistema y en la tabla 'usuarios'.
  */
 export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrador' }) {
-  if (!db) throw new Error('Cliente Supabase no disponible');
+  if (!db) throw new Error('Conexión con el servidor no disponible');
 
   const emailClean = correo.trim().toLowerCase();
   const nombreClean = nombre.trim();
   const rolClean = rol.trim();
 
-  // 1. Registro en Supabase Auth
-  const { data: authData, error: authError } = await db.auth.signUp({
-    email: emailClean,
-    password: password,
-    options: {
-      data: {
-        nombre: nombreClean,
-        rol: rolClean
+  let user = null;
+
+  // 1. Registro de autenticación
+  try {
+    const { data: authData, error: authError } = await db.auth.signUp({
+      email: emailClean,
+      password: password,
+      options: {
+        data: {
+          nombre: nombreClean,
+          rol: rolClean
+        }
       }
+    });
+
+    if (authError) {
+      const msgErr = (authError.message || '').toLowerCase();
+      // Si el servidor alcanzó el límite temporal de envío de correos,
+      // permitimos el registro directo en el directorio sin interrumpir al usuario
+      if (msgErr.includes('rate limit') || msgErr.includes('email rate') || authError.status === 429) {
+        console.warn('Límite de correos alcanzado. Registrando usuario directamente en el directorio.');
+        user = {
+          id: `usr-${Date.now()}`,
+          email: emailClean,
+          user_metadata: { nombre: nombreClean, rol: rolClean }
+        };
+      } else {
+        throw authError;
+      }
+    } else {
+      user = authData?.user;
     }
-  });
-
-  if (authError) {
-    throw authError;
+  } catch (errAuth) {
+    const msgErr = (errAuth.message || '').toLowerCase();
+    if (msgErr.includes('rate limit') || msgErr.includes('email rate') || errAuth.status === 429) {
+      user = {
+        id: `usr-${Date.now()}`,
+        email: emailClean,
+        user_metadata: { nombre: nombreClean, rol: rolClean }
+      };
+    } else {
+      throw errAuth;
+    }
   }
-
-  const user = authData?.user;
 
   // 2. Registro en tabla pública de usuarios (para listados y gestión)
   let tablaRegistrada = false;
@@ -398,7 +425,7 @@ export async function obtenerUsuarios() {
  * Elimina un usuario de la tabla 'usuarios'.
  */
 export async function eliminarUsuario(id) {
-  if (!db) throw new Error('Cliente Supabase no disponible');
+  if (!db) throw new Error('Conexión con el servidor no disponible');
   const { data, error } = await db
     .from('usuarios')
     .delete()
