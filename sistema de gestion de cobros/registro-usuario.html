@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro de Usuarios - Sistema de Gestión de Cobros</title>
+  <link rel="stylesheet" href="estilosmenu2.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .module-grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .module-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .form-card h3 {
+      font-size: 1.15rem;
+      color: #0f172a;
+      margin-bottom: 6px;
+    }
+
+    .form-card p {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .field-group input,
+    .field-group select {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #0f172a;
+      background-color: #ffffff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .field-group input:focus,
+    .field-group select:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .input-password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-password-wrapper input {
+      padding-right: 42px;
+    }
+
+    .btn-toggle-pwd {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .notice {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin-top: 16px;
+      display: none;
+    }
+
+    .notice-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .notice-error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #f87171;
+    }
+
+    .table-container {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .table-search {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .table-search input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+
+    .role-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .role-admin {
+      background: #ede9fe;
+      color: #6d28d9;
+    }
+
+    .role-cobrador {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .role-supervisor {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .role-cajero {
+      background: #d1fae5;
+      color: #047857;
+    }
+
+    .user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #0f172a;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .user-item-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-details h4 {
+      font-size: 0.9rem;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .user-details span {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      color: #334155;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+    }
+
+    .btn-refresh:hover {
+      background: #f1f5f9;
+    }
+
+    .pass-rules {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Sistema de Gestión de Cobros</h1>
+        <p>Control simple, moderno y confiable</p>
+      </div>
+
+      <nav class="menu">
+        <a href="menu2.html">Inicio</a>
+        <a href="consulta.html">Consultar clientes</a>
+        <a href="registros.html">Registrar clientes</a>
+        <a href="pagos.html">Registrar pagos</a>
+        <a href="registro-usuario.html" class="active">Usuarios del sistema</a>
+        <a href="menu.html" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <h2>Gestión y Registro de Usuarios</h2>
+          <p>Crea cuentas de acceso con credenciales seguras en Supabase Auth y administra roles del personal.</p>
+        </div>
+        <div>
+          <a href="index.html" style="text-decoration:none;">
+            <button class="btn-refresh" style="padding: 10px 14px;">
+              ← Pantalla de inicio de sesión
+            </button>
+          </a>
+        </div>
+      </div>
+
+      <div class="module-grid">
+        <!-- Tarjeta de Registro de Usuario -->
+        <div class="form-card">
+          <h3>Registrar Nuevo Usuario</h3>
+          <p>El usuario podrá iniciar sesión en el sistema con su correo y contraseña.</p>
+
+          <form id="formRegistroUsuario">
+            <div class="field-group">
+              <label for="nombreUsuario">Nombre completo *</label>
+              <input type="text" id="nombreUsuario" placeholder="Ej: Carlos Mendoza" required autocomplete="name">
+            </div>
+
+            <div class="field-group">
+              <label for="correoUsuario">Correo electrónico *</label>
+              <input type="email" id="correoUsuario" placeholder="ejemplo@cobros.com" required autocomplete="email">
+            </div>
+
+            <div class="field-group">
+              <label for="rolUsuario">Rol en el sistema *</label>
+              <select id="rolUsuario" required>
+                <option value="Cobrador">Cobrador / Asesor de ruta</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Supervisor">Supervisor de zona</option>
+                <option value="Cajero">Cajero / Pagador</option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="passwordUsuario">Contraseña *</label>
+              <div class="input-password-wrapper">
+                <input type="password" id="passwordUsuario" placeholder="Mínimo 6 caracteres" minlength="6" required autocomplete="new-password">
+                <button type="button" class="btn-toggle-pwd" id="togglePassword" aria-label="Mostrar u ocultar contraseña">
+                  👁️
+                </button>
+              </div>
+              <div class="pass-rules">Debe tener al menos 6 caracteres (requisito de Supabase).</div>
+            </div>
+
+            <div class="field-group">
+              <label for="confirmPasswordUsuario">Confirmar Contraseña *</label>
+              <input type="password" id="confirmPasswordUsuario" placeholder="Repite la contraseña" minlength="6" required autocomplete="new-password">
+              <div id="pwdMatchNotice" style="display:none; font-size:0.75rem; margin-top:4px;"></div>
+            </div>
+
+            <button type="submit" id="btnRegistrarUsuario" class="btn-submit">
+              Registrar usuario en Supabase
+            </button>
+          </form>
+
+          <div id="mensajeNotificacion" class="notice"></div>
+        </div>
+
+        <!-- Tabla / Directorio de Usuarios -->
+        <div class="table-container">
+          <div class="table-header">
+            <div>
+              <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">Directorio de Usuarios</h3>
+              <span id="contadorUsuarios" style="font-size: 0.82rem; color: #64748b;">Consultando usuarios...</span>
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div class="table-search">
+                <input type="text" id="buscadorUsuario" placeholder="Buscar por nombre o correo...">
+              </div>
+              <button class="btn-refresh" id="btnActualizarLista">
+                ↻
+              </button>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Fecha de registro</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tablaUsuariosCuerpo">
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
+                  Cargando directorio desde Supabase...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { registrarUsuario, obtenerUsuarios } from './supabase.js';
+
+    // Elementos del formulario
+    const form = document.getElementById('formRegistroUsuario');
+    const inputNombre = document.getElementById('nombreUsuario');
+    const inputCorreo = document.getElementById('correoUsuario');
+    const selectRol = document.getElementById('rolUsuario');
+    const inputPwd = document.getElementById('passwordUsuario');
+    const inputConfirmPwd = document.getElementById('confirmPasswordUsuario');
+    const btnTogglePwd = document.getElementById('togglePassword');
+    const btnRegistrar = document.getElementById('btnRegistrarUsuario');
+    const mensajeNotificacion = document.getElementById('mensajeNotificacion');
+    const pwdMatchNotice = document.getElementById('pwdMatchNotice');
+
+    // Elementos de la tabla
+    const tablaCuerpo = document.getElementById('tablaUsuariosCuerpo');
+    const contadorUsuarios = document.getElementById('contadorUsuarios');
+    const buscadorUsuario = document.getElementById('buscadorUsuario');
+    const btnActualizar = document.getElementById('btnActualizarLista');
+
+    let usuariosCargados = [];
+
+    // Alternar visibilidad de contraseña
+    btnTogglePwd.addEventListener('click', () => {
+      const esPassword = inputPwd.getAttribute('type') === 'password';
+      inputPwd.setAttribute('type', esPassword ? 'text' : 'password');
+      inputConfirmPwd.setAttribute('type', esPassword ? 'text' : 'password');
+      btnTogglePwd.textContent = esPassword ? '🔒' : '👁️';
+    });
+
+    // Validar coincidencia de contraseñas
+    function verificarCoincidenciaPwd() {
+      if (!inputConfirmPwd.value) {
+        pwdMatchNotice.style.display = 'none';
+        return true;
+      }
+      if (inputPwd.value !== inputConfirmPwd.value) {
+        pwdMatchNotice.style.display = 'block';
+        pwdMatchNotice.style.color = '#ef4444';
+        pwdMatchNotice.textContent = 'Las contraseñas no coinciden';
+        return false;
+      } else {
+        pwdMatchNotice.style.display = 'block';
+        pwdMatchNotice.style.color = '#10b981';
+        pwdMatchNotice.textContent = 'Las contraseñas coinciden';
+        return true;
+      }
+    }
+
+    inputPwd.addEventListener('input', verificarCoincidenciaPwd);
+    inputConfirmPwd.addEventListener('input', verificarCoincidenciaPwd);
+
+    // Envío del formulario
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      if (inputPwd.value !== inputConfirmPwd.value) {
+        mostrarMensaje('Las contraseñas ingresadas no coinciden.', true);
+        return;
+      }
+
+      if (inputPwd.value.length < 6) {
+        mostrarMensaje('La contraseña debe tener al menos 6 caracteres.', true);
+        return;
+      }
+
+      btnRegistrar.disabled = true;
+      btnRegistrar.textContent = 'Registrando en Supabase...';
+      mensajeNotificacion.style.display = 'none';
+
+      try {
+        const resultado = await registrarUsuario({
+          nombre: inputNombre.value,
+          correo: inputCorreo.value,
+          password: inputPwd.value,
+          rol: selectRol.value
+        });
+
+        mostrarMensaje(`¡Usuario "${inputNombre.value}" registrado con éxito en Supabase Auth con rol ${selectRol.value}!`, false);
+        
+        // Agregar a la lista local para feedback instantáneo
+        const nuevoUsuarioLocal = {
+          id: resultado.user?.id || Date.now().toString(),
+          nombre: inputNombre.value.trim(),
+          correo: inputCorreo.value.trim().toLowerCase(),
+          rol: selectRol.value,
+          created_at: new Date().toISOString()
+        };
+        usuariosCargados = [nuevoUsuarioLocal, ...usuariosCargados.filter(u => u.correo !== nuevoUsuarioLocal.correo)];
+        renderizarTabla(usuariosCargados);
+
+        form.reset();
+        pwdMatchNotice.style.display = 'none';
+
+        // Recargar desde base de datos
+        setTimeout(cargarUsuarios, 1000);
+      } catch (err) {
+        console.error('Error al registrar usuario:', err);
+        let msg = err.message || 'Error al procesar el registro.';
+        if (msg.includes('already registered') || msg.includes('User already exists')) {
+          msg = 'Este correo electrónico ya se encuentra registrado en el sistema.';
+        } else if (msg.includes('Password should be at least')) {
+          msg = 'La contraseña debe contener al menos 6 caracteres.';
+        }
+        mostrarMensaje(msg, true);
+      } finally {
+        btnRegistrar.disabled = false;
+        btnRegistrar.textContent = 'Registrar usuario en Supabase';
+      }
+    });
+
+    function mostrarMensaje(texto, esError = false) {
+      mensajeNotificacion.textContent = texto;
+      mensajeNotificacion.className = esError ? 'notice notice-error' : 'notice notice-success';
+      mensajeNotificacion.style.display = 'block';
+    }
+
+    // Cargar y mostrar lista de usuarios
+    async function cargarUsuarios() {
+      contadorUsuarios.textContent = 'Consultando usuarios...';
+      try {
+        const datos = await obtenerUsuarios();
+        usuariosCargados = datos || [];
+        renderizarTabla(usuariosCargados);
+      } catch (err) {
+        console.error('Error al cargar usuarios:', err);
+        tablaCuerpo.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align:center; padding: 20px; color:#ef4444;">
+              No se pudo cargar la lista de usuarios: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function renderizarTabla(lista) {
+      contadorUsuarios.textContent = `${lista.length} usuario(s) registrado(s)`;
+
+      if (lista.length === 0) {
+        tablaCuerpo.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
+              No hay usuarios listados aún en la tabla 'usuarios'.<br>
+              <small>Los nuevos usuarios registrados en este formulario aparecerán aquí.</small>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tablaCuerpo.innerHTML = lista.map(u => {
+        const nombre = u.nombre || u.correo.split('@')[0];
+        const iniciales = nombre.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
+        const rol = u.rol || 'Cobrador';
+        
+        let badgeClass = 'role-cobrador';
+        if (rol.toLowerCase().includes('admin')) badgeClass = 'role-admin';
+        else if (rol.toLowerCase().includes('super')) badgeClass = 'role-supervisor';
+        else if (rol.toLowerCase().includes('cajer')) badgeClass = 'role-cajero';
+
+        const fecha = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CO') : 'Reciente';
+
+        return `
+          <tr>
+            <td>
+              <div class="user-item-info">
+                <div class="user-avatar">${iniciales}</div>
+                <div class="user-details">
+                  <h4>${nombre}</h4>
+                  <span>${u.correo}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="role-badge ${badgeClass}">${rol}</span>
+            </td>
+            <td>${fecha}</td>
+            <td>
+              <span class="status paid">Activo</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Filtrar usuarios en la tabla
+    buscadorUsuario.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        renderizarTabla(usuariosCargados);
+        return;
+      }
+      const filtrados = usuariosCargados.filter(u => 
+        (u.nombre && u.nombre.toLowerCase().includes(q)) ||
+        (u.correo && u.correo.toLowerCase().includes(q)) ||
+        (u.rol && u.rol.toLowerCase().includes(q))
+      );
+      renderizarTabla(filtrados);
+    });
+
+    btnActualizar.addEventListener('click', cargarUsuarios);
+
+    // Inicializar
+    cargarUsuarios();
+  </script>
+</body>
+</html>

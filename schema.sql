@@ -106,6 +106,38 @@ CREATE POLICY "Permitir actualizacion general de pagos" ON public.pagos FOR UPDA
 DROP POLICY IF EXISTS "Permitir lectura general de usuarios" ON public.usuarios;
 CREATE POLICY "Permitir lectura general de usuarios" ON public.usuarios FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Permitir insercion general de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir insercion general de usuarios" ON public.usuarios FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir actualizacion general de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir actualizacion general de usuarios" ON public.usuarios FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir eliminacion general de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir eliminacion general de usuarios" ON public.usuarios FOR DELETE USING (true);
+
+-- Trigger opcional para sincronizar automáticamente usuarios de auth.users a public.usuarios
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.usuarios (id, correo, nombre, rol)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'nombre', split_part(new.email, '@', 1)),
+    COALESCE(new.raw_user_meta_data->>'rol', 'Cobrador')
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET nombre = EXCLUDED.nombre,
+        rol = EXCLUDED.rol;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
 -- 8. DATOS INICIALES DE DEMOSTRACIÓN (OPCIONALES)
 INSERT INTO public.clientes (nombre, correo, telefono, documento, estado, direccion, observaciones, monto_deuda)
 VALUES 

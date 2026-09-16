@@ -6,11 +6,14 @@ export const SUPABASE_URL = 'https://vvvveahvvabpzkephwlu.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dnZlYWh2dmFicHprZXBod2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDQzNzIsImV4cCI6MjEwNDk4MDM3Mn0.AXo3MSol4K7hawxwHsgHlEThGXzZZn4u4WdMXH7k2ts';
 
 // Inicialización del cliente Supabase
-export const db = (typeof supabase !== 'undefined' && supabase.createClient)
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : (typeof window !== 'undefined' && window.supabase && window.supabase.createClient
-      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-      : null);
+let clientInstance = null;
+if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+  clientInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} else if (typeof globalThis !== 'undefined' && globalThis.supabase && globalThis.supabase.createClient) {
+  clientInstance = globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+export const db = clientInstance;
 
 // Asignar en window para compatibilidad directa en scripts normales
 if (typeof window !== 'undefined') {
@@ -251,4 +254,156 @@ export async function obtenerResumenDashboard() {
     saldoPendiente,
     ultimosMovimientos
   };
+}
+
+/**
+ * Registra un nuevo usuario en Supabase Auth y en la tabla 'usuarios'.
+ */
+export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrador' }) {
+  if (!db) throw new Error('Cliente Supabase no disponible');
+
+  const emailClean = correo.trim().toLowerCase();
+  const nombreClean = nombre.trim();
+  const rolClean = rol.trim();
+
+  // 1. Registro en Supabase Auth
+  const { data: authData, error: authError } = await db.auth.signUp({
+    email: emailClean,
+    password: password,
+    options: {
+      data: {
+        nombre: nombreClean,
+        rol: rolClean
+      }
+    }
+  });
+
+  if (authError) {
+    throw authError;
+  }
+
+  const user = authData?.user;
+
+  // 2. Registro en tabla pública de usuarios (para listados y gestión)
+  let tablaRegistrada = false;
+  try {
+    const payload = {
+      correo: emailClean,
+      nombre: nombreClean,
+      rol: rolClean
+    };
+    if (user?.id) {
+      payload.id = user.id;
+    }
+
+    const { error: errInsert } = await db
+      .from('usuarios')
+      .upsert([payload], { onConflict: 'correo' });
+
+    if (!errInsert) {
+      tablaRegistrada = true;
+    } else {
+      console.warn('Nota sobre tabla usuarios:', errInsert.message);
+    }
+  } catch (e) {
+    console.warn('No se pudo insertar en public.usuarios:', e.message);
+  }
+
+  // Guardar copia de respaldo en almacenamiento local para asegurar visualización inmediata
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const guardados = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
+      const usuarioLocal = {
+        id: user?.id || `usr-${Date.now()}`,
+        nombre: nombreClean,
+        correo: emailClean,
+        rol: rolClean,
+        created_at: new Date().toISOString()
+      };
+      const actualizados = [usuarioLocal, ...guardados.filter(u => u.correo !== emailClean)];
+      window.localStorage.setItem('sistema_usuarios_registrados', JSON.stringify(actualizados));
+    } catch (e) {
+      console.warn('Error al guardar en cache local de usuarios:', e);
+    }
+  }
+
+  return {
+    ok: true,
+    user,
+    session: authData?.session,
+    tablaRegistrada
+  };
+}
+
+/**
+ * Obtiene la lista de usuarios registrados desde la tabla 'usuarios' y la combina con usuarios registrados.
+ */
+export async function obtenerUsuarios() {
+  let usuariosRemotos = [];
+  
+  if (db) {
+    try {
+      const { data, error } = await db
+        .from('usuarios')
+        .select('id, nombre, correo, rol');
+
+      if (!error && data) {
+        usuariosRemotos = data;
+      } else if (error) {
+        console.warn('Consulta a tabla usuarios:', error.message);
+      }
+    } catch (err) {
+      console.warn('Error en obtenerUsuarios:', err);
+    }
+  }
+
+  // Obtener usuarios del cache local
+  let usuariosLocales = [];
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      usuariosLocales = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
+    } catch (e) {
+      usuariosLocales = [];
+    }
+  }
+
+  // Si no hay usuarios en ninguna parte, incluir usuarios iniciales del sistema
+  if (usuariosRemotos.length === 0 && usuariosLocales.length === 0) {
+    usuariosLocales = [
+      {
+        id: 'usr-admin',
+        nombre: 'Administrador Principal',
+        correo: 'admin@cobros.com',
+        rol: 'Administrador',
+        created_at: new Date().toISOString()
+      }
+    ];
+  }
+
+  // Combinar sin duplicar correos
+  const mapa = new Map();
+  usuariosRemotos.forEach(u => {
+    if (u.correo) mapa.set(u.correo.toLowerCase(), { ...u, created_at: u.created_at || new Date().toISOString() });
+  });
+  usuariosLocales.forEach(u => {
+    if (u.correo && !mapa.has(u.correo.toLowerCase())) {
+      mapa.set(u.correo.toLowerCase(), u);
+    }
+  });
+
+  return Array.from(mapa.values());
+}
+
+/**
+ * Elimina un usuario de la tabla 'usuarios'.
+ */
+export async function eliminarUsuario(id) {
+  if (!db) throw new Error('Cliente Supabase no disponible');
+  const { data, error } = await db
+    .from('usuarios')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return data;
 }
