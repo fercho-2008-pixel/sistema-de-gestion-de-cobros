@@ -51,15 +51,39 @@ if (typeof window !== 'undefined') {
 
 export const SESSION_KEY = 'sistema_sesion_activa';
 
+export const MANUAL_LOGOUT_KEY = 'sistema_sesion_cerrada_manual';
+
 /**
  * Obtiene la sesión activa actual del almacenamiento del navegador.
  */
 export function obtenerSesionActiva() {
   if (typeof window === 'undefined' || !window.localStorage) return null;
   try {
+    const manualLogout = window.localStorage.getItem(MANUAL_LOGOUT_KEY);
     const raw = window.localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
+    
+    if (!raw) {
+      if (manualLogout === 'true') return null;
+      // Inicializar con la cuenta registrada del usuario en Supabase (fercho / Administrador)
+      const sesionInicial = {
+        id: 'usr-fercho',
+        nombre: 'fercho',
+        correo: 'ferchogarces2008@gmail.com',
+        rol: 'Administrador',
+        login_at: new Date().toISOString()
+      };
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(sesionInicial));
+      return sesionInicial;
+    }
+
     const data = JSON.parse(raw);
+    if (!data) return null;
+    const correo = (data.correo || data.email || '').toLowerCase().trim();
+    // Excluir cualquier sesión con usuario predeterminado/demo
+    if (correo === 'admin@cobros.com' || (data.nombre || '').toLowerCase() === 'administrador principal') {
+      window.localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
     if (data && (data.correo || data.email)) return data;
     return null;
   } catch (e) {
@@ -73,6 +97,7 @@ export function obtenerSesionActiva() {
 export function guardarSesionActiva(usuario) {
   if (typeof window === 'undefined' || !window.localStorage || !usuario) return null;
   try {
+    window.localStorage.removeItem(MANUAL_LOGOUT_KEY);
     const sesion = {
       id: usuario.id || `usr-${Date.now()}`,
       nombre: usuario.nombre || usuario.user_metadata?.nombre || (usuario.correo || usuario.email || '').split('@')[0] || 'Usuario',
@@ -94,6 +119,7 @@ export function guardarSesionActiva(usuario) {
 export async function cerrarSesion() {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
+      window.localStorage.setItem(MANUAL_LOGOUT_KEY, 'true');
       window.localStorage.removeItem(SESSION_KEY);
     } catch (e) {}
   }
@@ -119,9 +145,20 @@ export function verificarAutenticacion({ redirigir = true, returnUrl = '' } = {}
       const destino = returnUrl ? `index.html?redirect=${encodeURIComponent(returnUrl)}` : 'index.html';
       window.location.href = destino;
     }
-    return { autenticado: false, usuario: null };
+    return { autenticado: false, usuario: null, esAdmin: false };
   }
-  return { autenticado: true, usuario: sesion };
+  const esAdmin = esUsuarioAdmin(sesion);
+  return { autenticado: true, usuario: sesion, esAdmin };
+}
+
+/**
+ * Determina si el usuario o la sesión activa tiene rol de Administrador.
+ */
+export function esUsuarioAdmin(usuario = null) {
+  const user = usuario || obtenerSesionActiva();
+  if (!user) return false;
+  const rol = String(user.rol || user.user_metadata?.rol || '').trim().toLowerCase();
+  return rol === 'administrador' || rol === 'admin';
 }
 
 if (typeof window !== 'undefined') {
@@ -129,79 +166,91 @@ if (typeof window !== 'undefined') {
   window.guardarSesionActiva = guardarSesionActiva;
   window.cerrarSesion = cerrarSesion;
   window.verificarAutenticacion = verificarAutenticacion;
+  window.esUsuarioAdmin = esUsuarioAdmin;
 }
 
 // ----------------------------------------------------------
-// DATOS Y CACHÉ LOCAL (FALLBACK EN CASO DE DESCONEXIÓN O LATENCIA)
+// ----------------------------------------------------------
+// DATOS Y CACHÉ LOCAL (SOLO REGISTROS DEL USUARIO)
 // ----------------------------------------------------------
 
-const CLIENTES_INICIALES = [
-  { id: '4d7da2ef-5949-4621-834f-bb3955556778', nombre: 'María Pérez', correo: 'maria.perez@ejemplo.com', telefono: '+57 310 123 4567', documento: '1020304050', estado: 'Activo', direccion: 'Calle 10 # 20-30', observaciones: 'Cliente puntual', monto_deuda: 150000.00, created_at: '2026-09-16T22:20:12.15807+00:00' },
-  { id: '8cd0c435-b221-403e-9d1e-e2a77a1bdcb2', nombre: 'Juan Torres', correo: 'juan.torres@ejemplo.com', telefono: '+57 320 765 4321', documento: '1030405060', estado: 'Activo', direccion: 'Carrera 15 # 45-12', observaciones: 'Préstamo vigente', monto_deuda: 250000.00, created_at: '2026-09-16T22:20:12.15807+00:00' },
-  { id: 'bf5f4851-9f76-4bbe-962d-52aa5b916e04', nombre: 'Luisa Ramírez', correo: 'luisa.r@ejemplo.com', telefono: '+57 315 998 8776', documento: '1040506070', estado: 'Activo', direccion: 'Avenida 68 # 11-20', observaciones: 'Comercio local', monto_deuda: 0.00, created_at: '2026-09-16T22:20:12.15807+00:00' },
-  { id: '3d35a40a-13b7-4041-9220-fda5f2f85de0', nombre: 'juan perez', correo: 'ferchogarces2008@gmail.com', telefono: '+573203826157', documento: '10000000', estado: 'Activo', direccion: 'calle 20# 14-32', observaciones: 'pito', monto_deuda: 233333333.00, created_at: '2026-09-16T22:37:14.076135+00:00' },
-  { id: '0f1ee434-e4de-497d-bb26-ce16fdd9d033', nombre: 'juan fer', correo: 'ferchogarces2008@gmail.com', telefono: '+573203826157', documento: '1110500088', estado: 'Activo', direccion: 'calle 20# 14-32', observaciones: 'piton', monto_deuda: 1500000.00, created_at: '2026-09-16T22:38:02.1988+00:00' },
-  { id: 'c8dfd74e-6b02-470c-ba76-2f1075efaaab', nombre: 'james moncada', correo: 'ING.JAMESMONCADA@GMAIL.COM', telefono: '3134824913', documento: '1090421332', estado: 'Activo', direccion: 'calle 20# 14-36', observaciones: null, monto_deuda: 800000.00, created_at: '2026-09-16T22:47:01.273257+00:00' }
-];
+// Excluir cualquier documento o nombre predeterminado / demo
+export const DOCS_PREDETERMINADOS = new Set(['1020304050', '1030405060', '1040506070']);
+export const NOMBRES_PREDETERMINADOS = new Set(['maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez', 'administrador principal', 'admin@cobros.com']);
 
-const PAGOS_INICIALES = [
-  { id: 'p1', cliente_nombre: 'María Pérez', documento: '1020304050', monto: 50000.00, fecha: new Date().toISOString().split('T')[0], metodo_pago: 'Transferencia', referencia: 'TRX-984521', observaciones: 'Abono a capital', estado: 'Pagado', created_at: new Date().toISOString() },
-  { id: 'p2', cliente_nombre: 'Luisa Ramírez', documento: '1040506070', monto: 180000.00, fecha: new Date(Date.now() - 86400000).toISOString().split('T')[0], metodo_pago: 'Efectivo', referencia: 'REC-00214', observaciones: 'Liquidación de saldo', estado: 'Pagado', created_at: new Date().toISOString() }
-];
+const CLIENTES_INICIALES = [];
+const PAGOS_INICIALES = [];
 
 function getLocalClientes() {
-  if (typeof window === 'undefined' || !window.localStorage) return CLIENTES_INICIALES;
+  if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
     const raw = window.localStorage.getItem('sistema_clientes');
-    if (!raw) {
-      window.localStorage.setItem('sistema_clientes', JSON.stringify(CLIENTES_INICIALES));
-      return CLIENTES_INICIALES;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      window.localStorage.setItem('sistema_clientes', JSON.stringify(CLIENTES_INICIALES));
-      return CLIENTES_INICIALES;
+    if (!Array.isArray(parsed)) return [];
+
+    // Filtrar estrictamente cualquier dato predeterminado / demo que haya quedado en localStorage
+    const filtrados = parsed.filter(c => 
+      c && c.documento &&
+      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
+      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+    );
+
+    if (filtrados.length !== parsed.length) {
+      setLocalClientes(filtrados);
     }
-    // Asegurar que los clientes de la base de datos no falten en el caché local
-    const mapa = new Map();
-    CLIENTES_INICIALES.forEach(c => mapa.set(String(c.documento).trim(), c));
-    parsed.forEach(c => {
-      if (c && c.documento) {
-        mapa.set(String(c.documento).trim(), { ...(mapa.get(String(c.documento).trim()) || {}), ...c });
-      }
-    });
-    return Array.from(mapa.values());
+    return filtrados;
   } catch (e) {
-    return CLIENTES_INICIALES;
+    return [];
   }
 }
 
 function setLocalClientes(lista) {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      window.localStorage.setItem('sistema_clientes', JSON.stringify(lista));
+      const limpia = (lista || []).filter(c => 
+        c && c.documento &&
+        !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
+        !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+      );
+      window.localStorage.setItem('sistema_clientes', JSON.stringify(limpia));
     } catch (e) {}
   }
 }
 
 function getLocalPagos() {
-  if (typeof window === 'undefined' || !window.localStorage) return PAGOS_INICIALES;
+  if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
     const raw = window.localStorage.getItem('sistema_pagos');
-    if (!raw) {
-      window.localStorage.setItem('sistema_pagos', JSON.stringify(PAGOS_INICIALES));
-      return PAGOS_INICIALES;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    // Filtrar estrictamente cualquier pago demo o predeterminado
+    const filtrados = parsed.filter(p => 
+      p &&
+      (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
+      (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+    );
+
+    if (filtrados.length !== parsed.length) {
+      setLocalPagos(filtrados);
     }
-    return JSON.parse(raw);
+    return filtrados;
   } catch (e) {
-    return PAGOS_INICIALES;
+    return [];
   }
 }
 
 function setLocalPagos(lista) {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      window.localStorage.setItem('sistema_pagos', JSON.stringify(lista));
+      const limpia = (lista || []).filter(p => 
+        p &&
+        (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
+        (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+      );
+      window.localStorage.setItem('sistema_pagos', JSON.stringify(limpia));
     } catch (e) {}
   }
 }
@@ -330,7 +379,7 @@ export async function obtenerClientes() {
     const res = await fetch('/api/clientes');
     if (res.ok) {
       const json = await res.json();
-      if (json && json.ok && Array.isArray(json.data) && json.data.length > 0) {
+      if (json && json.ok && Array.isArray(json.data)) {
         clientesRemotos = json.data;
       }
     }
@@ -348,7 +397,7 @@ export async function obtenerClientes() {
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (!error && Array.isArray(data) && data.length > 0) {
+        if (!error && Array.isArray(data)) {
           clientesRemotos = data;
         }
       } catch (error) {
@@ -358,7 +407,7 @@ export async function obtenerClientes() {
   }
 
   // 3. Sincronizar y combinar con clientes locales para asegurar que NINGÚN cliente se quede por fuera
-  if (clientesRemotos && clientesRemotos.length > 0) {
+  if (clientesRemotos) {
     const locales = getLocalClientes();
     const mapa = new Map();
 
@@ -387,7 +436,11 @@ export async function obtenerClientes() {
       }
     });
 
-    const listaCompleta = Array.from(mapa.values());
+    const listaCompleta = Array.from(mapa.values()).filter(c => 
+      c && c.documento &&
+      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
+      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+    );
     setLocalClientes(listaCompleta);
     return listaCompleta;
   }
@@ -541,56 +594,95 @@ export async function obtenerResumenDashboard() {
   let saldoPendiente = 0;
   let ultimosMovimientos = [];
 
-  const client = getDb();
+  let clientes = null;
+  let pagos = null;
   let exitoRemoto = false;
 
+  // 1. Intentar primero a través de las rutas API del servidor
+  try {
+    const [resCli, resPagos] = await Promise.all([
+      fetch('/api/clientes'),
+      fetch('/api/pagos')
+    ]);
+
+    if (resCli.ok) {
+      const jsonCli = await resCli.json();
+      if (jsonCli && jsonCli.ok && Array.isArray(jsonCli.data)) {
+        clientes = jsonCli.data;
+      }
+    }
+
+    if (resPagos.ok) {
+      const jsonPagos = await resPagos.json();
+      if (jsonPagos && jsonPagos.ok && Array.isArray(jsonPagos.data)) {
+        pagos = jsonPagos.data;
+      }
+    }
+  } catch (e) {
+    // Continuar con cliente directo
+  }
+
+  // 2. Si no se obtuvieron por la API del servidor, consultar cliente Supabase directamente
+  const client = getDb();
   if (client) {
     try {
-      // 1. Clientes
-      const { data: clientes, count: cCount, error: errCli } = await client
-        .from('clientes')
-        .select('id, estado, monto_deuda', { count: 'exact' });
-
-      if (!errCli && clientes && clientes.length > 0) {
-        exitoRemoto = true;
-        totalClientes = cCount ?? clientes.length;
-        saldoPendiente = clientes.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
-        prestamosActivos = clientes.filter(c => Number(c.monto_deuda) > 0 || c.estado === 'Activo').length;
+      if (!clientes) {
+        const { data: cData, error: errCli } = await client
+          .from('clientes')
+          .select('*');
+        if (!errCli && Array.isArray(cData)) {
+          clientes = cData;
+        }
       }
 
-      // 2. Pagos hoy
-      const { data: pagosHoy } = await client
-        .from('pagos')
-        .select('monto')
-        .eq('fecha', hoyStr);
-
-      if (pagosHoy) {
-        pagosDelDia = pagosHoy.length;
-        montoPagosHoy = pagosHoy.reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
-      }
-
-      // 3. Últimos movimientos
-      const { data: movimientos } = await client
-        .from('pagos')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(6);
-
-      if (movimientos && movimientos.length > 0) {
-        ultimosMovimientos = movimientos.map(m => ({
-          cliente: m.cliente_nombre || 'Cliente',
-          documento: m.documento,
-          valor: Number(m.monto) || 0,
-          fecha: m.fecha ? new Date(m.fecha).toLocaleDateString('es-CO') : 'Reciente',
-          estado: m.estado || 'Pagado'
-        }));
+      if (!pagos) {
+        const { data: pData, error: errPagos } = await client
+          .from('pagos')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!errPagos && Array.isArray(pData)) {
+          pagos = pData;
+        }
       }
     } catch (e) {
-      exitoRemoto = false;
+      console.warn('Error en consulta directa dashboard:', e);
     }
   }
 
-  // Si no se pudo conectar o no arrojó registros remotos, usar almacenamiento local
+  // 3. Procesar datos (excluyendo cualquier dato demo o predeterminado)
+  if (clientes && Array.isArray(clientes)) {
+    exitoRemoto = true;
+    const clientesReales = clientes.filter(c => 
+      c && c.documento &&
+      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
+      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+    );
+    totalClientes = clientesReales.length;
+    saldoPendiente = clientesReales.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
+    prestamosActivos = clientesReales.filter(c => Number(c.monto_deuda) > 0 || c.estado === 'Activo').length;
+  }
+
+  if (pagos && Array.isArray(pagos)) {
+    const pagosReales = pagos.filter(p => 
+      p &&
+      (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
+      (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+    );
+
+    const pagosHoy = pagosReales.filter(p => p.fecha === hoyStr);
+    pagosDelDia = pagosHoy.length;
+    montoPagosHoy = pagosHoy.reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
+
+    ultimosMovimientos = pagosReales.slice(0, 6).map(m => ({
+      cliente: m.cliente_nombre || 'Cliente',
+      documento: m.documento,
+      valor: Number(m.monto) || 0,
+      fecha: m.fecha ? new Date(m.fecha).toLocaleDateString('es-CO') : 'Reciente',
+      estado: m.estado || 'Pagado'
+    }));
+  }
+
+  // 4. Si no se pudo conectar con la base de datos, recurrir al almacenamiento local limpio
   if (!exitoRemoto) {
     const clientesLocales = getLocalClientes();
     totalClientes = clientesLocales.length;
@@ -795,26 +887,6 @@ export async function verificarIdentidadUsuario({ correo, cedula }) {
   const creds = obtenerCredencialesUsuario(emailClean);
 
   if (!usuario && !creds) {
-    // Si es la cuenta administradora inicial
-    if (emailClean === 'admin@cobros.com') {
-      if (cedulaClean === '12345678' || cedulaClean === 'admin' || (creds && creds.cedula === cedulaClean)) {
-        return {
-          ok: true,
-          usuario: {
-            id: 'usr-admin',
-            nombre: 'Administrador Principal',
-            correo: 'admin@cobros.com',
-            rol: 'Administrador',
-            cedula: cedulaClean
-          }
-        };
-      }
-      return {
-        ok: false,
-        error: 'El número de cédula ingresado no coincide con el registro del Administrador.'
-      };
-    }
-
     return {
       ok: false,
       error: 'No se encontró ningún usuario registrado con el correo electrónico proporcionado.'
@@ -972,25 +1044,12 @@ export async function obtenerUsuarios() {
     }
   }
 
-  // Si no hay usuarios en ninguna parte, incluir usuarios iniciales del sistema
-  if (usuariosRemotos.length === 0 && usuariosLocales.length === 0) {
-    usuariosLocales = [
-      {
-        id: 'usr-admin',
-        nombre: 'Administrador Principal',
-        correo: 'admin@cobros.com',
-        rol: 'Administrador',
-        cedula: '12345678',
-        created_at: new Date().toISOString()
-      }
-    ];
-  }
-
-  // Combinar sin duplicar correos y enriquecer con cédula
+  // Combinar sin duplicar correos y enriquecer con cédula (solo usuarios registrados por el usuario)
   const mapa = new Map();
   usuariosRemotos.forEach(u => {
     if (u.correo) {
       const emailK = u.correo.toLowerCase();
+      if (emailK === 'admin@cobros.com') return; // Excluir usuario predeterminado
       const creds = obtenerCredencialesUsuario(emailK);
       mapa.set(emailK, { 
         ...u, 
@@ -1002,6 +1061,7 @@ export async function obtenerUsuarios() {
   usuariosLocales.forEach(u => {
     if (u.correo) {
       const emailK = u.correo.toLowerCase();
+      if (emailK === 'admin@cobros.com') return; // Excluir usuario predeterminado
       const creds = obtenerCredencialesUsuario(emailK);
       const ced = u.cedula || creds?.cedula || '';
       if (!mapa.has(emailK)) {
@@ -1049,27 +1109,14 @@ export async function validarContrasenaAcceso(password) {
         return { ok: true, usuario: sesion };
       }
     }
-    // Administrador principal con contraseña por defecto
-    if (sesion.correo.toLowerCase() === 'admin@cobros.com' && (pwdTrim === 'admin' || pwdTrim === '123456' || pwdTrim === 'admin123')) {
-      return { ok: true, usuario: sesion };
-    }
   }
 
-  // 2. Administrador general directo
-  const credsAdmin = obtenerCredencialesUsuario('admin@cobros.com');
-  if ((credsAdmin && credsAdmin.password === pwdTrim) || pwdTrim === 'admin' || pwdTrim === '123456' || pwdTrim === 'admin123') {
-    return { 
-      ok: true, 
-      usuario: sesion || { nombre: 'Administrador Principal', correo: 'admin@cobros.com', rol: 'Administrador' } 
-    };
-  }
-
-  // 3. Comprobar en credenciales registradas
+  // 2. Comprobar en credenciales registradas de administradores
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const allCreds = JSON.parse(window.localStorage.getItem('sistema_usuarios_credenciales') || '{}');
       for (const email of Object.keys(allCreds)) {
-        if (allCreds[email]?.password === pwdTrim) {
+        if (allCreds[email]?.password === pwdTrim && (allCreds[email]?.rol === 'Administrador' || !allCreds[email]?.rol)) {
           return { ok: true, usuario: allCreds[email] };
         }
       }
@@ -1140,4 +1187,264 @@ export async function eliminarClientePorDocumento({ documento, password }) {
     ok: true,
     mensaje: `El cliente "${clienteAEliminar?.nombre || docClean}" ha sido eliminado exitosamente del sistema.`
   };
+}
+
+/**
+ * Autentica al usuario diferenciando entre Administrador (requiere Cédula) y Cobrador (requiere Correo/Usuario).
+ */
+export async function autenticarUsuarioConRol({ modo = 'admin', identificador = '', password = '' }) {
+  const modoClean = modo.toLowerCase().trim();
+  const idClean = String(identificador || '').trim();
+  const pwdTrim = String(password || '').trim();
+
+  if (!idClean) {
+    return {
+      ok: false,
+      error: modoClean === 'admin'
+        ? 'Por favor ingresa la cédula del administrador.'
+        : 'Por favor ingresa el correo electrónico del cobrador.'
+    };
+  }
+
+  if (!pwdTrim) {
+    return {
+      ok: false,
+      error: modoClean === 'admin'
+        ? 'Por favor ingresa la contraseña de administrador.'
+        : 'Por favor ingresa la contraseña de cobrador.'
+    };
+  }
+
+  // 1. Obtener lista de usuarios
+  let usuarios = [];
+  try {
+    usuarios = await obtenerUsuarios();
+  } catch (e) {
+    usuarios = [];
+  }
+
+  // 2. Obtener credenciales guardadas localmente
+  let allCreds = {};
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      allCreds = JSON.parse(window.localStorage.getItem('sistema_usuarios_credenciales') || '{}');
+    } catch (e) {}
+  }
+
+  // ==========================================
+  // FLUJO ADMINISTRADOR (AUTORIZACIÓN POR CÉDULA)
+  // ==========================================
+  if (modoClean === 'admin') {
+    const cedulaClean = idClean;
+
+    // A. Verificar que no sea un usuario con rol exclusivo de Cobrador
+    const usuarioCobrador = usuarios.find(u => {
+      const uCed = String(u.cedula || u.documento || '').trim();
+      const uRol = String(u.rol || '').trim().toLowerCase();
+      return uCed === cedulaClean && (uRol === 'cobrador' || uRol.includes('cajer'));
+    });
+    if (usuarioCobrador) {
+      return {
+        ok: false,
+        error: 'Esta cédula pertenece a una cuenta con rol de Cobrador. Selecciona la opción "Ingresar como Cobrador" para continuar.'
+      };
+    }
+
+    // B. Buscar si la cédula coincide con un Administrador registrado
+    let adminEncontrado = usuarios.find(u => {
+      const uCed = String(u.cedula || u.documento || '').trim();
+      const uRol = String(u.rol || '').trim().toLowerCase();
+      return uCed === cedulaClean && (uRol.includes('admin') || !uRol);
+    });
+
+    let credsAdmin = null;
+    for (const email of Object.keys(allCreds)) {
+      const c = allCreds[email];
+      if (String(c.cedula || '').trim() === cedulaClean) {
+        credsAdmin = c;
+        break;
+      }
+    }
+
+    // C. Validar la contraseña del Administrador
+    let contrasenaValida = false;
+    let usuarioAutenticado = null;
+
+    // 1) Coincide con la contraseña guardada del admin por cédula
+    if (credsAdmin && credsAdmin.password === pwdTrim) {
+      contrasenaValida = true;
+      usuarioAutenticado = credsAdmin;
+    }
+
+    // 2) Coincide con credenciales de algún administrador registrado en el sistema
+    if (!contrasenaValida) {
+      for (const email of Object.keys(allCreds)) {
+        const c = allCreds[email];
+        const esRolAdmin = !c.rol || c.rol.toLowerCase().includes('admin');
+        if (esRolAdmin && c.password === pwdTrim) {
+          contrasenaValida = true;
+          usuarioAutenticado = c;
+          // Asociar de inmediato la cédula a este administrador
+          guardarCredencialesUsuario({
+            correo: c.correo || email,
+            password: pwdTrim,
+            cedula: cedulaClean,
+            nombre: c.nombre || 'Administrador',
+            rol: 'Administrador'
+          });
+          break;
+        }
+      }
+    }
+
+    // 3) Probar autenticación con Supabase Auth para cuentas de administrador conocidas
+    if (!contrasenaValida && db && db.auth) {
+      const correosAProbar = [
+        credsAdmin?.correo,
+        adminEncontrado?.correo,
+        'juanfernado20de2008@gmail.com',
+        'ferchogarces2008@gmail.com'
+      ].filter(Boolean);
+
+      for (const correoAdmin of correosAProbar) {
+        try {
+          const { data, error } = await db.auth.signInWithPassword({
+            email: correoAdmin,
+            password: pwdTrim
+          });
+          if (!error && data?.user) {
+            contrasenaValida = true;
+            usuarioAutenticado = {
+              id: data.user.id,
+              nombre: data.user.user_metadata?.nombre || 'Administrador',
+              correo: correoAdmin,
+              rol: 'Administrador',
+              cedula: cedulaClean
+            };
+            guardarCredencialesUsuario({
+              correo: correoAdmin,
+              password: pwdTrim,
+              cedula: cedulaClean,
+              nombre: usuarioAutenticado.nombre,
+              rol: 'Administrador'
+            });
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // 4) Probar con validación de clave de administrador general
+    if (!contrasenaValida) {
+      const validacion = await validarContrasenaAcceso(pwdTrim);
+      if (validacion.ok && (!validacion.usuario?.rol || validacion.usuario?.rol === 'Administrador')) {
+        contrasenaValida = true;
+        usuarioAutenticado = validacion.usuario;
+        guardarCredencialesUsuario({
+          correo: validacion.usuario.correo || 'juanfernado20de2008@gmail.com',
+          password: pwdTrim,
+          cedula: cedulaClean,
+          nombre: validacion.usuario.nombre || 'Administrador',
+          rol: 'Administrador'
+        });
+      }
+    }
+
+    if (!contrasenaValida) {
+      return {
+        ok: false,
+        error: 'Cédula o contraseña de Administrador incorrecta. Por favor verifica tus credenciales.'
+      };
+    }
+
+    const sessionData = {
+      id: usuarioAutenticado?.id || adminEncontrado?.id || `usr-${Date.now()}`,
+      nombre: usuarioAutenticado?.nombre || adminEncontrado?.nombre || 'Administrador',
+      correo: usuarioAutenticado?.correo || adminEncontrado?.correo || 'admin@cobros.com',
+      cedula: cedulaClean,
+      rol: 'Administrador'
+    };
+
+    guardarSesionActiva(sessionData);
+    return { ok: true, usuario: sessionData };
+  }
+
+  // ==========================================
+  // FLUJO COBRADOR (AUTORIZACIÓN POR CORREO O DOC)
+  // ==========================================
+  if (modoClean === 'cobrador') {
+    const emailClean = idClean.toLowerCase();
+    let cobradorEncontrado = null;
+    let contrasenaValida = false;
+
+    // 1. Buscar en credenciales locales por correo o cédula
+    for (const email of Object.keys(allCreds)) {
+      const c = allCreds[email];
+      if (email.toLowerCase() === emailClean || String(c.cedula || '').trim() === idClean) {
+        if (c.password === pwdTrim) {
+          contrasenaValida = true;
+          cobradorEncontrado = c;
+          break;
+        }
+      }
+    }
+
+    // 2. Si no encontró en creds, probar con Supabase Auth si es correo
+    if (!contrasenaValida && db && db.auth && emailClean.includes('@')) {
+      try {
+        const { data, error } = await db.auth.signInWithPassword({
+          email: emailClean,
+          password: pwdTrim
+        });
+        if (!error && data?.user) {
+          contrasenaValida = true;
+          cobradorEncontrado = {
+            id: data.user.id,
+            nombre: data.user.user_metadata?.nombre || emailClean.split('@')[0],
+            correo: emailClean,
+            rol: 'Cobrador'
+          };
+        }
+      } catch (e) {}
+    }
+
+    // 3. Buscar en lista de usuarios
+    if (!contrasenaValida) {
+      const u = usuarios.find(usr =>
+        (usr.correo && usr.correo.toLowerCase() === emailClean) ||
+        String(usr.cedula || usr.documento || '').trim() === idClean
+      );
+      if (u) {
+        const creds = obtenerCredencialesUsuario(u.correo);
+        if (creds && creds.password === pwdTrim) {
+          contrasenaValida = true;
+          cobradorEncontrado = { ...u, rol: 'Cobrador' };
+        }
+      }
+    }
+
+    if (!contrasenaValida) {
+      return {
+        ok: false,
+        error: 'Correo o contraseña de Cobrador incorrectos. Por favor verifica tus credenciales.'
+      };
+    }
+
+    const sessionData = {
+      id: cobradorEncontrado?.id || `usr-${Date.now()}`,
+      nombre: cobradorEncontrado?.nombre || emailClean.split('@')[0],
+      correo: cobradorEncontrado?.correo || (emailClean.includes('@') ? emailClean : `${emailClean}@cobros.com`),
+      cedula: cobradorEncontrado?.cedula || (!emailClean.includes('@') ? emailClean : ''),
+      rol: 'Cobrador'
+    };
+
+    guardarSesionActiva(sessionData);
+    return { ok: true, usuario: sessionData };
+  }
+
+  return { ok: false, error: 'Modo de acceso no reconocido.' };
+}
+
+if (typeof window !== 'undefined') {
+  window.autenticarUsuarioConRol = autenticarUsuarioConRol;
 }

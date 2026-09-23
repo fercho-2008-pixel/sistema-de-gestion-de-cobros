@@ -41,36 +41,125 @@
 
   <div class="right">
     <div class="card">
-      <div class="card-head">
-        <div class="kicker">Bienvenido de nuevo</div>
-        <h2>Inicia sesión</h2>
-        <p>Ingresa tus credenciales para continuar al panel principal.</p>
+      
+      <!-- PANTALLA 1: SOLO LOS BOTONES DE ELECCIÓN DE ROL -->
+      <div id="seccionElegirRol">
+        <div class="card-head">
+          <div class="kicker">Acceso al sistema</div>
+          <h2>Inicia sesión</h2>
+          <p>Selecciona cómo deseas ingresar al panel:</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:16px; margin:26px 0 10px 0;">
+          <!-- BOTÓN 1: ADMINISTRADOR -->
+          <button 
+            type="button" 
+            id="btnElegirAdmin" 
+            style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #0f2749; background:#0f2749; color:#ffffff; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 6px 16px rgba(15,39,73,0.22);"
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 22px rgba(15,39,73,0.28)';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(15,39,73,0.22)';"
+          >
+            <div style="width:48px; height:48px; border-radius:12px; background:rgba(255,255,255,0.16); display:flex; align-items:center; justify-content:center; font-size:1.65rem; flex-shrink:0;">
+              🛡️
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:1.05rem; line-height:1.25; margin-bottom:4px; color:#ffffff;">
+                Ingresar como Administrador
+              </div>
+              <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.3;">
+                Pide tu cédula de identidad y contraseña
+              </div>
+            </div>
+            <div style="font-size:1.3rem; color:#94a3b8; font-weight:700;">➔</div>
+          </button>
+
+          <!-- BOTÓN 2: COBRADOR -->
+          <button 
+            type="button" 
+            id="btnElegirCobrador" 
+            style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #cbd5e1; background:#ffffff; color:#0f172a; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 4px 12px rgba(0,0,0,0.05);"
+            onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='#2563eb'; this.style.boxShadow='0 8px 20px rgba(37,99,235,0.15)';"
+            onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';"
+          >
+            <div style="width:48px; height:48px; border-radius:12px; background:#eff6ff; display:flex; align-items:center; justify-content:center; font-size:1.65rem; flex-shrink:0;">
+              💼
+            </div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:1.05rem; line-height:1.25; color:#0f172a; margin-bottom:4px;">
+                Ingresar como Cobrador
+              </div>
+              <div style="font-size:0.8rem; color:#64748b; line-height:1.3;">
+                Pide tu correo asignado y contraseña
+              </div>
+            </div>
+            <div style="font-size:1.3rem; color:#2563eb; font-weight:700;">➔</div>
+          </button>
+        </div>
       </div>
 
-      <form id="loginForm">
-        <div class="field">
-          <label for="correo">Correo electrónico</label>
-          <input id="correo" class="input filled" type="email" placeholder="usuario@cobros.com" required />
-        </div>
-
-        <div class="field">
-          <label for="password">Contraseña</label>
-          <input id="password" class="input filled" type="password" placeholder="**********" required />
-        </div>
-
-        <div class="row-between">
-          <div class="remember"><div class="checkbox"></div> Recordarme</div>
-          <a class="forgot" href="#" id="linkOlvidastePassword">¿Olvidaste tu contraseña?</a>
-        </div>
-
-        <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer;">
-          Iniciar sesión
+      <!-- PANTALLA 2: FORMULARIO QUE PIDE LA INFORMACIÓN SEGÚN EL ROL ELEGIDO -->
+      <div id="seccionFormularioLogin" style="display:none;">
+        <button 
+          type="button" 
+          id="btnVolverElegirRol" 
+          style="display:inline-flex; align-items:center; gap:6px; background:transparent; border:none; color:#2563eb; font-size:0.84rem; font-weight:700; cursor:pointer; margin-bottom:14px; padding:0;"
+        >
+          ← Cambiar opción de ingreso
         </button>
-      </form>
 
-      <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
+        <div class="card-head" style="margin-bottom:18px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <div class="kicker" id="formKicker" style="margin-bottom:0;">Acceso Administrativo</div>
+            <span id="badgeRolActual" style="font-size:0.72rem; font-weight:800; padding:3px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; text-transform:uppercase;">ADMIN</span>
+          </div>
+          <h2 id="formTitulo" style="margin-bottom:4px;">Ingreso como Administrador</h2>
+          <p id="formSubtitulo">Ingresa tu número de cédula y contraseña para continuar.</p>
+        </div>
 
-      <div class="foot-note" style="margin-top:20px;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+        <form id="loginForm">
+          <!-- CAMPO PARA ADMINISTRADOR: CÉDULA -->
+          <div class="field" id="grupoAdminCedula">
+            <label for="cedulaAdmin" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Cédula del Administrador *</span>
+              <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 7px; border-radius:4px; font-weight:700;">SOLO ADMIN</span>
+            </label>
+            <input id="cedulaAdmin" class="input filled" type="text" placeholder="Ej: 1090421332 o 1110500088" autocomplete="username" />
+            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+              Ingresa tu número de cédula de administrador para autorizar el acceso.
+            </div>
+          </div>
+
+          <!-- CAMPO PARA COBRADOR: CORREO ELECTRÓNICO -->
+          <div class="field" id="grupoCobradorCorreo" style="display:none;">
+            <label for="correoCobrador" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Correo del Cobrador *</span>
+              <span style="font-size:0.7rem; background:#d1fae5; color:#065f46; padding:2px 7px; border-radius:4px; font-weight:700;">COBRADOR</span>
+            </label>
+            <input id="correoCobrador" class="input filled" type="email" placeholder="cobrador@cobros.com" autocomplete="email" />
+            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+              Ingresa el correo asignado a tu cuenta de Cobrador.
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="password" id="lblPassword">Contraseña del Administrador *</label>
+            <input id="password" class="input filled" type="password" placeholder="**********" required autocomplete="current-password" />
+          </div>
+
+          <div class="row-between">
+            <div class="remember"><div class="checkbox"></div> Recordarme</div>
+            <a class="forgot" href="#" id="linkOlvidastePassword">¿Olvidaste tu contraseña?</a>
+          </div>
+
+          <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer; background:#0f2749;">
+            Ingresar como Administrador 🛡️
+          </button>
+        </form>
+
+        <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;"></div>
+      </div>
+
+      <div class="foot-note" style="margin-top:20px;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" id="linkRegistrarNuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
     </div>
   </div>
 </div>
@@ -243,17 +332,101 @@
   import { 
     db, 
     obtenerUsuarios, 
-    guardarSesionActiva,
+    guardarSesionActiva, 
+    obtenerSesionActiva,
     verificarIdentidadUsuario,
     actualizarContrasenaUsuario,
-    obtenerCredencialesUsuario
+    obtenerCredencialesUsuario,
+    autenticarUsuarioConRol
   } from './supabase.js';
+
+  // Pantallas del proceso de ingreso
+  const seccionElegirRol = document.getElementById('seccionElegirRol');
+  const seccionFormularioLogin = document.getElementById('seccionFormularioLogin');
+  const btnElegirAdmin = document.getElementById('btnElegirAdmin');
+  const btnElegirCobrador = document.getElementById('btnElegirCobrador');
+  const btnVolverElegirRol = document.getElementById('btnVolverElegirRol');
+
+  // Encabezados dinámicos del formulario
+  const formKicker = document.getElementById('formKicker');
+  const badgeRolActual = document.getElementById('badgeRolActual');
+  const formTitulo = document.getElementById('formTitulo');
+  const formSubtitulo = document.getElementById('formSubtitulo');
+
+  // Campos del formulario
+  let modoActual = 'admin'; // 'admin' | 'cobrador'
+  const grupoAdminCedula = document.getElementById('grupoAdminCedula');
+  const grupoCobradorCorreo = document.getElementById('grupoCobradorCorreo');
+  const inputCedulaAdmin = document.getElementById('cedulaAdmin');
+  const inputCorreoCobrador = document.getElementById('correoCobrador');
+  const lblPassword = document.getElementById('lblPassword');
 
   const loginForm = document.getElementById('loginForm');
   const btnIniciar = document.getElementById('btnIniciarSesion');
   const loginMsg = document.getElementById('loginMsg');
-  const inputLoginCorreo = document.getElementById('correo');
   const inputLoginPassword = document.getElementById('password');
+
+  // Función para seleccionar modo y mostrar el formulario correspondiente
+  function seleccionarModo(modo) {
+    modoActual = modo;
+    loginMsg.style.display = 'none';
+
+    // Ocultar pantalla de botones y mostrar formulario con los campos
+    seccionElegirRol.style.display = 'none';
+    seccionFormularioLogin.style.display = 'block';
+
+    if (modo === 'admin') {
+      formKicker.textContent = 'Acceso Administrativo';
+      badgeRolActual.textContent = 'ADMIN';
+      badgeRolActual.style.background = '#dbeafe';
+      badgeRolActual.style.color = '#1e40af';
+      formTitulo.textContent = 'Ingreso como Administrador';
+      formSubtitulo.textContent = 'Digita tu número de cédula y contraseña autorizada.';
+
+      grupoAdminCedula.style.display = 'block';
+      grupoCobradorCorreo.style.display = 'none';
+      inputCedulaAdmin.setAttribute('required', 'required');
+      inputCorreoCobrador.removeAttribute('required');
+
+      lblPassword.textContent = 'Contraseña del Administrador *';
+      btnIniciar.innerHTML = 'Ingresar como Administrador 🛡️';
+      btnIniciar.style.background = '#0f2749';
+
+      setTimeout(() => inputCedulaAdmin.focus(), 60);
+    } else {
+      formKicker.textContent = 'Acceso Operativo';
+      badgeRolActual.textContent = 'COBRADOR';
+      badgeRolActual.style.background = '#d1fae5';
+      badgeRolActual.style.color = '#065f46';
+      formTitulo.textContent = 'Ingreso como Cobrador';
+      formSubtitulo.textContent = 'Digita tu correo asignado de cobrador y tu contraseña.';
+
+      grupoAdminCedula.style.display = 'none';
+      grupoCobradorCorreo.style.display = 'block';
+      inputCorreoCobrador.setAttribute('required', 'required');
+      inputCedulaAdmin.removeAttribute('required');
+
+      lblPassword.textContent = 'Contraseña del Cobrador *';
+      btnIniciar.innerHTML = 'Ingresar como Cobrador 💼';
+      btnIniciar.style.background = '#2563eb';
+
+      setTimeout(() => inputCorreoCobrador.focus(), 60);
+    }
+  }
+
+  // Función para volver a la pantalla inicial de botones
+  function volverASeleccion() {
+    seccionFormularioLogin.style.display = 'none';
+    seccionElegirRol.style.display = 'block';
+    loginMsg.style.display = 'none';
+    inputLoginPassword.value = '';
+    inputCedulaAdmin.value = '';
+    inputCorreoCobrador.value = '';
+  }
+
+  btnElegirAdmin.addEventListener('click', () => seleccionarModo('admin'));
+  btnElegirCobrador.addEventListener('click', () => seleccionarModo('cobrador'));
+  btnVolverElegirRol.addEventListener('click', volverASeleccion);
 
   // Elementos del Modal de Recuperación
   const linkOlvidaste = document.getElementById('linkOlvidastePassword');
@@ -288,11 +461,19 @@
   // Abrir Modal de Recuperación
   linkOlvidaste.addEventListener('click', (e) => {
     e.preventDefault();
-    if (inputLoginCorreo.value.trim()) {
-      inputRecCorreo.value = inputLoginCorreo.value.trim();
-    }
+    loginMsg.style.display = 'none';
+    formVerificar.reset();
+    formCambiarPwd.reset();
     msgPaso1.style.display = 'none';
     msgPaso2.style.display = 'none';
+
+    // Precargar datos si el usuario ya escribió en el login
+    if (modoActual === 'admin' && inputCedulaAdmin.value.trim()) {
+      inputRecCedula.value = inputCedulaAdmin.value.trim();
+    } else if (modoActual === 'cobrador' && inputCorreoCobrador.value.trim()) {
+      inputRecCorreo.value = inputCorreoCobrador.value.trim();
+    }
+
     paso1.style.display = 'block';
     paso2.style.display = 'none';
     paso3.style.display = 'none';
@@ -339,8 +520,11 @@
       const resp = await verificarIdentidadUsuario({ correo, cedula });
       if (resp.ok && resp.usuario) {
         usuarioVerificadoActual = resp.usuario;
+        
+        // Configurar Paso 2
         recNombreUsuarioText.textContent = `Identidad confirmada: ${resp.usuario.nombre || 'Usuario'}`;
         recDetallesUsuarioText.textContent = `Correo: ${resp.usuario.correo} | Cédula: ${resp.usuario.cedula}`;
+        
         paso1.style.display = 'none';
         paso2.style.display = 'block';
         inputNuevaPwd.focus();
@@ -399,8 +583,17 @@
       });
 
       if (resp.ok) {
-        inputLoginCorreo.value = usuarioVerificadoActual.correo;
+        // Precargar en el formulario principal según el rol
+        const esAdmin = usuarioVerificadoActual.rol === 'Administrador' || !usuarioVerificadoActual.rol;
+        if (esAdmin) {
+          seleccionarModo('admin');
+          inputCedulaAdmin.value = usuarioVerificadoActual.cedula || '';
+        } else {
+          seleccionarModo('cobrador');
+          inputCorreoCobrador.value = usuarioVerificadoActual.correo || '';
+        }
         inputLoginPassword.value = pwd1;
+
         paso2.style.display = 'none';
         paso3.style.display = 'block';
       } else {
@@ -429,116 +622,84 @@
     loginMsg.style.backgroundColor = '#dcfce7';
     loginMsg.style.color = '#166534';
     loginMsg.style.border = '1px solid #86efac';
-    loginMsg.textContent = '✓ Contraseña actualizada correctamente. Haz clic en "Iniciar sesión" para continuar.';
+    loginMsg.textContent = '✓ Contraseña actualizada correctamente. Haz clic en el botón de ingreso para continuar.';
     inputLoginPassword.focus();
   });
 
-  // Si viene por cierre de sesión o redirección
+  // Limpiar sesión residual al ir a registrar nuevo usuario
+  const linkRegistrarNuevo = document.getElementById('linkRegistrarNuevo');
+  if (linkRegistrarNuevo) {
+    linkRegistrarNuevo.addEventListener('click', () => {
+      try {
+        localStorage.removeItem('sistema_sesion_activa');
+      } catch (e) {}
+    });
+  }
+
+  // Si ya tiene sesión activa o viene con mensaje de redirección
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('redirect')) {
     loginMsg.style.display = 'block';
     loginMsg.style.backgroundColor = '#fef3c7';
     loginMsg.style.color = '#92400e';
     loginMsg.style.border = '1px solid #fcd34d';
-    loginMsg.innerHTML = '🔒 <strong>Acceso restringido:</strong> Debes iniciar sesión o registrarte para acceder a las consultas de clientes y opciones del panel.';
+    loginMsg.innerHTML = '🔒 <strong>Acceso restringido:</strong> Debes iniciar sesión o registrarte para acceder al panel principal.';
+  } else if (urlParams.has('logout')) {
+    loginMsg.style.display = 'block';
+    loginMsg.style.backgroundColor = '#dcfce7';
+    loginMsg.style.color = '#166534';
+    loginMsg.textContent = 'Has cerrado sesión correctamente.';
   }
 
+  // SUBMIT DEL LOGIN CON AUTENTICACIÓN POR ROL (ADMIN CON CÉDULA / COBRADOR CON CORREO)
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('correo').value.trim();
-    const password = document.getElementById('password').value;
+    const identificador = modoActual === 'admin' 
+      ? inputCedulaAdmin.value.trim() 
+      : inputCorreoCobrador.value.trim();
+    const password = inputLoginPassword.value;
 
     btnIniciar.disabled = true;
-    btnIniciar.textContent = 'Verificando credenciales...';
+    btnIniciar.textContent = modoActual === 'admin' 
+      ? 'Validando cédula de Administrador...' 
+      : 'Verificando credenciales de Cobrador...';
     loginMsg.style.display = 'none';
 
     try {
-      let sesionIniciada = false;
-      let usuarioActivo = null;
+      const resp = await autenticarUsuarioConRol({
+        modo: modoActual,
+        identificador: identificador,
+        password: password
+      });
 
-      // 1. Verificar credenciales locales actualizadas
-      const creds = obtenerCredencialesUsuario(email);
-      if (creds && creds.password) {
-        if (creds.password === password) {
-          sesionIniciada = true;
-          usuarioActivo = {
-            id: creds.id || `usr-${Date.now()}`,
-            nombre: creds.nombre || email.split('@')[0],
-            correo: email,
-            rol: creds.rol || 'Cobrador'
-          };
-        } else {
-          loginMsg.style.display = 'block';
-          loginMsg.style.backgroundColor = '#fee2e2';
-          loginMsg.style.color = '#991b1b';
-          loginMsg.style.border = '1px solid #f87171';
-          loginMsg.innerHTML = 'Contraseña incorrecta. Si no la recuerdas, haz clic en <a href="#" id="linkMsgOlvidasteMenu" style="color:#1d4ed8; font-weight:600; text-decoration:underline;">¿Olvidaste tu contraseña?</a> para restablecerla.';
-          
-          const linkMsgOlv = document.getElementById('linkMsgOlvidasteMenu');
-          if (linkMsgOlv) {
-            linkMsgOlv.addEventListener('click', (ev) => {
-              ev.preventDefault();
-              linkOlvidaste.click();
-            });
-          }
-          btnIniciar.disabled = false;
-          btnIniciar.textContent = 'Iniciar sesión';
-          return;
-        }
-      }
-
-      if (!sesionIniciada && db && db.auth) {
-        try {
-          const { data, error } = await db.auth.signInWithPassword({ email, password });
-          if (!error && data?.user) {
-            sesionIniciada = true;
-            usuarioActivo = {
-              id: data.user.id,
-              nombre: data.user.user_metadata?.nombre || email.split('@')[0],
-              correo: email,
-              rol: data.user.user_metadata?.rol || 'Cobrador'
-            };
-          }
-        } catch (e) {}
-      }
-
-      if (!sesionIniciada) {
-        const usuarios = await obtenerUsuarios();
-        const existe = usuarios.find(u => u.correo && u.correo.toLowerCase() === email.toLowerCase());
-        if (existe) {
-          sesionIniciada = true;
-          usuarioActivo = {
-            id: existe.id || `usr-${Date.now()}`,
-            nombre: existe.nombre || email.split('@')[0],
-            correo: existe.correo,
-            rol: existe.rol || 'Cobrador'
-          };
-        } else if (email.toLowerCase() === 'admin@cobros.com' && password.length >= 6) {
-          sesionIniciada = true;
-          usuarioActivo = {
-            id: 'usr-admin',
-            nombre: 'Administrador Principal',
-            correo: 'admin@cobros.com',
-            rol: 'Administrador'
-          };
-        }
-      }
-
-      if (sesionIniciada && usuarioActivo) {
-        guardarSesionActiva(usuarioActivo);
+      if (resp.ok && resp.usuario) {
         loginMsg.style.display = 'block';
         loginMsg.style.backgroundColor = '#dcfce7';
         loginMsg.style.color = '#166534';
-        loginMsg.textContent = `¡Bienvenido, ${usuarioActivo.nombre}! Redirigiendo al panel...`;
+        loginMsg.style.border = '1px solid #86efac';
+        const rolBadge = resp.usuario.rol === 'Administrador' ? '🛡️ Administrador' : '💼 Cobrador';
+        loginMsg.innerHTML = `✓ <strong>¡Bienvenido, ${resp.usuario.nombre || 'Usuario'}!</strong> (${rolBadge})<br>Accediendo al panel principal...`;
+        
         setTimeout(() => {
           window.location.href = 'menu2.html';
-        }, 800);
+        }, 650);
       } else {
         loginMsg.style.display = 'block';
         loginMsg.style.backgroundColor = '#fee2e2';
         loginMsg.style.color = '#991b1b';
         loginMsg.style.border = '1px solid #f87171';
-        loginMsg.innerHTML = 'Correo o contraseña incorrectos. Si olvidaste tu clave, utiliza la opción "¿Olvidaste tu contraseña?" o <a href="registro-usuario.html?modo=nuevo" style="color:#1d4ed8; font-weight:600;">regístrate aquí</a>.';
+        loginMsg.innerHTML = (resp.error || 'Credenciales incorrectas.') + 
+          (modoActual === 'admin' 
+            ? ' Si no recuerdas tus credenciales, usa <a href="#" id="linkMsgOlvidaste" style="color:#1d4ed8; font-weight:600; text-decoration:underline;">¿Olvidaste tu contraseña?</a>.' 
+            : ' O <a href="registro-usuario.html?modo=nuevo" style="color:#1d4ed8; font-weight:600;">regístrate aquí</a>.');
+        
+        const linkMsgOlv = document.getElementById('linkMsgOlvidaste');
+        if (linkMsgOlv) {
+          linkMsgOlv.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            linkOlvidaste.click();
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -546,10 +707,12 @@
       loginMsg.style.backgroundColor = '#fee2e2';
       loginMsg.style.color = '#991b1b';
       loginMsg.style.border = '1px solid #f87171';
-      loginMsg.textContent = 'Error al iniciar sesión. Por favor verifica tus credenciales.';
+      loginMsg.textContent = 'Ocurrió un error al procesar el acceso. Por favor intenta de nuevo.';
     } finally {
       btnIniciar.disabled = false;
-      btnIniciar.textContent = 'Iniciar sesión';
+      btnIniciar.innerHTML = modoActual === 'admin' 
+        ? 'Ingresar como Administrador 🛡️' 
+        : 'Ingresar como Cobrador 💼';
     }
   });
 </script>

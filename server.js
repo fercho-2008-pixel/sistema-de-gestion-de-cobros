@@ -17,11 +17,15 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIs
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Constantes para excluir datos predeterminados/demo
+const DOCS_PREDETERMINADOS = ['1020304050', '1030405060', '1040506070'];
+const NOMBRES_PREDETERMINADOS = ['maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez'];
+
 // ---------------------------------------------------------
 // RUTAS DE API PARA CLIENTES CONECTADAS CON SUPABASE
 // ---------------------------------------------------------
 
-// Obtener todos los clientes registrados en Supabase
+// Obtener todos los clientes registrados en Supabase (solo los registrados por el usuario)
 app.get('/api/clientes', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -34,9 +38,39 @@ app.get('/api/clientes', async (req, res) => {
       return res.status(500).json({ ok: false, error: error.message });
     }
 
-    return res.json({ ok: true, data: data || [] });
+    const filtrados = (data || []).filter(c => 
+      c && c.documento &&
+      !DOCS_PREDETERMINADOS.includes(String(c.documento).trim()) &&
+      !NOMBRES_PREDETERMINADOS.includes(String(c.nombre || '').trim().toLowerCase())
+    );
+
+    return res.json({ ok: true, data: filtrados });
   } catch (err) {
     console.error('Error servidor GET /api/clientes:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Obtener pagos registrados en Supabase (solo los registrados por el usuario)
+app.get('/api/pagos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
+
+    const filtrados = (data || []).filter(p => 
+      p &&
+      (!p.documento || !DOCS_PREDETERMINADOS.includes(String(p.documento).trim())) &&
+      (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.includes(String(p.cliente_nombre).trim().toLowerCase()))
+    );
+
+    return res.json({ ok: true, data: filtrados });
+  } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
   }
 });

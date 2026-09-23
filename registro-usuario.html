@@ -558,7 +558,7 @@
   </div>
 
   <script type="module">
-    import { registrarUsuario, obtenerUsuarios, obtenerSesionActiva, guardarSesionActiva, cerrarSesion } from './supabase.js';
+    import { registrarUsuario, obtenerUsuarios, obtenerSesionActiva, guardarSesionActiva, cerrarSesion, esUsuarioAdmin } from './supabase.js';
 
     // Elementos de navegación
     const linkNavInicio = document.getElementById('linkNavInicio');
@@ -642,7 +642,30 @@
       }
 
       const sesion = esModoNuevo ? null : obtenerSesionActiva();
-      const esAdmin = sesion && (sesion.rol === 'Administrador' || sesion.rol === 'Supervisor');
+
+      // Si el usuario ya está conectado y su rol es Cobrador, restringir acceso totalmente
+      if (sesion && !esUsuarioAdmin(sesion)) {
+        document.body.innerHTML = `
+          <div style="display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Manrope', -apple-system, sans-serif; background:#0b192c; color:#fff; padding:24px;">
+            <div style="background:#0F2749; border:1px solid #1e3a8a; border-radius:16px; padding:36px; max-width:480px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+              <div style="font-size:3.5rem; margin-bottom:12px;">🔒</div>
+              <h2 style="margin:0 0 12px 0; font-size:1.4rem; color:#f8fafc;">Acceso Exclusivo para Administrador</h2>
+              <p style="color:#94a3b8; font-size:0.95rem; line-height:1.6; margin-bottom:24px;">
+                El registro y gestión de usuarios es exclusivo para el <strong>Administrador</strong> del sistema. Tu cuenta actual tiene el rol de <strong>Cobrador</strong>.
+              </p>
+              <a href="menu2.html" style="display:inline-block; background:#2563eb; color:#ffffff; font-weight:700; padding:12px 28px; border-radius:8px; text-decoration:none; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+                ← Regresar al Panel Principal
+              </a>
+            </div>
+          </div>
+        `;
+        setTimeout(() => {
+          window.location.replace('menu2.html');
+        }, 2500);
+        return;
+      }
+
+      const esAdmin = esUsuarioAdmin(sesion);
 
       if (!sesion || !esAdmin) {
         // MODO USUARIO SIN CUENTA / REGISTRO DE NUEVO USUARIO:

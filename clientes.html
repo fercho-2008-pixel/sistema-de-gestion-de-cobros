@@ -227,6 +227,135 @@
       transform: translateY(-1px);
     }
 
+    /* Estilos adicionales para visualización y ordenamiento de clientes */
+    .badge-orden-reg {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+
+    .badge-doc-cedula {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .btn-whatsapp {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #25d366;
+      color: #ffffff !important;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
+      margin-top: 4px;
+      transition: background 0.2s ease;
+      width: fit-content;
+    }
+
+    .btn-whatsapp:hover {
+      background: #1eb854;
+      color: #ffffff !important;
+    }
+
+    .btn-tel {
+      color: #1e293b;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-tel:hover {
+      color: #2563eb;
+      text-decoration: underline;
+    }
+
+    .btn-abonar-directo {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+
+    .btn-abonar-directo:hover {
+      background: #d1fae5;
+      color: #065f46;
+      transform: translateY(-1px);
+    }
+
+    .btn-orden-rapido {
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #475569;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-orden-rapido:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+    }
+
+    .btn-orden-rapido.active {
+      background: #eff6ff;
+      border-color: #93c5fd;
+      color: #1d4ed8;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(37,99,235,0.1);
+    }
+
+    .th-sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease;
+    }
+
+    .th-sortable:hover {
+      background-color: #f1f5f9;
+      color: #2563eb;
+    }
+
+    .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+
+    .th-sortable.sorted .sort-icon {
+      opacity: 1;
+      color: #2563eb;
+      font-weight: 700;
+    }
+
     /* Modales */
     .modal-backdrop {
       display: none;
@@ -390,11 +519,11 @@
 
       <nav class="menu">
         <a href="menu2.html">Inicio</a>
-        <a href="clientes.html" class="active">Directorio de clientes</a>
+        <a href="clientes.html" class="active menu-solo-admin" id="menuLinkClientes">Directorio de clientes</a>
         <a href="consulta.html">Consultar clientes</a>
         <a href="registros.html">Registrar clientes</a>
         <a href="pagos.html">Registrar pagos</a>
-        <a href="registro-usuario.html">Usuarios del sistema</a>
+        <a href="registro-usuario.html" class="menu-solo-admin" id="menuLinkUsuarios">Registrar nuevo usuario</a>
         <a href="#" id="linkCerrarSesion" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
       </nav>
 
@@ -487,17 +616,18 @@
             />
           </div>
 
-          <div class="grupo-orden">
+          <div class="grupo-orden" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <label for="selectOrdenClientes" style="font-size:0.85rem; font-weight:600; color:#475569;">
               Organizar por:
             </label>
             <select id="selectOrdenClientes" class="select-orden">
-              <option value="recientes">🕒 Registrados recientemente (Más nuevos)</option>
-              <option value="viejos">⏳ Los más viejos / antiguos</option>
+              <option value="registro_asc" selected>📅 Orden de registro: Primeros registrados (como fue registrado)</option>
+              <option value="registro_desc">🕒 Orden de registro: Últimos registrados (más recientes primero)</option>
               <option value="mayor_deuda">💰 Mayor deuda pendiente</option>
-              <option value="menor_deuda">📉 Menor deuda / Al día</option>
+              <option value="menor_deuda">📉 Menor deuda / Al día ($0)</option>
               <option value="nombre_az">🔤 Nombre (A - Z)</option>
               <option value="nombre_za">🔤 Nombre (Z - A)</option>
+              <option value="cedula_asc">🆔 Número de Cédula</option>
             </select>
 
             <select id="selectFiltroEstado" class="select-orden">
@@ -506,6 +636,23 @@
               <option value="al_dia">Solo clientes al día ($0)</option>
             </select>
           </div>
+        </div>
+
+        <!-- ACCESOS RÁPIDOS DE ORGANIZACIÓN -->
+        <div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.82rem; font-weight:600; color:#64748b;">Organizar rápido:</span>
+          <button type="button" class="btn-orden-rapido active" id="btnOrdenComoFueRegistrado" data-orden="registro_asc" title="Organizar en el orden exacto en que fueron registrados (del primero al último)">
+            📅 Como fue registrado (1º al último)
+          </button>
+          <button type="button" class="btn-orden-rapido" id="btnOrdenRecientes" data-orden="registro_desc" title="Organizar con los más recientes primero">
+            🕒 Más recientes primero
+          </button>
+          <button type="button" class="btn-orden-rapido" id="btnOrdenMayorDeuda" data-orden="mayor_deuda" title="Organizar por mayor saldo pendiente de pago">
+            💰 Mayor deuda pendiente
+          </button>
+          <button type="button" class="btn-orden-rapido" id="btnOrdenNombre" data-orden="nombre_az" title="Organizar por orden alfabético de la A a la Z">
+            🔤 Nombre (A - Z)
+          </button>
         </div>
 
         <!-- TABLA DE CLIENTES -->
@@ -519,18 +666,29 @@
             <table>
               <thead>
                 <tr>
-                  <th>Cliente</th>
-                  <th>Cédula / Documento</th>
-                  <th>Contacto</th>
-                  <th>Deuda Pendiente</th>
+                  <th class="th-sortable" id="thOrdenReg" data-sort="registro_asc" title="Clic para ordenar por orden de registro">
+                    # Reg. <span class="sort-icon" id="sortIconReg">▲</span>
+                  </th>
+                  <th class="th-sortable" id="thOrdenNombre" data-sort="nombre_az" title="Clic para ordenar alfabéticamente">
+                    Cliente / Nombre <span class="sort-icon" id="sortIconNombre">⇅</span>
+                  </th>
+                  <th class="th-sortable" id="thOrdenDoc" data-sort="cedula_asc" title="Clic para ordenar por número de cédula">
+                    Número de Cédula <span class="sort-icon" id="sortIconDoc">⇅</span>
+                  </th>
+                  <th>Teléfono de Contacto</th>
+                  <th class="th-sortable" id="thOrdenDeuda" data-sort="mayor_deuda" title="Clic para ordenar por deuda pendiente">
+                    Deuda Pendiente <span class="sort-icon" id="sortIconDeuda">⇅</span>
+                  </th>
                   <th>Estado</th>
-                  <th>Fecha Registro</th>
+                  <th class="th-sortable" id="thOrdenFecha" data-sort="registro_desc" title="Clic para ordenar por fecha de registro">
+                    Fecha de Registro <span class="sort-icon" id="sortIconFecha">⇅</span>
+                  </th>
                   <th style="text-align:right;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="tablaClientesBody">
                 <tr>
-                  <td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">
+                  <td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
                     Cargando directorio de clientes...
                   </td>
                 </tr>
@@ -717,7 +875,7 @@
           </div>
         </div>
 
-        <form id="formConfirmarEliminacion">
+        <form id="formConfirmarEliminar">
           <div style="margin-bottom:16px;">
             <label for="inputPasswordConfirmarEliminar" style="display:block; font-size:0.83rem; font-weight:600; color:#334155; margin-bottom:6px;">
               Ingresa tu contraseña para autorizar la eliminación *
@@ -854,21 +1012,46 @@
       obtenerUsuarios,
       eliminarClientePorDocumento,
       validarContrasenaAcceso,
+      esUsuarioAdmin,
       getDb
     } from './supabase.js';
 
-    // 1. Verificación de Autenticación
+    // 1. Verificación de Autenticación y Rol
     const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'clientes.html' });
     if (!auth.autenticado) {
       document.body.style.display = 'none';
     }
 
     const sesion = obtenerSesionActiva();
+    const esAdmin = esUsuarioAdmin(sesion);
+
+    // RESTRICCIÓN DE SEGURIDAD: Solo el Administrador puede ver el Directorio de Clientes
+    if (!esAdmin) {
+      document.body.innerHTML = `
+        <div style="display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; background:#0b192c; color:#fff; padding:24px;">
+          <div style="background:#0F2749; border:1px solid #1e3a8a; border-radius:16px; padding:36px; max-width:480px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+            <div style="font-size:3.5rem; margin-bottom:12px;">🔒</div>
+            <h2 style="margin:0 0 12px 0; font-size:1.4rem; color:#f8fafc;">Acceso Exclusivo para Administrador</h2>
+            <p style="color:#94a3b8; font-size:0.95rem; line-height:1.6; margin-bottom:24px;">
+              El <strong>Directorio de Clientes</strong> es una función restringida a Administradores. Tu cuenta actual tiene el rol de <strong>Cobrador</strong>.
+            </p>
+            <a href="menu2.html" style="display:inline-block; background:#2563eb; color:#ffffff; font-weight:700; padding:12px 28px; border-radius:8px; text-decoration:none; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
+              ← Regresar al Panel Principal
+            </a>
+          </div>
+        </div>
+      `;
+      setTimeout(() => {
+        window.location.replace('menu2.html');
+      }, 2500);
+      throw new Error('Acceso no autorizado: Rol Cobrador no tiene permisos para el directorio de clientes.');
+    }
+
     if (sesion) {
       const lblNombre = document.getElementById('lblUsuarioNombre');
       const lblRol = document.getElementById('lblUsuarioRol');
       if (lblNombre) lblNombre.textContent = sesion.nombre || sesion.correo.split('@')[0];
-      if (lblRol) lblRol.textContent = sesion.rol || 'Cobrador';
+      if (lblRol) lblRol.textContent = sesion.rol || 'Administrador';
     }
 
     // Cerrar sesión
@@ -920,7 +1103,7 @@
     const modalEliminar = document.getElementById('modalEliminarCliente');
     const btnCerrarModalEliminar = document.getElementById('btnCerrarModalEliminar');
     const btnCancelarEliminar = document.getElementById('btnCancelarEliminar');
-    const formConfirmarEliminar = document.getElementById('formConfirmarEliminar');
+    const formConfirmarEliminar = document.getElementById('formConfirmarEliminar') || document.getElementById('formConfirmarEliminacion');
     const inputPwdEliminar = document.getElementById('inputPasswordConfirmarEliminar');
     const btnTogglePwdEliminar = document.getElementById('btnTogglePwdEliminar');
     const btnEjecutarEliminar = document.getElementById('btnEjecutarEliminar');
@@ -946,20 +1129,41 @@
       return '$' + num.toLocaleString('es-CO') + ' COP';
     }
 
-    // Formateador de fecha
-    function formatFecha(fechaStr) {
-      if (!fechaStr) return 'No registrada';
+    // Formateador detallado de fecha y hora colombiana
+    function formatFechaRegistro(fechaStr) {
+      if (!fechaStr) return { fecha: 'No registrada', hora: '--:--', texto: 'No registrada' };
       try {
         const d = new Date(fechaStr);
-        if (isNaN(d.getTime())) return fechaStr;
-        return d.toLocaleDateString('es-CO', {
+        if (isNaN(d.getTime())) return { fecha: fechaStr, hora: '', texto: fechaStr };
+        const fecha = d.toLocaleDateString('es-CO', {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
         });
+        const hora = d.toLocaleTimeString('es-CO', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+        return { fecha, hora, texto: `${fecha}, ${hora}` };
       } catch (e) {
-        return fechaStr;
+        return { fecha: fechaStr, hora: '', texto: fechaStr };
       }
+    }
+
+    function formatFecha(fechaStr) {
+      return formatFechaRegistro(fechaStr).texto;
+    }
+
+    // Limpiador de número de teléfono para enlace directo a WhatsApp
+    function limpiarTelefonoWhatsApp(tel) {
+      if (!tel) return '';
+      const digits = String(tel).replace(/\D/g, '');
+      if (!digits) return '';
+      if (digits.length === 10 && digits.startsWith('3')) {
+        return '57' + digits; // Prefijo celular Colombia
+      }
+      return digits;
     }
 
     // Mostrar alerta temporal
@@ -1010,24 +1214,41 @@
     // -----------------------------------------------------------------
     // CARGAR Y RENDERIZAR CLIENTES CON FILTROS Y ORDENAMIENTO
     // -----------------------------------------------------------------
+    let mapaOrdenCronologico = new Map();
+
     async function cargarClientes() {
       try {
         tablaClientesBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align:center; padding:24px; color:#64748b;">
+            <td colspan="8" style="text-align:center; padding:24px; color:#64748b;">
               Cargando y sincronizando clientes...
             </td>
           </tr>
         `;
         const clientes = await obtenerClientes();
         listaClientesOriginal = Array.isArray(clientes) ? clientes : [];
+        
+        // Calcular el orden cronológico original de registro (del 1º al último registrado)
+        mapaOrdenCronologico.clear();
+        const ordenadosPorCreacion = [...listaClientesOriginal].sort((a, b) => {
+          const tA = new Date(a.created_at || 0).getTime();
+          const tB = new Date(b.created_at || 0).getTime();
+          if (tA !== tB) return tA - tB;
+          return String(a.id || '').localeCompare(String(b.id || ''));
+        });
+        ordenadosPorCreacion.forEach((c, idx) => {
+          if (c && c.documento) {
+            mapaOrdenCronologico.set(String(c.documento).trim(), idx + 1);
+          }
+        });
+
         actualizarMetricasClientes(listaClientesOriginal);
         aplicarFiltrosYOrden();
       } catch (err) {
         console.error('Error al cargar clientes:', err);
         tablaClientesBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align:center; padding:20px; color:#dc2626;">
+            <td colspan="8" style="text-align:center; padding:20px; color:#dc2626;">
               Error al cargar los clientes: ${err.message}
             </td>
           </tr>
@@ -1079,41 +1300,102 @@
 
       // 2. Ordenamiento
       filtrados.sort((a, b) => {
+        const ordA = mapaOrdenCronologico.get(String(a.documento).trim()) || 999999;
+        const ordB = mapaOrdenCronologico.get(String(b.documento).trim()) || 999999;
         const fechaA = new Date(a.created_at || 0).getTime();
         const fechaB = new Date(b.created_at || 0).getTime();
         const deudaA = Number(a.monto_deuda) || 0;
         const deudaB = Number(b.monto_deuda) || 0;
         const nombreA = (a.nombre || '').toLowerCase();
         const nombreB = (b.nombre || '').toLowerCase();
+        const docA = String(a.documento || '').replace(/\D/g, '');
+        const docB = String(b.documento || '').replace(/\D/g, '');
 
         switch (criterioOrden) {
-          case 'recientes': // Los más nuevos primero
-            return fechaB - fechaA;
-          case 'viejos': // Los más antiguos primero
-            return fechaA - fechaB;
+          case 'registro_asc': // En orden exacto de como fue registrado (1º al último)
+          case 'viejos':
+            return ordA - ordB;
+          case 'registro_desc': // Últimos registrados primero (más nuevos)
+          case 'recientes':
+            return ordB - ordA;
           case 'mayor_deuda': // Mayor deuda pendiente primero
             return deudaB - deudaA;
-          case 'menor_deuda': // Menor deuda primero
+          case 'menor_deuda': // Menor deuda / Al día primero
             return deudaA - deudaB;
           case 'nombre_az':
             return nombreA.localeCompare(nombreB);
           case 'nombre_za':
             return nombreB.localeCompare(nombreA);
+          case 'cedula_asc':
+            return Number(docA) - Number(docB) || String(a.documento).localeCompare(String(b.documento));
+          case 'cedula_desc':
+            return Number(docB) - Number(docA) || String(b.documento).localeCompare(String(a.documento));
           default:
-            return fechaB - fechaA;
+            return ordA - ordB;
         }
       });
 
+      actualizarIndicadoresVisualesOrden(criterioOrden);
       renderizarTablaClientes(filtrados);
     }
 
+    function actualizarIndicadoresVisualesOrden(criterio) {
+      // Actualizar botones rápidos
+      document.querySelectorAll('.btn-orden-rapido').forEach(btn => {
+        if (btn.getAttribute('data-orden') === criterio) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+
+      // Actualizar iconos de cabecera de tabla
+      const resetIcons = () => {
+        ['sortIconReg', 'sortIconNombre', 'sortIconDoc', 'sortIconDeuda', 'sortIconFecha'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = '⇅';
+        });
+      };
+      resetIcons();
+
+      if (criterio === 'registro_asc') {
+        const el = document.getElementById('sortIconReg');
+        if (el) el.textContent = '▲';
+        const elF = document.getElementById('sortIconFecha');
+        if (elF) elF.textContent = '▲';
+      } else if (criterio === 'registro_desc') {
+        const el = document.getElementById('sortIconReg');
+        if (el) el.textContent = '▼';
+        const elF = document.getElementById('sortIconFecha');
+        if (elF) elF.textContent = '▼';
+      } else if (criterio === 'nombre_az') {
+        const el = document.getElementById('sortIconNombre');
+        if (el) el.textContent = '▲';
+      } else if (criterio === 'nombre_za') {
+        const el = document.getElementById('sortIconNombre');
+        if (el) el.textContent = '▼';
+      } else if (criterio === 'cedula_asc') {
+        const el = document.getElementById('sortIconDoc');
+        if (el) el.textContent = '▲';
+      } else if (criterio === 'cedula_desc') {
+        const el = document.getElementById('sortIconDoc');
+        if (el) el.textContent = '▼';
+      } else if (criterio === 'mayor_deuda') {
+        const el = document.getElementById('sortIconDeuda');
+        if (el) el.textContent = '▼';
+      } else if (criterio === 'menor_deuda') {
+        const el = document.getElementById('sortIconDeuda');
+        if (el) el.textContent = '▲';
+      }
+    }
+
     function renderizarTablaClientes(lista) {
-      lblConteo.textContent = `Mostrando ${lista.length} de ${listaClientesOriginal.length} clientes`;
+      lblConteo.textContent = `Mostrando ${lista.length} de ${listaClientesOriginal.length} clientes registrados`;
 
       if (lista.length === 0) {
         tablaClientesBody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align:center; padding:36px 20px; color:#64748b;">
+            <td colspan="8" style="text-align:center; padding:36px 20px; color:#64748b;">
               <span style="font-size:2rem; display:block; margin-bottom:8px;">🔍</span>
               No se encontraron clientes que coincidan con la búsqueda o filtro seleccionado.
             </td>
@@ -1126,31 +1408,63 @@
         const deuda = Number(c.monto_deuda) || 0;
         const tieneDeuda = deuda > 0;
         const statusClass = tieneDeuda ? 'pending' : 'paid';
-        const statusTexto = tieneDeuda ? 'Deuda Pendiente' : 'Al Día';
+        const statusTexto = c.estado || (tieneDeuda ? 'Activo' : 'Al Día');
+        const numOrden = mapaOrdenCronologico.get(String(c.documento).trim()) || '-';
+        const fechaInfo = formatFechaRegistro(c.created_at);
+        const cleanTel = String(c.telefono || '').trim();
+        const waPhone = limpiarTelefonoWhatsApp(cleanTel);
 
         return `
           <tr data-doc="${c.documento}">
+            <td style="text-align:center; vertical-align:middle;">
+              <span class="badge-orden-reg" title="Cliente #${numOrden} registrado en el sistema">
+                #${numOrden}
+              </span>
+            </td>
             <td>
               <strong style="display:block; color:#0f172a; font-size:0.95rem;">${c.nombre || 'Sin nombre'}</strong>
-              <span style="font-size:0.8rem; color:#64748b;">${c.correo || 'Sin correo'}</span>
+              <span style="font-size:0.8rem; color:#64748b;">${c.correo || ''}</span>
+              ${c.direccion ? `<span style="font-size:0.75rem; color:#94a3b8; display:block; margin-top:2px;">📍 ${c.direccion}</span>` : ''}
             </td>
             <td>
-              <span style="font-family:monospace; font-weight:600; color:#334155;">${c.documento || '-'}</span>
+              <div class="badge-doc-cedula">
+                <span style="color:#64748b; font-size:0.75rem;">CC</span>
+                <span>${c.documento || '-'}</span>
+              </div>
             </td>
             <td>
-              <span style="display:block; font-size:0.88rem; color:#1e293b;">📞 ${c.telefono || 'Sin teléfono'}</span>
-              <span style="display:block; font-size:0.78rem; color:#64748b;">📍 ${c.direccion || 'Sin dirección'}</span>
+              <div>
+                ${cleanTel ? `<a href="tel:${cleanTel}" class="btn-tel" title="Llamar al cliente">📞 ${cleanTel}</a>` : '<span style="color:#94a3b8; font-size:0.85rem;">Sin teléfono</span>'}
+              </div>
+              ${waPhone ? `
+                <div>
+                  <a 
+                    href="https://wa.me/${waPhone}?text=${encodeURIComponent('Hola ' + (c.nombre || '') + ', te contactamos del Sistema de Gestión de Cobros.')}" 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    class="btn-whatsapp" 
+                    title="Enviar mensaje directo por WhatsApp"
+                  >
+                    💬 WhatsApp
+                  </a>
+                </div>
+              ` : ''}
             </td>
             <td>
-              <strong style="color: ${tieneDeuda ? '#b91c1c' : '#059669'}; font-size:0.95rem;">
+              <div style="color: ${tieneDeuda ? '#dc2626' : '#059669'}; font-weight:700; font-size:0.95rem;">
                 ${formatCOP(deuda)}
-              </strong>
+              </div>
+              <span style="font-size:0.75rem; font-weight:600; color:${tieneDeuda ? '#b91c1c' : '#15803d'};">
+                ${tieneDeuda ? '⚠️ Saldo pendiente' : '✅ Sin deuda'}
+              </span>
             </td>
             <td>
               <span class="status ${statusClass}">${statusTexto}</span>
             </td>
             <td>
-              <span style="font-size:0.85rem; color:#64748b;">${formatFecha(c.created_at)}</span>
+              <div style="font-weight:600; color:#0f172a; font-size:0.86rem;">📅 ${fechaInfo.fecha}</div>
+              <div style="font-size:0.75rem; color:#64748b;">⏰ ${fechaInfo.hora}</div>
+              <div style="font-size:0.72rem; color:#2563eb; font-weight:600; margin-top:2px;">Orden reg.: #${numOrden}</div>
             </td>
             <td style="text-align:right; white-space:nowrap;">
               <a 
@@ -1160,6 +1474,15 @@
               >
                 🔎 Examinar
               </a>
+              ${tieneDeuda ? `
+                <a 
+                  href="pagos.html?documento=${encodeURIComponent(c.documento || '')}&nombre=${encodeURIComponent(c.nombre || '')}" 
+                  class="btn-action-table btn-abonar-directo" 
+                  title="Registrar abono de pago a este cliente"
+                >
+                  💵 Abonar
+                </a>
+              ` : ''}
               <button 
                 type="button" 
                 class="btn-action-table btn-eliminar btn-abrir-eliminar" 
@@ -1190,7 +1513,44 @@
     selectOrden.addEventListener('change', aplicarFiltrosYOrden);
     selectFiltro.addEventListener('change', aplicarFiltrosYOrden);
 
-    btnRecargar.addEventListener('click', async () => {
+    // Eventos de botones rápidos de organización
+    document.querySelectorAll('.btn-orden-rapido').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const orden = btn.getAttribute('data-orden');
+        if (orden) {
+          selectOrden.value = orden;
+          aplicarFiltrosYOrden();
+        }
+      });
+    });
+
+    // Eventos de clic en cabeceras de tabla para ordenar
+    document.getElementById('thOrdenReg')?.addEventListener('click', () => {
+      selectOrden.value = selectOrden.value === 'registro_asc' ? 'registro_desc' : 'registro_asc';
+      aplicarFiltrosYOrden();
+    });
+
+    document.getElementById('thOrdenFecha')?.addEventListener('click', () => {
+      selectOrden.value = selectOrden.value === 'registro_asc' ? 'registro_desc' : 'registro_asc';
+      aplicarFiltrosYOrden();
+    });
+
+    document.getElementById('thOrdenNombre')?.addEventListener('click', () => {
+      selectOrden.value = selectOrden.value === 'nombre_az' ? 'nombre_za' : 'nombre_az';
+      aplicarFiltrosYOrden();
+    });
+
+    document.getElementById('thOrdenDoc')?.addEventListener('click', () => {
+      selectOrden.value = selectOrden.value === 'cedula_asc' ? 'cedula_desc' : 'cedula_asc';
+      aplicarFiltrosYOrden();
+    });
+
+    document.getElementById('thOrdenDeuda')?.addEventListener('click', () => {
+      selectOrden.value = selectOrden.value === 'mayor_deuda' ? 'menor_deuda' : 'mayor_deuda';
+      aplicarFiltrosYOrden();
+    });
+
+    btnRecargar?.addEventListener('click', async () => {
       btnRecargar.textContent = '↻ Actualizando...';
       await cargarClientes();
       if (trabajadoresDesbloqueadosEnSesion) {
@@ -1199,6 +1559,13 @@
       btnRecargar.textContent = '↻ Actualizar lista';
       mostrarAlerta('Datos sincronizados correctamente.');
     });
+
+    // Carga inmediata de clientes
+    try {
+      cargarClientes();
+    } catch (e) {
+      console.warn('Carga preliminar de clientes:', e);
+    }
 
     // -----------------------------------------------------------------
     // MODAL DE ELIMINACIÓN DE CLIENTE (REQUIERE CONTRASEÑA)
@@ -1230,18 +1597,18 @@
       modalEliminarMsg.style.display = 'none';
     }
 
-    btnCerrarModalEliminar.addEventListener('click', cerrarModalEliminar);
-    btnCancelarEliminar.addEventListener('click', cerrarModalEliminar);
+    btnCerrarModalEliminar?.addEventListener('click', cerrarModalEliminar);
+    btnCancelarEliminar?.addEventListener('click', cerrarModalEliminar);
 
     // Toggle ojito contraseña eliminar
-    btnTogglePwdEliminar.addEventListener('click', () => {
+    btnTogglePwdEliminar?.addEventListener('click', () => {
       const isPwd = inputPwdEliminar.type === 'password';
       inputPwdEliminar.type = isPwd ? 'text' : 'password';
       btnTogglePwdEliminar.textContent = isPwd ? '🙈' : '👁️';
     });
 
     // Confirmar eliminación con contraseña
-    formConfirmarEliminar.addEventListener('submit', async (e) => {
+    formConfirmarEliminar?.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!clienteSeleccionadoParaEliminar) return;
 

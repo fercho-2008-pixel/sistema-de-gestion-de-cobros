@@ -183,7 +183,7 @@
             ← Volver al panel principal
           </button>
         </a>
-        <a href="clientes.html" style="text-decoration:none;">
+        <a href="clientes.html" id="linkDirectorioClientes" style="text-decoration:none;">
           <button class="btn-principal" style="background:#2563eb;">
             👥 Directorio de clientes
           </button>
@@ -192,12 +192,19 @@
 
     <!-- Script de integración con Supabase -->
     <script type="module">
-        import { registrarCliente, verificarAutenticacion } from './supabase.js';
+        import { registrarCliente, verificarAutenticacion, esUsuarioAdmin } from './supabase.js';
 
         // Verificar si el usuario terminó de registrarse o inició sesión
         const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'registros.html' });
         if (!auth.autenticado) {
             document.body.style.display = 'none';
+        }
+
+        // Ocultar directorio de clientes si el usuario es Cobrador
+        const esAdmin = esUsuarioAdmin(auth.usuario);
+        const linkDir = document.getElementById('linkDirectorioClientes');
+        if (!esAdmin && linkDir) {
+            linkDir.style.display = 'none';
         }
 
         const formulario = document.getElementById("formularioRegistroCliente");

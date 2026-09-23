@@ -149,7 +149,7 @@
             ← Volver al panel principal
           </button>
         </a>
-        <a href="clientes.html" style="text-decoration:none;">
+        <a href="clientes.html" id="linkDirectorioClientes" style="text-decoration:none;">
           <button type="button" class="btn" style="background:#2563eb; color:#fff; border:none; padding:10px 22px; border-radius:8px; font-weight:600; cursor:pointer;">
             👥 Directorio de clientes
           </button>
@@ -159,12 +159,19 @@
 </div>
 
 <script type="module">
-    import { registrarPago, obtenerClientes, buscarClientePorDocumento, verificarAutenticacion } from './supabase.js';
+    import { registrarPago, obtenerClientes, buscarClientePorDocumento, verificarAutenticacion, esUsuarioAdmin } from './supabase.js';
 
     // Verificar si el usuario completó su registro o inició sesión
     const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'pagos.html' });
     if (!auth.autenticado) {
         document.body.style.display = 'none';
+    }
+
+    // Ocultar directorio de clientes para Cobrador
+    const esAdmin = esUsuarioAdmin(auth.usuario);
+    const linkDir = document.getElementById('linkDirectorioClientes');
+    if (!esAdmin && linkDir) {
+        linkDir.style.display = 'none';
     }
 
     // Generar código aleatorio de recibo

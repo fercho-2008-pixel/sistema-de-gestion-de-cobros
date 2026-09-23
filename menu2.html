@@ -74,16 +74,17 @@
 
       <nav class="menu">
         <a href="menu2.html" class="active">Inicio</a>
-        <a href="clientes.html">Directorio de clientes</a>
+        <a href="clientes.html" id="menuLinkClientes" class="menu-solo-admin">Directorio de clientes</a>
         <a href="consulta.html">Consultar clientes</a>
         <a href="registros.html">Registrar clientes</a>
         <a href="pagos.html">Registrar pagos</a>
-        <a href="registro-usuario.html">Usuarios del sistema</a>
+        <a href="registro-usuario.html" id="menuLinkUsuarios" class="menu-solo-admin">Registrar nuevo usuario</a>
         <a href="#" id="linkCerrarSesion" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
       </nav>
       <div id="usuarioSesionBadge" style="padding: 12px; margin-top: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.8rem; color: #94a3b8;">
-        👤 <strong id="lblUsuarioNombre" style="color: #e2e8f0;">Usuario</strong><br>
-        <span id="lblUsuarioRol" style="font-size: 0.75rem; color: #38bdf8;">Cobrador</span>
+        👤 <strong id="lblUsuarioNombre" style="color: #e2e8f0;">-</strong><br>
+        <span id="lblUsuarioRol" style="font-size: 0.75rem; color: #38bdf8;">-</span>
+        <div id="lblUsuarioCorreo" style="font-size: 0.72rem; color: #64748b; margin-top: 3px; word-break: break-all;"></div>
       </div>
     </aside>
 
@@ -159,7 +160,7 @@
   </div>
 
   <script type="module">
-    import { obtenerResumenDashboard, verificarConexion, verificarAutenticacion, cerrarSesion } from './supabase.js';
+    import { obtenerResumenDashboard, verificarConexion, verificarAutenticacion, esUsuarioAdmin, cerrarSesion } from './supabase.js';
 
     // Verificar si el usuario está autenticado
     const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'menu2.html' });
@@ -169,11 +170,32 @@
 
     const lblNombre = document.getElementById('lblUsuarioNombre');
     const lblRol = document.getElementById('lblUsuarioRol');
+    const lblCorreo = document.getElementById('lblUsuarioCorreo');
     const linkCerrarSesion = document.getElementById('linkCerrarSesion');
+    const menuLinkClientes = document.getElementById('menuLinkClientes');
+    const menuLinkUsuarios = document.getElementById('menuLinkUsuarios');
 
     if (auth.usuario) {
+      const esAdmin = esUsuarioAdmin(auth.usuario);
+      const rolTexto = auth.usuario.rol || (esAdmin ? 'Administrador' : 'Cobrador');
+
       if (lblNombre) lblNombre.textContent = auth.usuario.nombre || 'Usuario';
-      if (lblRol) lblRol.textContent = auth.usuario.rol || 'Cobrador';
+      if (lblRol) lblRol.textContent = rolTexto;
+      if (lblCorreo && (auth.usuario.correo || auth.usuario.email)) {
+        lblCorreo.textContent = auth.usuario.correo || auth.usuario.email;
+      }
+
+      // Restricción de menú: Directorio de clientes y Registrar nuevo usuario SOLO para el Administrador
+      if (!esAdmin) {
+        if (menuLinkClientes) menuLinkClientes.style.display = 'none';
+        if (menuLinkUsuarios) menuLinkUsuarios.style.display = 'none';
+        document.querySelectorAll('.menu-solo-admin').forEach(el => {
+          el.style.display = 'none';
+        });
+      } else {
+        if (menuLinkClientes) menuLinkClientes.style.display = 'block';
+        if (menuLinkUsuarios) menuLinkUsuarios.style.display = 'block';
+      }
     }
 
     if (linkCerrarSesion) {
