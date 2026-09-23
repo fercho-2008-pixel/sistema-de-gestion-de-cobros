@@ -54,12 +54,17 @@
 
   <div class="card" style="max-width: 480px;">
     
-    <a href="menu2.html" class="back-link">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 12H5M12 19l-7-7 7-7"/>
-      </svg>
-      Panel principal
-    </a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <a href="menu2.html" class="back-link" style="margin:0;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Panel principal
+      </a>
+      <a href="clientes.html" style="font-size:13px; color:#3b82f6; text-decoration:none; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+        👥 Directorio de clientes →
+      </a>
+    </div>
 
     <div class="card-header">
       <h2 class="card-title">Consulta de Cliente</h2>
@@ -125,7 +130,14 @@
   </div>
 
   <script type="module">
-    import { buscarClientePorDocumento } from './supabase.js';
+    import { buscarClientePorDocumento, verificarAutenticacion } from './supabase.js';
+
+    // Verificar si el usuario completó su registro o inició sesión
+    const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'consulta.html' });
+    if (!auth.autenticado) {
+      // Redirigiendo automáticamente a login
+      document.body.style.display = 'none';
+    }
 
     const form = document.getElementById('searchForm');
     const inputCedula = document.getElementById('cedula');

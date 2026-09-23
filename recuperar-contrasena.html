@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Contraseña - Sistema de Gestión de Cobros</title>
+    <meta name="description" content="Recuperación y cambio de contraseña con validación de correo y cédula de identidad.">
+    <link rel="stylesheet" href="menu.css">
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="left">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z" fill="#0F2749"/></svg>
+      </div>
+      <div class="brand-name">Sistema de Gestión de Cobros<span>Recuperación de Acceso</span></div>
+    </div>
+
+    <div class="hero">
+      <div class="eyebrow">Seguridad de la cuenta</div>
+      <h1>Restablece tu contraseña de forma segura.</h1>
+      <p>Confirmaremos tu correo y tu número de cédula registrado antes de autorizar el cambio de tu contraseña.</p>
+    </div>
+
+    <div>
+      <div class="stat-row">
+        <div><b>Paso 1</b><span>Validar correo y cédula</span></div>
+        <div><b>Paso 2</b><span>Confirmar identidad</span></div>
+        <div><b>Paso 3</b><span>Nueva contraseña</span></div>
+      </div>
+      <div class="left-foot" style="margin-top:28px;">© 2024 Sistema de Gestión de Cobros</div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="card" style="max-width:460px;">
+      <div class="card-head">
+        <div class="kicker">Seguridad y acceso</div>
+        <h2>¿Olvidaste tu contraseña?</h2>
+        <p>Sigue los pasos para confirmar tu identidad y actualizar tu clave.</p>
+      </div>
+
+      <!-- PASO 1: Validación de correo y cédula -->
+      <div id="pantallaPaso1">
+        <form id="formRecuperarPaso1">
+          <div class="field">
+            <label for="inputCorreoRec">Correo electrónico registrado *</label>
+            <input id="inputCorreoRec" class="input filled" type="email" placeholder="usuario@cobros.com" required />
+          </div>
+
+          <div class="field">
+            <label for="inputCedulaRec">Cédula de identidad (Documento) *</label>
+            <input id="inputCedulaRec" class="input filled" type="text" placeholder="Ej: 1020304050" required />
+          </div>
+
+          <div id="msgPaso1" style="display:none; margin-bottom:14px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;"></div>
+
+          <button type="submit" id="btnConfirmarIdentidad" class="cta" style="width:100%; cursor:pointer;">
+            Confirmar identidad
+          </button>
+        </form>
+      </div>
+
+      <!-- PASO 2: Asignación de nueva contraseña -->
+      <div id="pantallaPaso2" style="display:none;">
+        <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-bottom:18px; display:flex; align-items:flex-start; gap:10px;">
+          <span style="font-size:1.3rem;">✅</span>
+          <div style="font-size:0.82rem; color:#065f46; line-height:1.4;">
+            <strong id="badgeNombreUsuario" style="display:block; font-size:0.9rem; color:#047857;">Identidad confirmada</strong>
+            <span id="badgeDetalleUsuario">Puedes ingresar tu nueva contraseña a continuación.</span>
+          </div>
+        </div>
+
+        <form id="formRecuperarPaso2">
+          <div class="field">
+            <label for="inputNuevaClave">Nueva contraseña *</label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input id="inputNuevaClave" class="input filled" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required style="padding-right:42px;" />
+              <button type="button" id="btnToggleClave" style="position:absolute; right:10px; background:transparent; border:none; cursor:pointer; font-size:1rem; opacity:0.6;">👁️</button>
+            </div>
+            <span style="font-size:12px; color:#64748b; margin-top:4px; display:block;">Mínimo 6 caracteres.</span>
+          </div>
+
+          <div class="field">
+            <label for="inputConfirmarClave">Confirmar nueva contraseña *</label>
+            <input id="inputConfirmarClave" class="input filled" type="password" placeholder="Repite la nueva contraseña" minlength="6" required />
+          </div>
+
+          <div id="msgPaso2" style="display:none; margin-bottom:14px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;"></div>
+
+          <div style="display:flex; gap:10px;">
+            <button type="button" id="btnVolverPaso1" style="flex:1; padding:12px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+              Atrás
+            </button>
+            <button type="submit" id="btnGuardarNuevaClave" class="cta" style="flex:2; cursor:pointer; background:#047857;">
+              Guardar contraseña
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PASO 3: Éxito final -->
+      <div id="pantallaPaso3" style="display:none; text-align:center; padding:16px 0;">
+        <div style="font-size:3.5rem; margin-bottom:14px;">🎉</div>
+        <h3 style="margin:0 0 10px 0; font-size:1.25rem; color:#0f172a; font-weight:700;">¡Contraseña actualizada con éxito!</h3>
+        <p style="font-size:0.9rem; color:#475569; line-height:1.5; margin-bottom:24px;">
+          Tu contraseña ha sido actualizada y guardada correctamente en el sistema. Ya puedes iniciar sesión con tus nuevas credenciales.
+        </p>
+        <a href="index.html" class="cta" style="display:inline-block; text-align:center; text-decoration:none; width:100%; box-sizing:border-box;">
+          Ir a Iniciar Sesión
+        </a>
+      </div>
+
+      <div class="foot-note" style="margin-top:24px;">
+        ¿Recordaste tu contraseña? <a href="index.html" style="font-weight:600; color:#2563eb;">Volver al inicio de sesión</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { 
+    verificarIdentidadUsuario, 
+    actualizarContrasenaUsuario 
+  } from './supabase.js';
+
+  const pantalla1 = document.getElementById('pantallaPaso1');
+  const pantalla2 = document.getElementById('pantallaPaso2');
+  const pantalla3 = document.getElementById('pantallaPaso3');
+
+  const form1 = document.getElementById('formRecuperarPaso1');
+  const inputCorreo = document.getElementById('inputCorreoRec');
+  const inputCedula = document.getElementById('inputCedulaRec');
+  const btnConfirmar = document.getElementById('btnConfirmarIdentidad');
+  const msg1 = document.getElementById('msgPaso1');
+
+  const form2 = document.getElementById('formRecuperarPaso2');
+  const inputPwd1 = document.getElementById('inputNuevaClave');
+  const inputPwd2 = document.getElementById('inputConfirmarClave');
+  const btnToggle = document.getElementById('btnToggleClave');
+  const btnGuardar = document.getElementById('btnGuardarNuevaClave');
+  const btnAtras = document.getElementById('btnVolverPaso1');
+  const msg2 = document.getElementById('msgPaso2');
+
+  const badgeNombre = document.getElementById('badgeNombreUsuario');
+  const badgeDetalle = document.getElementById('badgeDetalleUsuario');
+
+  let usuarioConfirmado = null;
+
+  btnToggle.addEventListener('click', () => {
+    const isPwd = inputPwd1.type === 'password';
+    inputPwd1.type = isPwd ? 'text' : 'password';
+    inputPwd2.type = isPwd ? 'text' : 'password';
+    btnToggle.textContent = isPwd ? '🙈' : '👁️';
+  });
+
+  btnAtras.addEventListener('click', () => {
+    pantalla2.style.display = 'none';
+    pantalla1.style.display = 'block';
+  });
+
+  // PASO 1: Confirmar identidad
+  form1.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const correo = inputCorreo.value.trim();
+    const cedula = inputCedula.value.trim();
+
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = 'Verificando identidad...';
+    msg1.style.display = 'none';
+
+    try {
+      const resp = await verificarIdentidadUsuario({ correo, cedula });
+      if (resp.ok && resp.usuario) {
+        usuarioConfirmado = resp.usuario;
+        badgeNombre.textContent = `Identidad confirmada: ${resp.usuario.nombre || 'Usuario'}`;
+        badgeDetalle.textContent = `Correo: ${resp.usuario.correo} | Cédula: ${resp.usuario.cedula}`;
+        pantalla1.style.display = 'none';
+        pantalla2.style.display = 'block';
+        inputPwd1.focus();
+      } else {
+        msg1.style.display = 'block';
+        msg1.style.backgroundColor = '#fee2e2';
+        msg1.style.color = '#991b1b';
+        msg1.style.border = '1px solid #f87171';
+        msg1.textContent = resp.error || 'No fue posible confirmar tu identidad con estos datos.';
+      }
+    } catch (err) {
+      msg1.style.display = 'block';
+      msg1.style.backgroundColor = '#fee2e2';
+      msg1.style.color = '#991b1b';
+      msg1.style.border = '1px solid #f87171';
+      msg1.textContent = 'Error: ' + err.message;
+    } finally {
+      btnConfirmar.disabled = false;
+      btnConfirmar.textContent = 'Confirmar identidad';
+    }
+  });
+
+  // PASO 2: Guardar y actualizar contraseña
+  form2.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pwd1 = inputPwd1.value;
+    const pwd2 = inputPwd2.value;
+
+    if (pwd1 !== pwd2) {
+      msg2.style.display = 'block';
+      msg2.style.backgroundColor = '#fee2e2';
+      msg2.style.color = '#991b1b';
+      msg2.style.border = '1px solid #f87171';
+      msg2.textContent = 'Las contraseñas ingresadas no coinciden.';
+      return;
+    }
+
+    if (pwd1.length < 6) {
+      msg2.style.display = 'block';
+      msg2.style.backgroundColor = '#fee2e2';
+      msg2.style.color = '#991b1b';
+      msg2.style.border = '1px solid #f87171';
+      msg2.textContent = 'La nueva contraseña debe tener mínimo 6 caracteres.';
+      return;
+    }
+
+    btnGuardar.disabled = true;
+    btnGuardar.textContent = 'Guardando cambios...';
+    msg2.style.display = 'none';
+
+    try {
+      const resp = await actualizarContrasenaUsuario({
+        correo: usuarioConfirmado.correo,
+        cedula: usuarioConfirmado.cedula,
+        nuevaPassword: pwd1
+      });
+
+      if (resp.ok) {
+        pantalla2.style.display = 'none';
+        pantalla3.style.display = 'block';
+      } else {
+        msg2.style.display = 'block';
+        msg2.style.backgroundColor = '#fee2e2';
+        msg2.style.color = '#991b1b';
+        msg2.style.border = '1px solid #f87171';
+        msg2.textContent = resp.error || 'No fue posible actualizar la contraseña.';
+      }
+    } catch (err) {
+      msg2.style.display = 'block';
+      msg2.style.backgroundColor = '#fee2e2';
+      msg2.style.color = '#991b1b';
+      msg2.style.border = '1px solid #f87171';
+      msg2.textContent = 'Error al actualizar: ' + err.message;
+    } finally {
+      btnGuardar.disabled = false;
+      btnGuardar.textContent = 'Guardar contraseña';
+    }
+  });
+</script>
+
+</body>
+</html>

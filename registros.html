@@ -177,17 +177,28 @@
         </section>
     </main>
 
-    <div style="text-align: center; margin: 20px auto 40px;">
+    <div style="text-align: center; margin: 20px auto 40px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
         <a href="menu2.html" style="text-decoration:none;">
           <button class="btn-principal" style="background:#0F2749;">
             ← Volver al panel principal
+          </button>
+        </a>
+        <a href="clientes.html" style="text-decoration:none;">
+          <button class="btn-principal" style="background:#2563eb;">
+            👥 Directorio de clientes
           </button>
         </a>
     </div>
 
     <!-- Script de integración con Supabase -->
     <script type="module">
-        import { registrarCliente } from './supabase.js';
+        import { registrarCliente, verificarAutenticacion } from './supabase.js';
+
+        // Verificar si el usuario terminó de registrarse o inició sesión
+        const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'registros.html' });
+        if (!auth.autenticado) {
+            document.body.style.display = 'none';
+        }
 
         const formulario = document.getElementById("formularioRegistroCliente");
         const mensaje = document.getElementById("mensajeGuardado");

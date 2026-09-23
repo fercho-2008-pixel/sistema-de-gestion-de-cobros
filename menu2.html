@@ -74,12 +74,17 @@
 
       <nav class="menu">
         <a href="menu2.html" class="active">Inicio</a>
+        <a href="clientes.html">Directorio de clientes</a>
         <a href="consulta.html">Consultar clientes</a>
         <a href="registros.html">Registrar clientes</a>
         <a href="pagos.html">Registrar pagos</a>
         <a href="registro-usuario.html">Usuarios del sistema</a>
-        <a href="menu.html" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
+        <a href="#" id="linkCerrarSesion" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
       </nav>
+      <div id="usuarioSesionBadge" style="padding: 12px; margin-top: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.8rem; color: #94a3b8;">
+        👤 <strong id="lblUsuarioNombre" style="color: #e2e8f0;">Usuario</strong><br>
+        <span id="lblUsuarioRol" style="font-size: 0.75rem; color: #38bdf8;">Cobrador</span>
+      </div>
     </aside>
 
     <main class="content">
@@ -154,7 +159,29 @@
   </div>
 
   <script type="module">
-    import { obtenerResumenDashboard, verificarConexion } from './supabase.js';
+    import { obtenerResumenDashboard, verificarConexion, verificarAutenticacion, cerrarSesion } from './supabase.js';
+
+    // Verificar si el usuario está autenticado
+    const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'menu2.html' });
+    if (!auth.autenticado) {
+      document.body.style.display = 'none';
+    }
+
+    const lblNombre = document.getElementById('lblUsuarioNombre');
+    const lblRol = document.getElementById('lblUsuarioRol');
+    const linkCerrarSesion = document.getElementById('linkCerrarSesion');
+
+    if (auth.usuario) {
+      if (lblNombre) lblNombre.textContent = auth.usuario.nombre || 'Usuario';
+      if (lblRol) lblRol.textContent = auth.usuario.rol || 'Cobrador';
+    }
+
+    if (linkCerrarSesion) {
+      linkCerrarSesion.addEventListener('click', (e) => {
+        e.preventDefault();
+        cerrarSesion();
+      });
+    }
 
     const statClientes = document.getElementById('statClientes');
     const statPrestamos = document.getElementById('statPrestamos');
@@ -173,9 +200,25 @@
 
       try {
         const check = await verificarConexion();
-        if (!check.ok && check.error && check.error.includes('schema cache')) {
-          bannerEsquema.style.display = 'flex';
-          textoAlerta.innerHTML = "Se requiere ejecutar el archivo <strong>schema.sql</strong> en tu base de datos para habilitar las tablas <code>clientes</code> y <code>pagos</code>.";
+        const badge = document.getElementById('supabaseBadge');
+        if (check.ok) {
+          if (badge) {
+            badge.innerHTML = '<span class="db-dot"></span> Base de datos en línea';
+            badge.style.color = '#10b981';
+            badge.style.background = 'rgba(16, 185, 129, 0.1)';
+            badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
+          }
+        } else {
+          if (badge) {
+            badge.innerHTML = '<span class="db-dot" style="background:#3b82f6; box-shadow:0 0 6px #3b82f6;"></span> Datos Sincronizados';
+            badge.style.color = '#2563eb';
+            badge.style.background = 'rgba(37, 99, 235, 0.1)';
+            badge.style.borderColor = 'rgba(37, 99, 235, 0.25)';
+          }
+          if (check.error && check.error.includes('schema cache')) {
+            bannerEsquema.style.display = 'flex';
+            textoAlerta.innerHTML = "Se requiere ejecutar el archivo <strong>schema.sql</strong> en tu base de datos para habilitar las tablas <code>clientes</code> y <code>pagos</code>.";
+          }
         }
 
         const data = await obtenerResumenDashboard();

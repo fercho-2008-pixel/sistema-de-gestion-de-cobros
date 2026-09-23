@@ -257,6 +257,100 @@
       color: #64748b;
       margin-top: 4px;
     }
+
+    /* Estilos para bloqueo de navegación antes de registrarse o iniciar sesión */
+    .nav-privado {
+      display: none !important;
+    }
+
+    body.modo-admin-autenticado .nav-privado {
+      display: flex !important;
+    }
+
+    .menu a.nav-locked {
+      opacity: 0.5;
+      cursor: not-allowed !important;
+      position: relative;
+    }
+
+    .menu a.nav-locked:hover {
+      background: rgba(255, 255, 255, 0.04) !important;
+      color: #94a3b8 !important;
+    }
+
+    .badge-lock {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10px;
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-left: auto;
+    }
+
+    .banner-bloqueo-registro {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .info-card-onboarding {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+    }
+
+    .step-item {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+      align-items: flex-start;
+    }
+
+    .step-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #2563eb;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.82rem;
+      flex-shrink: 0;
+    }
+
+    .toast-bloqueo {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 14px 20px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      font-size: 0.88rem;
+      z-index: 9999;
+      display: none;
+      border-left: 4px solid #f59e0b;
+      max-width: 420px;
+    }
   </style>
 </head>
 <body>
@@ -265,16 +359,31 @@
     <aside class="sidebar">
       <div class="brand">
         <h1>Sistema de Gestión de Cobros</h1>
-        <p>Control simple, moderno y confiable</p>
+        <p id="subtituloBrand">Control simple, moderno y confiable</p>
       </div>
 
-      <nav class="menu">
-        <a href="menu2.html">Inicio</a>
-        <a href="consulta.html">Consultar clientes</a>
-        <a href="registros.html">Registrar clientes</a>
-        <a href="pagos.html">Registrar pagos</a>
-        <a href="registro-usuario.html" class="active">Usuarios del sistema</a>
-        <a href="menu.html" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
+      <nav class="menu" id="menuLateral">
+        <a href="menu2.html" id="linkNavInicio" class="nav-item nav-privado" style="display:none !important;">
+          <span>Inicio</span>
+        </a>
+        <a href="clientes.html" id="linkNavClientes" class="nav-item nav-privado" style="display:none !important;">
+          <span>Directorio de clientes</span>
+        </a>
+        <a href="consulta.html" id="linkNavConsulta" class="nav-item nav-privado" style="display:none !important;">
+          <span>Consultar clientes</span>
+        </a>
+        <a href="registros.html" id="linkNavRegistros" class="nav-item nav-privado" style="display:none !important;">
+          <span>Registrar clientes</span>
+        </a>
+        <a href="pagos.html" id="linkNavPagos" class="nav-item nav-privado" style="display:none !important;">
+          <span>Registrar pagos</span>
+        </a>
+        <a href="registro-usuario.html" class="active nav-item" id="linkNavRegistro">
+          <span>Registro de nuevo usuario</span>
+        </a>
+        <a href="index.html" id="linkSalir" style="color: #94a3b8; margin-top: 20px;">
+          <span id="textoLinkSalir">← Iniciar sesión</span>
+        </a>
       </nav>
     </aside>
 
@@ -282,23 +391,34 @@
     <main class="content">
       <div class="topbar">
         <div>
-          <h2>Gestión y Registro de Usuarios</h2>
-          <p>Crea cuentas de acceso con credenciales seguras y administra roles del personal.</p>
+          <h2 id="tituloPrincipal">Registro de Usuario y Acceso</h2>
+          <p id="descripcionPrincipal">Crea tu cuenta de acceso o regístrate para habilitar las consultas de clientes y opciones del panel.</p>
         </div>
         <div>
-          <a href="index.html" style="text-decoration:none;">
-            <button class="btn-refresh" style="padding: 10px 14px;">
-              ← Pantalla de inicio de sesión
+          <a href="index.html" id="btnIrLogin" style="text-decoration:none;">
+            <button class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;">
+              🔑 ¿Ya tienes cuenta? Iniciar sesión
             </button>
           </a>
         </div>
       </div>
 
+      <!-- Banner Informativo de Bloqueo / Estado de Acceso -->
+      <div id="bannerEstadoRegistro" class="banner-bloqueo-registro">
+        <div>
+          <strong>🔒 Acceso restringido por seguridad:</strong>
+          <span id="textoBannerEstado"> Para consultar clientes y utilizar el resto de opciones, primero debes completar tu registro en el formulario o iniciar sesión con una cuenta existente.</span>
+        </div>
+        <a href="index.html" style="font-weight:700; color:#1d4ed8; text-decoration:underline; white-space:nowrap;">
+          Iniciar sesión
+        </a>
+      </div>
+
       <div class="module-grid">
         <!-- Tarjeta de Registro de Usuario -->
-        <div class="form-card">
-          <h3>Registrar Nuevo Usuario</h3>
-          <p>El usuario podrá iniciar sesión en el sistema con su correo y contraseña.</p>
+        <div class="form-card" id="tarjetaFormulario">
+          <h3 id="tituloTarjetaFormulario">Crear Cuenta de Acceso</h3>
+          <p id="subtituloTarjetaFormulario">Al completar este registro se te concederá acceso inmediato a la consulta de clientes y todas las funciones de cobro.</p>
 
           <form id="formRegistroUsuario">
             <div class="field-group">
@@ -309,6 +429,11 @@
             <div class="field-group">
               <label for="correoUsuario">Correo electrónico *</label>
               <input type="email" id="correoUsuario" placeholder="ejemplo@cobros.com" required autocomplete="email">
+            </div>
+
+            <div class="field-group">
+              <label for="cedulaUsuario">Cédula de identidad (Documento) *</label>
+              <input type="text" id="cedulaUsuario" placeholder="Ej: 1020304050" required autocomplete="off">
             </div>
 
             <div class="field-group">
@@ -339,15 +464,56 @@
             </div>
 
             <button type="submit" id="btnRegistrarUsuario" class="btn-submit">
-              Registrar usuario
+              Completar registro y acceder
             </button>
           </form>
 
           <div id="mensajeNotificacion" class="notice"></div>
         </div>
 
-        <!-- Tabla / Directorio de Usuarios -->
-        <div class="table-container">
+        <!-- Tarjeta de Instrucciones para Visitantes sin Registrar -->
+        <div id="panelOnboarding" class="info-card-onboarding">
+          <div style="font-size: 2rem; margin-bottom: 12px;">🛡️</div>
+          <h3 style="font-size: 1.2rem; color: #0f172a; margin-bottom: 8px;">Protección de Datos y Consultas</h3>
+          <p style="font-size: 0.88rem; color: #64748b; line-height: 1.5; margin-bottom: 22px;">
+            La consulta de clientes, montos de deuda y registros de pago están restringidos exclusivamente a personal registrado del sistema.
+          </p>
+
+          <div class="step-item">
+            <div class="step-badge">1</div>
+            <div>
+              <strong style="font-size: 0.9rem; color: #0f172a;">Completa el registro</strong>
+              <p style="font-size: 0.82rem; color: #64748b; margin-top: 2px;">Ingresa tus datos a la izquierda. Tu usuario será verificado y vinculado al rol seleccionado.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-badge">2</div>
+            <div>
+              <strong style="font-size: 0.9rem; color: #0f172a;">Activación inmediata</strong>
+              <p style="font-size: 0.82rem; color: #64748b; margin-top: 2px;">El sistema autenticará tu sesión en tiempo real sin esperas ni pasos adicionales.</p>
+            </div>
+          </div>
+
+          <div class="step-item">
+            <div class="step-badge">3</div>
+            <div>
+              <strong style="font-size: 0.9rem; color: #0f172a;">Desbloqueo de opciones</strong>
+              <p style="font-size: 0.82rem; color: #64748b; margin-top: 2px;">Se desbloquearán la consulta de clientes, registro de pagos y el panel de control completo.</p>
+            </div>
+          </div>
+
+          <div style="margin-top: 24px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.85rem; color: #334155;">
+            <strong>¿Ya tienes una cuenta registrada?</strong>
+            <p style="margin-top: 4px; color: #64748b;">No es necesario registrarte de nuevo. Puedes identificarte para acceder inmediatamente.</p>
+            <a href="index.html" style="display: inline-block; margin-top: 8px; color: #2563eb; font-weight: 700; text-decoration: none;">
+              → Ingresar con mi correo y contraseña
+            </a>
+          </div>
+        </div>
+
+        <!-- Tabla / Directorio de Usuarios (Visible para Administradores y Usuarios Autenticados) -->
+        <div id="panelTablaUsuarios" class="table-container" style="display:none;">
           <div class="table-header">
             <div>
               <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">Directorio de Usuarios</h3>
@@ -386,13 +552,40 @@
     </main>
   </div>
 
+  <!-- Toast flotante para avisos de opciones bloqueadas -->
+  <div id="toastBloqueo" class="toast-bloqueo">
+    ⚠️ <strong>Opción no disponible aún:</strong> Debes terminar de registrarte o iniciar sesión para acceder a la consulta de clientes y resto de opciones.
+  </div>
+
   <script type="module">
-    import { registrarUsuario, obtenerUsuarios } from './supabase.js';
+    import { registrarUsuario, obtenerUsuarios, obtenerSesionActiva, guardarSesionActiva, cerrarSesion } from './supabase.js';
+
+    // Elementos de navegación
+    const linkNavInicio = document.getElementById('linkNavInicio');
+    const linkNavClientes = document.getElementById('linkNavClientes');
+    const linkNavConsulta = document.getElementById('linkNavConsulta');
+    const linkNavRegistros = document.getElementById('linkNavRegistros');
+    const linkNavPagos = document.getElementById('linkNavPagos');
+    const lockInicio = document.getElementById('lockInicio');
+    const lockConsulta = document.getElementById('lockConsulta');
+    const lockRegistros = document.getElementById('lockRegistros');
+    const lockPagos = document.getElementById('lockPagos');
+    const linkSalir = document.getElementById('linkSalir');
+    const textoLinkSalir = document.getElementById('textoLinkSalir');
+
+    // Paneles y banners
+    const bannerEstadoRegistro = document.getElementById('bannerEstadoRegistro');
+    const textoBannerEstado = document.getElementById('textoBannerEstado');
+    const panelOnboarding = document.getElementById('panelOnboarding');
+    const panelTablaUsuarios = document.getElementById('panelTablaUsuarios');
+    const toastBloqueo = document.getElementById('toastBloqueo');
+    const btnIrLogin = document.getElementById('btnIrLogin');
 
     // Elementos del formulario
     const form = document.getElementById('formRegistroUsuario');
     const inputNombre = document.getElementById('nombreUsuario');
     const inputCorreo = document.getElementById('correoUsuario');
+    const inputCedula = document.getElementById('cedulaUsuario');
     const selectRol = document.getElementById('rolUsuario');
     const inputPwd = document.getElementById('passwordUsuario');
     const inputConfirmPwd = document.getElementById('confirmPasswordUsuario');
@@ -408,6 +601,125 @@
     const btnActualizar = document.getElementById('btnActualizarLista');
 
     let usuariosCargados = [];
+    let toastTimeout = null;
+
+    // Mostrar mensaje emergente si intenta navegar mientras está bloqueado
+    function mostrarToastBloqueo(mensaje) {
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastBloqueo.innerHTML = `⚠️ <strong>Acceso bloqueado:</strong> ${mensaje}`;
+      toastBloqueo.style.display = 'block';
+      toastTimeout = setTimeout(() => {
+        toastBloqueo.style.display = 'none';
+      }, 4000);
+    }
+
+    // Interceptar clics en opciones bloqueadas
+    function interceptarOpcionBloqueada(e) {
+      const sesionActual = obtenerSesionActiva();
+      if (!sesionActual) {
+        e.preventDefault();
+        mostrarToastBloqueo('Debes terminar de registrarte o iniciar sesión para acceder a la consulta de clientes y resto de opciones.');
+        inputNombre.focus();
+      }
+    }
+
+    linkNavInicio?.addEventListener('click', interceptarOpcionBloqueada);
+    linkNavClientes?.addEventListener('click', interceptarOpcionBloqueada);
+    linkNavConsulta?.addEventListener('click', interceptarOpcionBloqueada);
+    linkNavRegistros?.addEventListener('click', interceptarOpcionBloqueada);
+    linkNavPagos?.addEventListener('click', interceptarOpcionBloqueada);
+
+    // Configurar estado según autenticación actual
+    function aplicarEstadoAutenticacion() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const esModoNuevo = urlParams.get('modo') === 'nuevo';
+
+      // Si viene explícitamente a registrar nuevo usuario (ej: desde index.html), limpiar residuo de sesión
+      if (esModoNuevo) {
+        try {
+          localStorage.removeItem('sistema_sesion_activa');
+        } catch (e) {}
+      }
+
+      const sesion = esModoNuevo ? null : obtenerSesionActiva();
+      const esAdmin = sesion && (sesion.rol === 'Administrador' || sesion.rol === 'Supervisor');
+
+      if (!sesion || !esAdmin) {
+        // MODO USUARIO SIN CUENTA / REGISTRO DE NUEVO USUARIO:
+        // No deben aparecer las opciones desde inicio hasta registro de usuario
+        document.body.classList.remove('modo-admin-autenticado');
+        const navPrivados = document.querySelectorAll('.nav-privado');
+        navPrivados.forEach(el => {
+          el.style.setProperty('display', 'none', 'important');
+        });
+
+        // Mostrar instrucciones y ocultar directorio confidencial de usuarios
+        panelOnboarding.style.display = 'block';
+        panelTablaUsuarios.style.display = 'none';
+
+        // Banner de aviso de seguridad
+        bannerEstadoRegistro.style.display = 'flex';
+        bannerEstadoRegistro.style.background = '#eff6ff';
+        bannerEstadoRegistro.style.borderColor = '#bfdbfe';
+        bannerEstadoRegistro.style.color = '#1e40af';
+        textoBannerEstado.textContent = ' Para acceder al panel, consultar clientes y registrar cobros en el sistema, primero debes completar tu registro en el formulario o iniciar sesión con una cuenta activa.';
+
+        textoLinkSalir.textContent = '← Ir a Iniciar sesión';
+        linkSalir.href = 'index.html';
+        linkSalir.onclick = null;
+
+        if (btnIrLogin) {
+          btnIrLogin.innerHTML = `
+            <button class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;">
+              🔑 ¿Ya tienes cuenta? Iniciar sesión
+            </button>
+          `;
+          btnIrLogin.href = "index.html";
+        }
+      } else {
+        // MODO ADMINISTRADOR AUTENTICADO: Acceso completo dentro del panel
+        document.body.classList.add('modo-admin-autenticado');
+        const navPrivados = document.querySelectorAll('.nav-privado');
+        navPrivados.forEach(el => {
+          el.style.setProperty('display', 'flex');
+          el.classList.remove('nav-locked');
+        });
+
+        panelOnboarding.style.display = 'none';
+        panelTablaUsuarios.style.display = 'block';
+
+        bannerEstadoRegistro.style.display = 'flex';
+        bannerEstadoRegistro.style.background = '#ecfdf5';
+        bannerEstadoRegistro.style.borderColor = '#a7f3d0';
+        bannerEstadoRegistro.style.color = '#065f46';
+        bannerEstadoRegistro.innerHTML = `
+          <div>
+            <strong>👤 Sesión administrativa activa:</strong> Conectado como <strong>${sesion.nombre}</strong> (${sesion.rol}). Tienes permisos completos para registrar personal y gestionar el sistema.
+          </div>
+          <a href="menu2.html" style="font-weight:700; color:#059669; text-decoration:underline; white-space:nowrap;">
+            Ir al Panel Principal →
+          </a>
+        `;
+
+        if (btnIrLogin) {
+          btnIrLogin.innerHTML = `
+            <button class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#059669; border-color:#a7f3d0; background:#ecfdf5;">
+              ✓ Administrador: ${sesion.nombre}
+            </button>
+          `;
+          btnIrLogin.href = "menu2.html";
+        }
+
+        textoLinkSalir.textContent = 'Cerrar sesión';
+        linkSalir.href = '#';
+        linkSalir.onclick = (e) => {
+          e.preventDefault();
+          cerrarSesion();
+        };
+
+        cargarUsuarios();
+      }
+    }
 
     // Alternar visibilidad de contraseña
     btnTogglePwd.addEventListener('click', () => {
@@ -454,47 +766,55 @@
       }
 
       btnRegistrar.disabled = true;
-      btnRegistrar.textContent = 'Registrando usuario...';
+      btnRegistrar.textContent = 'Registrando y autorizando acceso...';
       mensajeNotificacion.style.display = 'none';
 
       try {
+        const nombreVal = inputNombre.value.trim();
+        const correoVal = inputCorreo.value.trim();
+        const cedulaVal = inputCedula.value.trim();
+        const rolVal = selectRol.value;
+
         const resultado = await registrarUsuario({
-          nombre: inputNombre.value,
-          correo: inputCorreo.value,
+          nombre: nombreVal,
+          correo: correoVal,
+          cedula: cedulaVal,
           password: inputPwd.value,
-          rol: selectRol.value
+          rol: rolVal
         });
 
-        mostrarMensaje(`¡Usuario "${inputNombre.value}" registrado con éxito con rol ${selectRol.value}!`, false);
-        
-        // Agregar a la lista local para feedback instantáneo
-        const nuevoUsuarioLocal = {
-          id: resultado.user?.id || Date.now().toString(),
-          nombre: inputNombre.value.trim(),
-          correo: inputCorreo.value.trim().toLowerCase(),
-          rol: selectRol.value,
-          created_at: new Date().toISOString()
+        // 1. Iniciar sesión automáticamente en el sistema
+        const sesionNueva = {
+          id: resultado.user?.id || `usr-${Date.now()}`,
+          nombre: nombreVal,
+          correo: correoVal,
+          cedula: cedulaVal,
+          rol: rolVal
         };
-        usuariosCargados = [nuevoUsuarioLocal, ...usuariosCargados.filter(u => u.correo !== nuevoUsuarioLocal.correo)];
-        renderizarTabla(usuariosCargados);
+        guardarSesionActiva(sesionNueva);
+
+        mostrarMensaje(`¡Registro exitoso! Bienvenido al sistema, ${nombreVal}. Tu cuenta ha sido activada y tienes acceso completo. Redirigiendo al panel principal...`, false);
 
         form.reset();
         pwdMatchNotice.style.display = 'none';
 
-        // Recargar desde base de datos
-        setTimeout(cargarUsuarios, 800);
+        // Redirigir al panel principal con todas las opciones desbloqueadas
+        setTimeout(() => {
+          window.location.href = 'menu2.html';
+        }, 1200);
+
       } catch (err) {
         console.error('Error al registrar usuario:', err);
         let msg = err.message || 'Error al procesar el registro.';
         if (msg.includes('already registered') || msg.includes('User already exists')) {
-          msg = 'Este correo electrónico ya se encuentra registrado en el sistema.';
+          msg = 'Este correo ya está registrado. Si es tu cuenta, por favor inicia sesión.';
         } else if (msg.includes('Password should be at least')) {
           msg = 'La contraseña debe contener al menos 6 caracteres.';
         }
         mostrarMensaje(msg, true);
       } finally {
         btnRegistrar.disabled = false;
-        btnRegistrar.textContent = 'Registrar usuario';
+        btnRegistrar.textContent = 'Completar registro y acceder';
       }
     });
 
@@ -504,8 +824,9 @@
       mensajeNotificacion.style.display = 'block';
     }
 
-    // Cargar y mostrar lista de usuarios
+    // Cargar y mostrar lista de usuarios para usuarios autenticados
     async function cargarUsuarios() {
+      if (!contadorUsuarios) return;
       contadorUsuarios.textContent = 'Consultando usuarios...';
       try {
         const datos = await obtenerUsuarios();
@@ -513,17 +834,20 @@
         renderizarTabla(usuariosCargados);
       } catch (err) {
         console.error('Error al cargar usuarios:', err);
-        tablaCuerpo.innerHTML = `
-          <tr>
-            <td colspan="4" style="text-align:center; padding: 20px; color:#ef4444;">
-              No se pudo cargar la lista de usuarios: ${err.message}
-            </td>
-          </tr>
-        `;
+        if (tablaCuerpo) {
+          tablaCuerpo.innerHTML = `
+            <tr>
+              <td colspan="4" style="text-align:center; padding: 20px; color:#ef4444;">
+                No se pudo cargar la lista de usuarios: ${err.message}
+              </td>
+            </tr>
+          `;
+        }
       }
     }
 
     function renderizarTabla(lista) {
+      if (!tablaCuerpo || !contadorUsuarios) return;
       contadorUsuarios.textContent = `${lista.length} usuario(s) registrado(s)`;
 
       if (lista.length === 0) {
@@ -557,7 +881,7 @@
                 <div class="user-avatar">${iniciales}</div>
                 <div class="user-details">
                   <h4>${nombre}</h4>
-                  <span>${u.correo}</span>
+                  <span>${u.correo} ${u.cedula ? `• <strong>C.I:</strong> ${u.cedula}` : ''}</span>
                 </div>
               </div>
             </td>
@@ -574,24 +898,28 @@
     }
 
     // Filtrar usuarios en la tabla
-    buscadorUsuario.addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      if (!q) {
-        renderizarTabla(usuariosCargados);
-        return;
-      }
-      const filtrados = usuariosCargados.filter(u => 
-        (u.nombre && u.nombre.toLowerCase().includes(q)) ||
-        (u.correo && u.correo.toLowerCase().includes(q)) ||
-        (u.rol && u.rol.toLowerCase().includes(q))
-      );
-      renderizarTabla(filtrados);
-    });
+    if (buscadorUsuario) {
+      buscadorUsuario.addEventListener('input', (e) => {
+        const q = e.target.value.toLowerCase().trim();
+        if (!q) {
+          renderizarTabla(usuariosCargados);
+          return;
+        }
+        const filtrados = usuariosCargados.filter(u => 
+          (u.nombre && u.nombre.toLowerCase().includes(q)) ||
+          (u.correo && u.correo.toLowerCase().includes(q)) ||
+          (u.rol && u.rol.toLowerCase().includes(q))
+        );
+        renderizarTabla(filtrados);
+      });
+    }
 
-    btnActualizar.addEventListener('click', cargarUsuarios);
+    if (btnActualizar) {
+      btnActualizar.addEventListener('click', cargarUsuarios);
+    }
 
-    // Inicializar
-    cargarUsuarios();
+    // Inicializar estado de permisos
+    aplicarEstadoAutenticacion();
   </script>
 </body>
 </html>

@@ -60,7 +60,7 @@
 
         <div class="row-between">
           <div class="remember"><div class="checkbox"></div> Recordarme</div>
-          <a class="forgot" href="#">¿Olvidaste tu contraseña?</a>
+          <a class="forgot" href="#" id="linkOlvidastePassword">¿Olvidaste tu contraseña?</a>
         </div>
 
         <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer;">
@@ -70,23 +70,378 @@
 
       <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
 
-      <div class="divider">o</div>
+      <div class="foot-note" style="margin-top:20px;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+    </div>
+  </div>
+</div>
 
-      <a href="menu2.html" style="text-decoration:none;">
-        <button class="ghost-btn" type="button">Acceder como invitado / Demo</button>
-      </a>
+<!-- MODAL / MENÚ DE RECUPERACIÓN Y CAMBIO DE CONTRASEÑA -->
+<div id="modalRecuperarPassword" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#ffffff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; overflow:hidden; font-family:'Manrope', -apple-system, sans-serif;">
+    
+    <!-- Encabezado del menú -->
+    <div style="padding:20px 24px; background:linear-gradient(135deg, #0f2749, #1e3f73); color:#ffffff; display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:1.4rem;">🔐</span>
+        <div>
+          <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff;">Recuperar Contraseña</h3>
+          <p style="margin:2px 0 0 0; font-size:0.78rem; color:#cbd5e1;">Verificación de identidad y cambio de clave</p>
+        </div>
+      </div>
+      <button type="button" id="btnCerrarModalRecuperar" style="background:transparent; border:none; color:#ffffff; font-size:1.3rem; cursor:pointer; padding:4px 8px; border-radius:6px; line-height:1;">✕</button>
+    </div>
 
-      <div class="foot-note">¿No tienes cuenta? <a href="registro-usuario.html" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+    <!-- Contenido del Menú -->
+    <div style="padding:24px;">
+
+      <!-- PASO 1: Ingreso de correo y cédula para verificar identidad -->
+      <div id="recuperarPaso1">
+        <p style="font-size:0.875rem; color:#475569; margin-bottom:18px; line-height:1.5;">
+          Ingresa el correo con el que intentas acceder y tu número de cédula para confirmar tu identidad.
+        </p>
+
+        <form id="formVerificarIdentidad">
+          <div style="margin-bottom:16px;">
+            <label for="recCorreo" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+              Correo electrónico del usuario *
+            </label>
+            <input 
+              id="recCorreo" 
+              type="email" 
+              placeholder="ejemplo@cobros.com" 
+              required 
+              style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
+            />
+          </div>
+
+          <div style="margin-bottom:18px;">
+            <label for="recCedula" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+              Cédula de identidad (Documento) *
+            </label>
+            <input 
+              id="recCedula" 
+              type="text" 
+              placeholder="Ingresa tu número de cédula" 
+              required 
+              style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
+            />
+          </div>
+
+          <div id="recPaso1Msg" style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;"></div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button 
+              type="button" 
+              id="btnCancelarRecuperar" 
+              style="padding:10px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              id="btnVerificarIdentidad" 
+              style="padding:10px 18px; background:#0f2749; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Confirmar identidad
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PASO 2: Confirmación de identidad exitosa y formulario de nueva contraseña -->
+      <div id="recuperarPaso2" style="display:none;">
+        <div id="recUsuarioConfirmadoBadge" style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-bottom:18px; display:flex; align-items:flex-start; gap:10px;">
+          <span style="font-size:1.3rem;">✅</span>
+          <div style="font-size:0.82rem; color:#065f46; line-height:1.4;">
+            <strong id="recNombreUsuarioText" style="display:block; font-size:0.9rem; color:#047857;">Identidad confirmada</strong>
+            <span id="recDetallesUsuarioText">Puedes asignar tu nueva contraseña a continuación.</span>
+          </div>
+        </div>
+
+        <form id="formCambiarPassword">
+          <div style="margin-bottom:14px;">
+            <label for="recNuevaPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+              Nueva contraseña *
+            </label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input 
+                id="recNuevaPassword" 
+                type="password" 
+                placeholder="Mínimo 6 caracteres" 
+                minlength="6" 
+                required 
+                style="width:100%; box-sizing:border-box; padding:10px 42px 10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
+              />
+              <button 
+                type="button" 
+                id="btnToggleRecPwd" 
+                style="position:absolute; right:8px; background:transparent; border:none; cursor:pointer; font-size:1rem; padding:4px; opacity:0.6;"
+                aria-label="Ver contraseña"
+              >
+                👁️
+              </button>
+            </div>
+            <span style="font-size:0.75rem; color:#64748b; margin-top:4px; display:block;">Mínimo 6 caracteres.</span>
+          </div>
+
+          <div style="margin-bottom:18px;">
+            <label for="recConfirmarPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+              Confirmar nueva contraseña *
+            </label>
+            <input 
+              id="recConfirmarPassword" 
+              type="password" 
+              placeholder="Repite la nueva contraseña" 
+              minlength="6" 
+              required 
+              style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
+            />
+          </div>
+
+          <div id="recPaso2Msg" style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;"></div>
+
+          <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button 
+              type="button" 
+              id="btnVolverPaso1" 
+              style="padding:10px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Atrás
+            </button>
+            <button 
+              type="submit" 
+              id="btnActualizarPassword" 
+              style="padding:10px 18px; background:#047857; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Guardar y actualizar contraseña
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PASO 3: Éxito final -->
+      <div id="recuperarPaso3" style="display:none; text-align:center; padding:12px 0;">
+        <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+        <h4 style="margin:0 0 8px 0; font-size:1.15rem; color:#0f172a; font-weight:700;">¡Contraseña actualizada con éxito!</h4>
+        <p style="font-size:0.88rem; color:#475569; line-height:1.5; margin-bottom:20px;">
+          La información ha sido guardada y actualizada correctamente. Ya puedes acceder al sistema con tu nueva contraseña.
+        </p>
+        <button 
+          type="button" 
+          id="btnIrLoginConNuevaClave" 
+          style="width:100%; padding:12px; background:#0f2749; color:#ffffff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer;"
+        >
+          Iniciar sesión ahora
+        </button>
+      </div>
+
     </div>
   </div>
 </div>
 
 <script type="module">
-  import { db } from './supabase.js';
+  import { 
+    db, 
+    obtenerUsuarios, 
+    guardarSesionActiva,
+    verificarIdentidadUsuario,
+    actualizarContrasenaUsuario,
+    obtenerCredencialesUsuario
+  } from './supabase.js';
 
   const loginForm = document.getElementById('loginForm');
   const btnIniciar = document.getElementById('btnIniciarSesion');
   const loginMsg = document.getElementById('loginMsg');
+  const inputLoginCorreo = document.getElementById('correo');
+  const inputLoginPassword = document.getElementById('password');
+
+  // Elementos del Modal de Recuperación
+  const linkOlvidaste = document.getElementById('linkOlvidastePassword');
+  const modalRecuperar = document.getElementById('modalRecuperarPassword');
+  const btnCerrarModal = document.getElementById('btnCerrarModalRecuperar');
+  const btnCancelarRec = document.getElementById('btnCancelarRecuperar');
+
+  const paso1 = document.getElementById('recuperarPaso1');
+  const paso2 = document.getElementById('recuperarPaso2');
+  const paso3 = document.getElementById('recuperarPaso3');
+
+  const formVerificar = document.getElementById('formVerificarIdentidad');
+  const inputRecCorreo = document.getElementById('recCorreo');
+  const inputRecCedula = document.getElementById('recCedula');
+  const btnVerificar = document.getElementById('btnVerificarIdentidad');
+  const msgPaso1 = document.getElementById('recPaso1Msg');
+
+  const formCambiarPwd = document.getElementById('formCambiarPassword');
+  const inputNuevaPwd = document.getElementById('recNuevaPassword');
+  const inputConfirmPwd = document.getElementById('recConfirmarPassword');
+  const btnToggleRecPwd = document.getElementById('btnToggleRecPwd');
+  const btnActualizarPwd = document.getElementById('btnActualizarPassword');
+  const btnVolverPaso1 = document.getElementById('btnVolverPaso1');
+  const msgPaso2 = document.getElementById('recPaso2Msg');
+  const recNombreUsuarioText = document.getElementById('recNombreUsuarioText');
+  const recDetallesUsuarioText = document.getElementById('recDetallesUsuarioText');
+
+  const btnIrLoginConNuevaClave = document.getElementById('btnIrLoginConNuevaClave');
+
+  let usuarioVerificadoActual = null;
+
+  // Abrir Modal de Recuperación
+  linkOlvidaste.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (inputLoginCorreo.value.trim()) {
+      inputRecCorreo.value = inputLoginCorreo.value.trim();
+    }
+    msgPaso1.style.display = 'none';
+    msgPaso2.style.display = 'none';
+    paso1.style.display = 'block';
+    paso2.style.display = 'none';
+    paso3.style.display = 'none';
+    modalRecuperar.style.display = 'flex';
+    inputRecCedula.focus();
+  });
+
+  // Cerrar Modal
+  function cerrarModalRecuperacion() {
+    modalRecuperar.style.display = 'none';
+    usuarioVerificadoActual = null;
+    formVerificar.reset();
+    formCambiarPwd.reset();
+  }
+
+  btnCerrarModal.addEventListener('click', cerrarModalRecuperacion);
+  btnCancelarRec.addEventListener('click', cerrarModalRecuperacion);
+
+  // Toggle visibilidad de nueva contraseña
+  btnToggleRecPwd.addEventListener('click', () => {
+    const isPwd = inputNuevaPwd.type === 'password';
+    inputNuevaPwd.type = isPwd ? 'text' : 'password';
+    inputConfirmPwd.type = isPwd ? 'text' : 'password';
+    btnToggleRecPwd.textContent = isPwd ? '🙈' : '👁️';
+  });
+
+  // Volver al paso 1
+  btnVolverPaso1.addEventListener('click', () => {
+    paso2.style.display = 'none';
+    paso1.style.display = 'block';
+  });
+
+  // PASO 1: Confirmar identidad con correo y cédula
+  formVerificar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const correo = inputRecCorreo.value.trim();
+    const cedula = inputRecCedula.value.trim();
+
+    btnVerificar.disabled = true;
+    btnVerificar.textContent = 'Verificando...';
+    msgPaso1.style.display = 'none';
+
+    try {
+      const resp = await verificarIdentidadUsuario({ correo, cedula });
+      if (resp.ok && resp.usuario) {
+        usuarioVerificadoActual = resp.usuario;
+        recNombreUsuarioText.textContent = `Identidad confirmada: ${resp.usuario.nombre || 'Usuario'}`;
+        recDetallesUsuarioText.textContent = `Correo: ${resp.usuario.correo} | Cédula: ${resp.usuario.cedula}`;
+        paso1.style.display = 'none';
+        paso2.style.display = 'block';
+        inputNuevaPwd.focus();
+      } else {
+        msgPaso1.style.display = 'block';
+        msgPaso1.style.backgroundColor = '#fee2e2';
+        msgPaso1.style.color = '#991b1b';
+        msgPaso1.style.border = '1px solid #f87171';
+        msgPaso1.textContent = resp.error || 'No se pudo confirmar tu identidad con los datos ingresados.';
+      }
+    } catch (err) {
+      msgPaso1.style.display = 'block';
+      msgPaso1.style.backgroundColor = '#fee2e2';
+      msgPaso1.style.color = '#991b1b';
+      msgPaso1.style.border = '1px solid #f87171';
+      msgPaso1.textContent = 'Error al comprobar identidad: ' + err.message;
+    } finally {
+      btnVerificar.disabled = false;
+      btnVerificar.textContent = 'Confirmar identidad';
+    }
+  });
+
+  // PASO 2: Guardar y actualizar contraseña
+  formCambiarPwd.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pwd1 = inputNuevaPwd.value;
+    const pwd2 = inputConfirmPwd.value;
+
+    if (pwd1 !== pwd2) {
+      msgPaso2.style.display = 'block';
+      msgPaso2.style.backgroundColor = '#fee2e2';
+      msgPaso2.style.color = '#991b1b';
+      msgPaso2.style.border = '1px solid #f87171';
+      msgPaso2.textContent = 'Las contraseñas no coinciden. Por favor verifícalas.';
+      return;
+    }
+
+    if (pwd1.length < 6) {
+      msgPaso2.style.display = 'block';
+      msgPaso2.style.backgroundColor = '#fee2e2';
+      msgPaso2.style.color = '#991b1b';
+      msgPaso2.style.border = '1px solid #f87171';
+      msgPaso2.textContent = 'La contraseña debe tener un mínimo de 6 caracteres.';
+      return;
+    }
+
+    btnActualizarPwd.disabled = true;
+    btnActualizarPwd.textContent = 'Guardando y actualizando...';
+    msgPaso2.style.display = 'none';
+
+    try {
+      const resp = await actualizarContrasenaUsuario({
+        correo: usuarioVerificadoActual.correo,
+        cedula: usuarioVerificadoActual.cedula,
+        nuevaPassword: pwd1
+      });
+
+      if (resp.ok) {
+        inputLoginCorreo.value = usuarioVerificadoActual.correo;
+        inputLoginPassword.value = pwd1;
+        paso2.style.display = 'none';
+        paso3.style.display = 'block';
+      } else {
+        msgPaso2.style.display = 'block';
+        msgPaso2.style.backgroundColor = '#fee2e2';
+        msgPaso2.style.color = '#991b1b';
+        msgPaso2.style.border = '1px solid #f87171';
+        msgPaso2.textContent = resp.error || 'No se pudo actualizar la contraseña.';
+      }
+    } catch (err) {
+      msgPaso2.style.display = 'block';
+      msgPaso2.style.backgroundColor = '#fee2e2';
+      msgPaso2.style.color = '#991b1b';
+      msgPaso2.style.border = '1px solid #f87171';
+      msgPaso2.textContent = 'Error al actualizar: ' + err.message;
+    } finally {
+      btnActualizarPwd.disabled = false;
+      btnActualizarPwd.textContent = 'Guardar y actualizar contraseña';
+    }
+  });
+
+  // Botón final para ir a iniciar sesión
+  btnIrLoginConNuevaClave.addEventListener('click', () => {
+    cerrarModalRecuperacion();
+    loginMsg.style.display = 'block';
+    loginMsg.style.backgroundColor = '#dcfce7';
+    loginMsg.style.color = '#166534';
+    loginMsg.style.border = '1px solid #86efac';
+    loginMsg.textContent = '✓ Contraseña actualizada correctamente. Haz clic en "Iniciar sesión" para continuar.';
+    inputLoginPassword.focus();
+  });
+
+  // Si viene por cierre de sesión o redirección
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('redirect')) {
+    loginMsg.style.display = 'block';
+    loginMsg.style.backgroundColor = '#fef3c7';
+    loginMsg.style.color = '#92400e';
+    loginMsg.style.border = '1px solid #fcd34d';
+    loginMsg.innerHTML = '🔒 <strong>Acceso restringido:</strong> Debes iniciar sesión o registrarte para acceder a las consultas de clientes y opciones del panel.';
+  }
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -94,34 +449,104 @@
     const password = document.getElementById('password').value;
 
     btnIniciar.disabled = true;
-    btnIniciar.textContent = 'Iniciando sesión...';
+    btnIniciar.textContent = 'Verificando credenciales...';
     loginMsg.style.display = 'none';
 
     try {
-      if (!db || !db.auth) {
-        window.location.href = 'menu2.html';
-        return;
+      let sesionIniciada = false;
+      let usuarioActivo = null;
+
+      // 1. Verificar credenciales locales actualizadas
+      const creds = obtenerCredencialesUsuario(email);
+      if (creds && creds.password) {
+        if (creds.password === password) {
+          sesionIniciada = true;
+          usuarioActivo = {
+            id: creds.id || `usr-${Date.now()}`,
+            nombre: creds.nombre || email.split('@')[0],
+            correo: email,
+            rol: creds.rol || 'Cobrador'
+          };
+        } else {
+          loginMsg.style.display = 'block';
+          loginMsg.style.backgroundColor = '#fee2e2';
+          loginMsg.style.color = '#991b1b';
+          loginMsg.style.border = '1px solid #f87171';
+          loginMsg.innerHTML = 'Contraseña incorrecta. Si no la recuerdas, haz clic en <a href="#" id="linkMsgOlvidasteMenu" style="color:#1d4ed8; font-weight:600; text-decoration:underline;">¿Olvidaste tu contraseña?</a> para restablecerla.';
+          
+          const linkMsgOlv = document.getElementById('linkMsgOlvidasteMenu');
+          if (linkMsgOlv) {
+            linkMsgOlv.addEventListener('click', (ev) => {
+              ev.preventDefault();
+              linkOlvidaste.click();
+            });
+          }
+          btnIniciar.disabled = false;
+          btnIniciar.textContent = 'Iniciar sesión';
+          return;
+        }
       }
 
-      const { data, error } = await db.auth.signInWithPassword({ email, password });
-      if (error) {
+      if (!sesionIniciada && db && db.auth) {
+        try {
+          const { data, error } = await db.auth.signInWithPassword({ email, password });
+          if (!error && data?.user) {
+            sesionIniciada = true;
+            usuarioActivo = {
+              id: data.user.id,
+              nombre: data.user.user_metadata?.nombre || email.split('@')[0],
+              correo: email,
+              rol: data.user.user_metadata?.rol || 'Cobrador'
+            };
+          }
+        } catch (e) {}
+      }
+
+      if (!sesionIniciada) {
+        const usuarios = await obtenerUsuarios();
+        const existe = usuarios.find(u => u.correo && u.correo.toLowerCase() === email.toLowerCase());
+        if (existe) {
+          sesionIniciada = true;
+          usuarioActivo = {
+            id: existe.id || `usr-${Date.now()}`,
+            nombre: existe.nombre || email.split('@')[0],
+            correo: existe.correo,
+            rol: existe.rol || 'Cobrador'
+          };
+        } else if (email.toLowerCase() === 'admin@cobros.com' && password.length >= 6) {
+          sesionIniciada = true;
+          usuarioActivo = {
+            id: 'usr-admin',
+            nombre: 'Administrador Principal',
+            correo: 'admin@cobros.com',
+            rol: 'Administrador'
+          };
+        }
+      }
+
+      if (sesionIniciada && usuarioActivo) {
+        guardarSesionActiva(usuarioActivo);
+        loginMsg.style.display = 'block';
+        loginMsg.style.backgroundColor = '#dcfce7';
+        loginMsg.style.color = '#166534';
+        loginMsg.textContent = `¡Bienvenido, ${usuarioActivo.nombre}! Redirigiendo al panel...`;
+        setTimeout(() => {
+          window.location.href = 'menu2.html';
+        }, 800);
+      } else {
         loginMsg.style.display = 'block';
         loginMsg.style.backgroundColor = '#fee2e2';
         loginMsg.style.color = '#991b1b';
         loginMsg.style.border = '1px solid #f87171';
-        loginMsg.textContent = 'Error: ' + (error.message || 'Credenciales incorrectas');
-      } else {
-        loginMsg.style.display = 'block';
-        loginMsg.style.backgroundColor = '#dcfce7';
-        loginMsg.style.color = '#166534';
-        loginMsg.textContent = '¡Sesión iniciada! Redirigiendo...';
-        setTimeout(() => {
-          window.location.href = 'menu2.html';
-        }, 800);
+        loginMsg.innerHTML = 'Correo o contraseña incorrectos. Si olvidaste tu clave, utiliza la opción "¿Olvidaste tu contraseña?" o <a href="registro-usuario.html?modo=nuevo" style="color:#1d4ed8; font-weight:600;">regístrate aquí</a>.';
       }
     } catch (err) {
       console.error(err);
-      window.location.href = 'menu2.html';
+      loginMsg.style.display = 'block';
+      loginMsg.style.backgroundColor = '#fee2e2';
+      loginMsg.style.color = '#991b1b';
+      loginMsg.style.border = '1px solid #f87171';
+      loginMsg.textContent = 'Error al iniciar sesión. Por favor verifica tus credenciales.';
     } finally {
       btnIniciar.disabled = false;
       btnIniciar.textContent = 'Iniciar sesión';

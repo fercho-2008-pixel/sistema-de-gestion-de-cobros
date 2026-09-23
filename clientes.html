@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Directorio de Clientes y Personal - Sistema de Gestión de Cobros</title>
+  <link rel="stylesheet" href="estilosmenu2.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* Pestañas de navegación superiores */
+    .tabs-header {
+      display: flex;
+      gap: 10px;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 24px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      padding: 12px 20px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      transition: all 0.2s ease;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .tab-btn:hover {
+      color: #1e293b;
+      background: #f8fafc;
+    }
+
+    .tab-btn.active {
+      color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #2563eb;
+    }
+
+    .tab-badge {
+      background: #e2e8f0;
+      color: #334155;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .tab-btn.active .tab-badge {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .tab-lock-icon {
+      font-size: 0.85rem;
+      color: #f59e0b;
+    }
+
+    /* Filtros y ordenamiento */
+    .toolbar-filtros {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: #ffffff;
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .grupo-busqueda {
+      display: flex;
+      flex: 1;
+      min-width: 260px;
+      max-width: 420px;
+      position: relative;
+    }
+
+    .input-busqueda {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border 0.2s ease;
+    }
+
+    .input-busqueda:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+
+    .icon-busqueda {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      pointer-events: none;
+    }
+
+    .grupo-orden {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .select-orden {
+      padding: 10px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      background-color: #ffffff;
+      color: #1e293b;
+      font-weight: 500;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .select-orden:focus {
+      border-color: #2563eb;
+    }
+
+    /* Tarjetas de estadísticas */
+    .metric-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .metric-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    .metric-info span {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
+      display: block;
+    }
+
+    .metric-info h4 {
+      font-size: 1.35rem;
+      color: #0f172a;
+      margin-top: 4px;
+      font-weight: 700;
+    }
+
+    /* Botones de acción en tabla */
+    .btn-action-table {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-examinar {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .btn-examinar:hover {
+      background: #dbeafe;
+      color: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    .btn-eliminar {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .btn-eliminar:hover {
+      background: #fee2e2;
+      color: #991b1b;
+      transform: translateY(-1px);
+    }
+
+    /* Modales */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .modal-header-danger {
+      padding: 18px 24px;
+      background: linear-gradient(135deg, #991b1b, #b91c1c);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header-auth {
+      padding: 18px 24px;
+      background: linear-gradient(135deg, #0f2749, #1e3f73);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .client-detail-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 18px;
+    }
+
+    .client-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 0.85rem;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+
+    .client-detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .client-detail-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .client-detail-value {
+      color: #0f172a;
+      font-weight: 600;
+      text-align: right;
+    }
+
+    /* Caja de bloqueo de trabajadores */
+    .trabajadores-lock-container {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 48px 24px;
+      text-align: center;
+      max-width: 540px;
+      margin: 30px auto;
+    }
+
+    .lock-avatar-big {
+      width: 72px;
+      height: 72px;
+      background: #eff6ff;
+      color: #2563eb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 18px auto;
+      border: 2px dashed #93c5fd;
+    }
+
+    .badge-rol {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-rol.admin {
+      background: #ede9fe;
+      color: #6b21a8;
+    }
+    .badge-rol.cobrador {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .badge-rol.supervisor {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .badge-rol.cajero {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .db-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      margin-top: 12px;
+      font-weight: 600;
+    }
+    .db-dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #10b981;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="layout">
+    <!-- BARRA LATERAL -->
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Sistema de Gestión de Cobros</h1>
+        <p>Directorio y Administración</p>
+        <div class="db-badge" id="supabaseBadge">
+          <span class="db-dot"></span> Base de datos en línea
+        </div>
+      </div>
+
+      <nav class="menu">
+        <a href="menu2.html">Inicio</a>
+        <a href="clientes.html" class="active">Directorio de clientes</a>
+        <a href="consulta.html">Consultar clientes</a>
+        <a href="registros.html">Registrar clientes</a>
+        <a href="pagos.html">Registrar pagos</a>
+        <a href="registro-usuario.html">Usuarios del sistema</a>
+        <a href="#" id="linkCerrarSesion" style="color: #94a3b8; margin-top: 20px;">Cerrar sesión</a>
+      </nav>
+
+      <div id="usuarioSesionBadge" style="padding: 12px; margin-top: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.8rem; color: #94a3b8;">
+        👤 <strong id="lblUsuarioNombre" style="color: #e2e8f0;">Usuario</strong><br>
+        <span id="lblUsuarioRol" style="font-size: 0.75rem; color: #38bdf8;">Cobrador</span>
+      </div>
+    </aside>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="content">
+      <!-- TOPBAR -->
+      <div class="topbar">
+        <div>
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <h2 style="margin:0;">Directorio y Gestión General</h2>
+            <span id="badgeSupabaseSync" style="display:inline-flex; align-items:center; gap:6px; background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:700;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+              <span id="lblSupabaseStatus">Supabase: Conectado</span>
+            </span>
+          </div>
+          <p style="margin-top:4px;">Todos los clientes registrados en la base de datos de Supabase organizados en tiempo real</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button class="btn" id="btnRecargarDatos" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; box-shadow:none;">
+            ↻ Actualizar lista
+          </button>
+          <button class="btn" id="btnAbrirModalNuevoCliente" style="background:#2563eb; color:#ffffff;">
+            + Nuevo Cliente
+          </button>
+        </div>
+      </div>
+
+      <!-- ALERTA DINÁMICA -->
+      <div id="bannerAlerta" style="display:none; padding:12px 18px; border-radius:12px; margin-bottom:20px; font-size:0.9rem;"></div>
+
+      <!-- PESTAÑAS SUPERIORES -->
+      <div class="tabs-header">
+        <button type="button" class="tab-btn active" id="tabBtnClientes">
+          <span>👥</span> Clientes Registrados
+          <span class="tab-badge" id="badgeTotalClientes">0</span>
+        </button>
+        <button type="button" class="tab-btn" id="tabBtnTrabajadores">
+          <span class="tab-lock-icon">🔒</span> Personal y Trabajadores
+          <span class="tab-badge" id="badgeTotalTrabajadores">Protegido</span>
+        </button>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- PESTAÑA 1: LISTADO Y GESTIÓN DE CLIENTES                -->
+      <!-- ======================================================== -->
+      <div id="seccionClientes">
+        <!-- TARJETAS DE RESUMEN DE CLIENTES -->
+        <div class="metric-cards">
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#eff6ff; color:#2563eb;">👥</div>
+            <div class="metric-info">
+              <span>Total Clientes</span>
+              <h4 id="statTotalClientes">0</h4>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#fef2f2; color:#dc2626;">⚠️</div>
+            <div class="metric-info">
+              <span>Con Deuda Pendiente</span>
+              <h4 id="statClientesConDeuda">0</h4>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-icon" style="background:#ecfdf5; color:#059669;">💰</div>
+            <div class="metric-info">
+              <span>Deuda Total Acumulada</span>
+              <h4 id="statTotalDeuda">$0 COP</h4>
+            </div>
+          </div>
+        </div>
+
+        <!-- BARRA DE HERRAMIENTAS: BÚSQUEDA Y ORDENAMIENTO -->
+        <div class="toolbar-filtros">
+          <div class="grupo-busqueda">
+            <span class="icon-busqueda">🔍</span>
+            <input 
+              type="text" 
+              id="inputBuscarClientes" 
+              class="input-busqueda" 
+              placeholder="Buscar por nombre, cédula, teléfono..." 
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="grupo-orden">
+            <label for="selectOrdenClientes" style="font-size:0.85rem; font-weight:600; color:#475569;">
+              Organizar por:
+            </label>
+            <select id="selectOrdenClientes" class="select-orden">
+              <option value="recientes">🕒 Registrados recientemente (Más nuevos)</option>
+              <option value="viejos">⏳ Los más viejos / antiguos</option>
+              <option value="mayor_deuda">💰 Mayor deuda pendiente</option>
+              <option value="menor_deuda">📉 Menor deuda / Al día</option>
+              <option value="nombre_az">🔤 Nombre (A - Z)</option>
+              <option value="nombre_za">🔤 Nombre (Z - A)</option>
+            </select>
+
+            <select id="selectFiltroEstado" class="select-orden">
+              <option value="todos">Todos los estados</option>
+              <option value="con_deuda">Solo con deuda pendiente</option>
+              <option value="al_dia">Solo clientes al día ($0)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TABLA DE CLIENTES -->
+        <div class="section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0; font-size:1.1rem; color:#0f172a;">Listado General de Clientes</h3>
+            <span id="lblConteoResultados" style="font-size:0.85rem; color:#64748b;">Mostrando 0 clientes</span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Cédula / Documento</th>
+                  <th>Contacto</th>
+                  <th>Deuda Pendiente</th>
+                  <th>Estado</th>
+                  <th>Fecha Registro</th>
+                  <th style="text-align:right;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tablaClientesBody">
+                <tr>
+                  <td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">
+                    Cargando directorio de clientes...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================================================== -->
+      <!-- PESTAÑA 2: PERSONAL Y TRABAJADORES (PROTEGIDO)           -->
+      <!-- ======================================================== -->
+      <div id="seccionTrabajadores" style="display:none;">
+        
+        <!-- ESTADO 1: BLOQUEADO (PIDE CONTRASEÑA) -->
+        <div id="vistaTrabajadoresBloqueada" class="trabajadores-lock-container">
+          <div class="lock-avatar-big">🔒</div>
+          <h3 style="font-size:1.35rem; color:#0f172a; margin-bottom:8px; font-weight:700;">
+            Acceso Protegido a Información de Trabajadores
+          </h3>
+          <p style="font-size:0.9rem; color:#64748b; line-height:1.5; margin-bottom:24px;">
+            Para visualizar la nómina del personal, roles de acceso y datos básicos de los trabajadores, ingresa tu contraseña de usuario o administrador.
+          </p>
+
+          <form id="formDesbloquearTrabajadores" style="max-width:340px; margin:0 auto;">
+            <div style="margin-bottom:16px; position:relative; display:flex; align-items:center;">
+              <input 
+                type="password" 
+                id="inputPwdTrabajadores" 
+                placeholder="Ingresa tu contraseña" 
+                required 
+                style="width:100%; padding:12px 42px 12px 14px; border:1px solid #cbd5e1; border-radius:10px; font-size:0.95rem; outline:none;"
+              />
+              <button 
+                type="button" 
+                id="btnTogglePwdTrabajadores" 
+                style="position:absolute; right:10px; background:transparent; border:none; cursor:pointer; font-size:1rem; opacity:0.6;"
+              >
+                👁️
+              </button>
+            </div>
+
+            <div id="msgErrorTrabajadores" style="display:none; padding:10px 12px; border-radius:8px; font-size:0.85rem; margin-bottom:14px; text-align:left;"></div>
+
+            <button 
+              type="submit" 
+              id="btnValidarPwdTrabajadores" 
+              class="btn" 
+              style="width:100%; padding:12px; font-size:0.95rem;"
+            >
+              🔓 Desbloquear personal
+            </button>
+          </form>
+        </div>
+
+        <!-- ESTADO 2: DESBLOQUEADO (MUESTRA INFORMACIÓN DE TRABAJADORES) -->
+        <div id="vistaTrabajadoresDesbloqueada" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+            <div>
+              <h3 style="font-size:1.25rem; color:#0f172a; margin:0 0 4px 0;">Equipo y Trabajadores del Sistema</h3>
+              <p style="font-size:0.85rem; color:#64748b; margin:0;">Personal activo, roles de seguridad y datos de identificación</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <a href="registro-usuario.html" style="text-decoration:none;">
+                <button class="btn" style="padding:10px 16px; font-size:0.88rem;">+ Registrar Nuevo Trabajador</button>
+              </a>
+              <button 
+                id="btnVolverABloquearTrabajadores" 
+                style="padding:10px 16px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; color:#475569; font-weight:600; cursor:pointer; font-size:0.88rem;"
+              >
+                🔒 Bloquear vista
+              </button>
+            </div>
+          </div>
+
+          <!-- RESUMEN DE ROLES -->
+          <div class="metric-cards">
+            <div class="metric-card">
+              <div class="metric-icon" style="background:#eff6ff; color:#2563eb;">👔</div>
+              <div class="metric-info">
+                <span>Total Trabajadores</span>
+                <h4 id="statTotalTrabajadores">0</h4>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon" style="background:#ede9fe; color:#7c3aed;">👑</div>
+              <div class="metric-info">
+                <span>Administradores</span>
+                <h4 id="statTotalAdmins">0</h4>
+              </div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-icon" style="background:#dcfce7; color:#16a34a;">🏍️</div>
+              <div class="metric-info">
+                <span>Cobradores / Asesores</span>
+                <h4 id="statTotalCobradores">0</h4>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABLA DE TRABAJADORES -->
+          <div class="section">
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Trabajador / Nombre</th>
+                    <th>Cédula (Documento)</th>
+                    <th>Correo Electrónico</th>
+                    <th>Rol en el Sistema</th>
+                    <th>Fecha de Registro</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaTrabajadoresBody">
+                  <tr>
+                    <td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">
+                      Cargando información del personal...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ELIMINACIÓN SEGURA DE CLIENTE                     -->
+  <!-- ======================================================== -->
+  <div id="modalEliminarCliente" class="modal-backdrop">
+    <div class="modal-box">
+      <!-- Encabezado del modal -->
+      <div class="modal-header-danger">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.4rem;">⚠️</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff;">Eliminar Cliente</h3>
+            <p style="margin:2px 0 0 0; font-size:0.78rem; color:#fee2e2;">Confirmación con contraseña requerida</p>
+          </div>
+        </div>
+        <button type="button" id="btnCerrarModalEliminar" style="background:transparent; border:none; color:#ffffff; font-size:1.3rem; cursor:pointer; padding:4px 8px; line-height:1;">✕</button>
+      </div>
+
+      <!-- Contenido del modal -->
+      <div style="padding:22px;">
+        <p style="font-size:0.88rem; color:#475569; margin-bottom:14px; line-height:1.5;">
+          ¿Estás seguro de que deseas eliminar este cliente? Revisa atentamente toda su información registrada antes de proceder:
+        </p>
+
+        <!-- Tarjeta con la información completa del cliente -->
+        <div class="client-detail-card">
+          <div class="client-detail-row">
+            <span class="client-detail-label">Nombre Completo:</span>
+            <span class="client-detail-value" id="delModalNombre">-</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Cédula / Documento:</span>
+            <span class="client-detail-value" id="delModalDocumento">-</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Teléfono:</span>
+            <span class="client-detail-value" id="delModalTelefono">-</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Dirección:</span>
+            <span class="client-detail-value" id="delModalDireccion">-</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Saldo Deuda Pendiente:</span>
+            <span class="client-detail-value" id="delModalDeuda" style="color:#b91c1c; font-size:0.95rem;">$0 COP</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Estado:</span>
+            <span class="client-detail-value" id="delModalEstado">-</span>
+          </div>
+          <div class="client-detail-row">
+            <span class="client-detail-label">Fecha de Registro:</span>
+            <span class="client-detail-value" id="delModalFecha">-</span>
+          </div>
+        </div>
+
+        <form id="formConfirmarEliminacion">
+          <div style="margin-bottom:16px;">
+            <label for="inputPasswordConfirmarEliminar" style="display:block; font-size:0.83rem; font-weight:600; color:#334155; margin-bottom:6px;">
+              Ingresa tu contraseña para autorizar la eliminación *
+            </label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input 
+                type="password" 
+                id="inputPasswordConfirmarEliminar" 
+                placeholder="Contraseña de usuario o admin" 
+                required 
+                style="width:100%; padding:10px 42px 10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
+              />
+              <button 
+                type="button" 
+                id="btnTogglePwdEliminar" 
+                style="position:absolute; right:8px; background:transparent; border:none; cursor:pointer; font-size:1rem; opacity:0.6;"
+              >
+                👁️
+              </button>
+            </div>
+            <span style="font-size:0.75rem; color:#dc2626; margin-top:4px; display:block;">
+              Esta acción eliminará el cliente y sus pagos asociados de forma irreversible.
+            </span>
+          </div>
+
+          <div id="modalEliminarMsg" style="display:none; padding:10px 12px; border-radius:8px; font-size:0.82rem; margin-bottom:14px; line-height:1.4;"></div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px;">
+            <button 
+              type="button" 
+              id="btnCancelarEliminar" 
+              style="padding:10px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              id="btnEjecutarEliminar" 
+              style="padding:10px 18px; background:#b91c1c; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
+            >
+              Sí, eliminar definitivamente
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REGISTRAR NUEVO CLIENTE EN SUPABASE DIRECTAMENTE -->
+  <div id="modalNuevoCliente" style="display:none; position:fixed; inset:0; z-index:1100; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#ffffff; width:100%; max-width:540px; border-radius:14px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; overflow:hidden; max-height:92vh; display:flex; flex-direction:column;">
+      <div style="padding:18px 22px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <div>
+          <h3 style="margin:0; font-size:1.15rem; color:#0f172a;">Registrar Nuevo Cliente</h3>
+          <p style="margin:2px 0 0 0; font-size:0.8rem; color:#64748b;">Se guardará directamente en la base de datos de Supabase</p>
+        </div>
+        <button type="button" id="btnCerrarModalNuevo" style="background:transparent; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer; line-height:1;">&times;</button>
+      </div>
+
+      <div style="padding:22px; overflow-y:auto; flex:1;">
+        <form id="formRegistrarNuevoClienteModal">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Nombre completo *</label>
+              <input type="text" id="nuevoCliNombre" required placeholder="Ej. Carlos Mendoza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Cédula / Documento *</label>
+              <input type="text" id="nuevoCliDocumento" required placeholder="Ej. 1098765432" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Teléfono / WhatsApp</label>
+              <input type="tel" id="nuevoCliTelefono" placeholder="Ej. +57 312 456 7890" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Correo electrónico</label>
+              <input type="email" id="nuevoCliCorreo" placeholder="correo@ejemplo.com" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Dirección de residencia o negocio</label>
+              <input type="text" id="nuevoCliDireccion" placeholder="Ej. Calle 45 # 12-30" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Monto inicial deuda (COP)</label>
+              <input type="number" id="nuevoCliDeuda" min="0" step="1000" placeholder="0" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Estado</label>
+              <select id="nuevoCliEstado" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; background:#ffffff;">
+                <option value="Activo">Activo</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Observaciones / Notas</label>
+              <textarea id="nuevoCliObservaciones" rows="2" placeholder="Detalles sobre el cliente, garantías o referencias..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; font-family:inherit; resize:vertical;"></textarea>
+            </div>
+          </div>
+
+          <div id="nuevoCliMsg" style="display:none; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:14px; line-height:1.4;"></div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; pt-2;">
+            <a href="registros.html" style="font-size:0.82rem; color:#2563eb; text-decoration:underline;">Ir al formulario completo</a>
+            <div style="display:flex; gap:10px;">
+              <button type="button" id="btnCancelarNuevo" style="padding:9px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+                Cancelar
+              </button>
+              <button type="submit" id="btnGuardarNuevoCliente" style="padding:9px 20px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+                💾 Guardar en Supabase
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DEL MÓDULO -->
+  <script type="module">
+    import { 
+      verificarAutenticacion, 
+      obtenerSesionActiva, 
+      cerrarSesion,
+      obtenerClientes,
+      registrarCliente,
+      obtenerUsuarios,
+      eliminarClientePorDocumento,
+      validarContrasenaAcceso,
+      getDb
+    } from './supabase.js';
+
+    // 1. Verificación de Autenticación
+    const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'clientes.html' });
+    if (!auth.autenticado) {
+      document.body.style.display = 'none';
+    }
+
+    const sesion = obtenerSesionActiva();
+    if (sesion) {
+      const lblNombre = document.getElementById('lblUsuarioNombre');
+      const lblRol = document.getElementById('lblUsuarioRol');
+      if (lblNombre) lblNombre.textContent = sesion.nombre || sesion.correo.split('@')[0];
+      if (lblRol) lblRol.textContent = sesion.rol || 'Cobrador';
+    }
+
+    // Cerrar sesión
+    document.getElementById('linkCerrarSesion')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      cerrarSesion();
+      window.location.href = 'index.html';
+    });
+
+    // 2. Elementos DOM de Pestañas
+    const tabBtnClientes = document.getElementById('tabBtnClientes');
+    const tabBtnTrabajadores = document.getElementById('tabBtnTrabajadores');
+    const seccionClientes = document.getElementById('seccionClientes');
+    const seccionTrabajadores = document.getElementById('seccionTrabajadores');
+
+    const badgeTotalClientes = document.getElementById('badgeTotalClientes');
+    const badgeTotalTrabajadores = document.getElementById('badgeTotalTrabajadores');
+
+    // Elementos de Clientes
+    const inputBuscar = document.getElementById('inputBuscarClientes');
+    const selectOrden = document.getElementById('selectOrdenClientes');
+    const selectFiltro = document.getElementById('selectFiltroEstado');
+    const tablaClientesBody = document.getElementById('tablaClientesBody');
+    const lblConteo = document.getElementById('lblConteoResultados');
+
+    const statTotalClientes = document.getElementById('statTotalClientes');
+    const statClientesConDeuda = document.getElementById('statClientesConDeuda');
+    const statTotalDeuda = document.getElementById('statTotalDeuda');
+
+    const bannerAlerta = document.getElementById('bannerAlerta');
+    const btnRecargar = document.getElementById('btnRecargarDatos');
+
+    // Elementos de Trabajadores
+    const vistaBloqueada = document.getElementById('vistaTrabajadoresBloqueada');
+    const vistaDesbloqueada = document.getElementById('vistaTrabajadoresDesbloqueada');
+    const formDesbloquear = document.getElementById('formDesbloquearTrabajadores');
+    const inputPwdTrabajadores = document.getElementById('inputPwdTrabajadores');
+    const btnTogglePwdTrabajadores = document.getElementById('btnTogglePwdTrabajadores');
+    const btnValidarPwd = document.getElementById('btnValidarPwdTrabajadores');
+    const msgErrorTrabajadores = document.getElementById('msgErrorTrabajadores');
+    const btnVolverABloquear = document.getElementById('btnVolverABloquearTrabajadores');
+
+    const statTotalTrabajadores = document.getElementById('statTotalTrabajadores');
+    const statTotalAdmins = document.getElementById('statTotalAdmins');
+    const statTotalCobradores = document.getElementById('statTotalCobradores');
+    const tablaTrabajadoresBody = document.getElementById('tablaTrabajadoresBody');
+
+    // Elementos del Modal Eliminar
+    const modalEliminar = document.getElementById('modalEliminarCliente');
+    const btnCerrarModalEliminar = document.getElementById('btnCerrarModalEliminar');
+    const btnCancelarEliminar = document.getElementById('btnCancelarEliminar');
+    const formConfirmarEliminar = document.getElementById('formConfirmarEliminar');
+    const inputPwdEliminar = document.getElementById('inputPasswordConfirmarEliminar');
+    const btnTogglePwdEliminar = document.getElementById('btnTogglePwdEliminar');
+    const btnEjecutarEliminar = document.getElementById('btnEjecutarEliminar');
+    const modalEliminarMsg = document.getElementById('modalEliminarMsg');
+
+    const delModalNombre = document.getElementById('delModalNombre');
+    const delModalDocumento = document.getElementById('delModalDocumento');
+    const delModalTelefono = document.getElementById('delModalTelefono');
+    const delModalDireccion = document.getElementById('delModalDireccion');
+    const delModalDeuda = document.getElementById('delModalDeuda');
+    const delModalEstado = document.getElementById('delModalEstado');
+    const delModalFecha = document.getElementById('delModalFecha');
+
+    // Estado local
+    let listaClientesOriginal = [];
+    let listaTrabajadoresOriginal = [];
+    let clienteSeleccionadoParaEliminar = null;
+    let trabajadoresDesbloqueadosEnSesion = false;
+
+    // Formateador de moneda
+    function formatCOP(valor) {
+      const num = Number(valor) || 0;
+      return '$' + num.toLocaleString('es-CO') + ' COP';
+    }
+
+    // Formateador de fecha
+    function formatFecha(fechaStr) {
+      if (!fechaStr) return 'No registrada';
+      try {
+        const d = new Date(fechaStr);
+        if (isNaN(d.getTime())) return fechaStr;
+        return d.toLocaleDateString('es-CO', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } catch (e) {
+        return fechaStr;
+      }
+    }
+
+    // Mostrar alerta temporal
+    function mostrarAlerta(msg, esError = false) {
+      bannerAlerta.style.display = 'block';
+      if (esError) {
+        bannerAlerta.style.backgroundColor = '#fee2e2';
+        bannerAlerta.style.color = '#991b1b';
+        bannerAlerta.style.border = '1px solid #f87171';
+      } else {
+        bannerAlerta.style.backgroundColor = '#ecfdf5';
+        bannerAlerta.style.color = '#065f46';
+        bannerAlerta.style.border = '1px solid #a7f3d0';
+      }
+      bannerAlerta.textContent = msg;
+      setTimeout(() => {
+        bannerAlerta.style.display = 'none';
+      }, 5000);
+    }
+
+    // -----------------------------------------------------------------
+    // GESTIÓN DE PESTAÑAS (TABS)
+    // -----------------------------------------------------------------
+    tabBtnClientes.addEventListener('click', () => {
+      tabBtnClientes.classList.add('active');
+      tabBtnTrabajadores.classList.remove('active');
+      seccionClientes.style.display = 'block';
+      seccionTrabajadores.style.display = 'none';
+    });
+
+    tabBtnTrabajadores.addEventListener('click', () => {
+      tabBtnTrabajadores.classList.add('active');
+      tabBtnClientes.classList.remove('active');
+      seccionClientes.style.display = 'none';
+      seccionTrabajadores.style.display = 'block';
+
+      if (trabajadoresDesbloqueadosEnSesion) {
+        vistaBloqueada.style.display = 'none';
+        vistaDesbloqueada.style.display = 'block';
+        cargarTrabajadores();
+      } else {
+        vistaBloqueada.style.display = 'block';
+        vistaDesbloqueada.style.display = 'none';
+        inputPwdTrabajadores.focus();
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // CARGAR Y RENDERIZAR CLIENTES CON FILTROS Y ORDENAMIENTO
+    // -----------------------------------------------------------------
+    async function cargarClientes() {
+      try {
+        tablaClientesBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center; padding:24px; color:#64748b;">
+              Cargando y sincronizando clientes...
+            </td>
+          </tr>
+        `;
+        const clientes = await obtenerClientes();
+        listaClientesOriginal = Array.isArray(clientes) ? clientes : [];
+        actualizarMetricasClientes(listaClientesOriginal);
+        aplicarFiltrosYOrden();
+      } catch (err) {
+        console.error('Error al cargar clientes:', err);
+        tablaClientesBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center; padding:20px; color:#dc2626;">
+              Error al cargar los clientes: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    function actualizarMetricasClientes(lista) {
+      const total = lista.length;
+      const conDeuda = lista.filter(c => (Number(c.monto_deuda) || 0) > 0);
+      const sumaDeuda = lista.reduce((sum, c) => sum + (Number(c.monto_deuda) || 0), 0);
+
+      statTotalClientes.textContent = total;
+      statClientesConDeuda.textContent = conDeuda.length;
+      statTotalDeuda.textContent = formatCOP(sumaDeuda);
+
+      badgeTotalClientes.textContent = total;
+
+      const lblStatus = document.getElementById('lblSupabaseStatus');
+      if (lblStatus) {
+        lblStatus.textContent = `Supabase: ${total} clientes en BD`;
+      }
+    }
+
+    function aplicarFiltrosYOrden() {
+      const termino = inputBuscar.value.toLowerCase().trim();
+      const criterioOrden = selectOrden.value;
+      const filtroEstado = selectFiltro.value;
+
+      // 1. Filtrado por texto
+      let filtrados = listaClientesOriginal.filter(c => {
+        const nombre = (c.nombre || '').toLowerCase();
+        const doc = String(c.documento || '').toLowerCase();
+        const tel = String(c.telefono || '').toLowerCase();
+        const dir = String(c.direccion || '').toLowerCase();
+        const matchTexto = !termino || nombre.includes(termino) || doc.includes(termino) || tel.includes(termino) || dir.includes(termino);
+
+        // Filtro de estado
+        let matchEstado = true;
+        const deuda = Number(c.monto_deuda) || 0;
+        if (filtroEstado === 'con_deuda') {
+          matchEstado = deuda > 0;
+        } else if (filtroEstado === 'al_dia') {
+          matchEstado = deuda === 0;
+        }
+
+        return matchTexto && matchEstado;
+      });
+
+      // 2. Ordenamiento
+      filtrados.sort((a, b) => {
+        const fechaA = new Date(a.created_at || 0).getTime();
+        const fechaB = new Date(b.created_at || 0).getTime();
+        const deudaA = Number(a.monto_deuda) || 0;
+        const deudaB = Number(b.monto_deuda) || 0;
+        const nombreA = (a.nombre || '').toLowerCase();
+        const nombreB = (b.nombre || '').toLowerCase();
+
+        switch (criterioOrden) {
+          case 'recientes': // Los más nuevos primero
+            return fechaB - fechaA;
+          case 'viejos': // Los más antiguos primero
+            return fechaA - fechaB;
+          case 'mayor_deuda': // Mayor deuda pendiente primero
+            return deudaB - deudaA;
+          case 'menor_deuda': // Menor deuda primero
+            return deudaA - deudaB;
+          case 'nombre_az':
+            return nombreA.localeCompare(nombreB);
+          case 'nombre_za':
+            return nombreB.localeCompare(nombreA);
+          default:
+            return fechaB - fechaA;
+        }
+      });
+
+      renderizarTablaClientes(filtrados);
+    }
+
+    function renderizarTablaClientes(lista) {
+      lblConteo.textContent = `Mostrando ${lista.length} de ${listaClientesOriginal.length} clientes`;
+
+      if (lista.length === 0) {
+        tablaClientesBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center; padding:36px 20px; color:#64748b;">
+              <span style="font-size:2rem; display:block; margin-bottom:8px;">🔍</span>
+              No se encontraron clientes que coincidan con la búsqueda o filtro seleccionado.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tablaClientesBody.innerHTML = lista.map(c => {
+        const deuda = Number(c.monto_deuda) || 0;
+        const tieneDeuda = deuda > 0;
+        const statusClass = tieneDeuda ? 'pending' : 'paid';
+        const statusTexto = tieneDeuda ? 'Deuda Pendiente' : 'Al Día';
+
+        return `
+          <tr data-doc="${c.documento}">
+            <td>
+              <strong style="display:block; color:#0f172a; font-size:0.95rem;">${c.nombre || 'Sin nombre'}</strong>
+              <span style="font-size:0.8rem; color:#64748b;">${c.correo || 'Sin correo'}</span>
+            </td>
+            <td>
+              <span style="font-family:monospace; font-weight:600; color:#334155;">${c.documento || '-'}</span>
+            </td>
+            <td>
+              <span style="display:block; font-size:0.88rem; color:#1e293b;">📞 ${c.telefono || 'Sin teléfono'}</span>
+              <span style="display:block; font-size:0.78rem; color:#64748b;">📍 ${c.direccion || 'Sin dirección'}</span>
+            </td>
+            <td>
+              <strong style="color: ${tieneDeuda ? '#b91c1c' : '#059669'}; font-size:0.95rem;">
+                ${formatCOP(deuda)}
+              </strong>
+            </td>
+            <td>
+              <span class="status ${statusClass}">${statusTexto}</span>
+            </td>
+            <td>
+              <span style="font-size:0.85rem; color:#64748b;">${formatFecha(c.created_at)}</span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <a 
+                href="consulta.html?cedula=${encodeURIComponent(c.documento || '')}" 
+                class="btn-action-table btn-examinar" 
+                title="Examinar expediente completo del cliente en Consulta"
+              >
+                🔎 Examinar
+              </a>
+              <button 
+                type="button" 
+                class="btn-action-table btn-eliminar btn-abrir-eliminar" 
+                data-documento="${c.documento}"
+                title="Eliminar cliente tras confirmar con contraseña"
+              >
+                🗑️ Eliminar
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Asociar eventos a los botones de eliminar
+      document.querySelectorAll('.btn-abrir-eliminar').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const doc = e.currentTarget.getAttribute('data-documento');
+          const cliente = listaClientesOriginal.find(cl => String(cl.documento).trim() === String(doc).trim());
+          if (cliente) {
+            abrirModalEliminar(cliente);
+          }
+        });
+      });
+    }
+
+    // Eventos de filtrado y búsqueda
+    inputBuscar.addEventListener('input', aplicarFiltrosYOrden);
+    selectOrden.addEventListener('change', aplicarFiltrosYOrden);
+    selectFiltro.addEventListener('change', aplicarFiltrosYOrden);
+
+    btnRecargar.addEventListener('click', async () => {
+      btnRecargar.textContent = '↻ Actualizando...';
+      await cargarClientes();
+      if (trabajadoresDesbloqueadosEnSesion) {
+        await cargarTrabajadores();
+      }
+      btnRecargar.textContent = '↻ Actualizar lista';
+      mostrarAlerta('Datos sincronizados correctamente.');
+    });
+
+    // -----------------------------------------------------------------
+    // MODAL DE ELIMINACIÓN DE CLIENTE (REQUIERE CONTRASEÑA)
+    // -----------------------------------------------------------------
+    function abrirModalEliminar(cliente) {
+      clienteSeleccionadoParaEliminar = cliente;
+
+      delModalNombre.textContent = cliente.nombre || 'Sin nombre';
+      delModalDocumento.textContent = cliente.documento || '-';
+      delModalTelefono.textContent = cliente.telefono || 'Sin teléfono';
+      delModalDireccion.textContent = cliente.direccion || 'Sin dirección';
+      delModalDeuda.textContent = formatCOP(cliente.monto_deuda);
+      delModalEstado.textContent = (Number(cliente.monto_deuda) || 0) > 0 ? 'Con deuda pendiente' : 'Al día';
+      delModalFecha.textContent = formatFecha(cliente.created_at);
+
+      inputPwdEliminar.value = '';
+      modalEliminarMsg.style.display = 'none';
+      btnEjecutarEliminar.disabled = false;
+      btnEjecutarEliminar.textContent = 'Sí, eliminar definitivamente';
+
+      modalEliminar.style.display = 'flex';
+      inputPwdEliminar.focus();
+    }
+
+    function cerrarModalEliminar() {
+      modalEliminar.style.display = 'none';
+      clienteSeleccionadoParaEliminar = null;
+      inputPwdEliminar.value = '';
+      modalEliminarMsg.style.display = 'none';
+    }
+
+    btnCerrarModalEliminar.addEventListener('click', cerrarModalEliminar);
+    btnCancelarEliminar.addEventListener('click', cerrarModalEliminar);
+
+    // Toggle ojito contraseña eliminar
+    btnTogglePwdEliminar.addEventListener('click', () => {
+      const isPwd = inputPwdEliminar.type === 'password';
+      inputPwdEliminar.type = isPwd ? 'text' : 'password';
+      btnTogglePwdEliminar.textContent = isPwd ? '🙈' : '👁️';
+    });
+
+    // Confirmar eliminación con contraseña
+    formConfirmarEliminar.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!clienteSeleccionadoParaEliminar) return;
+
+      const password = inputPwdEliminar.value;
+      if (!password) return;
+
+      btnEjecutarEliminar.disabled = true;
+      btnEjecutarEliminar.textContent = 'Validando y eliminando...';
+      modalEliminarMsg.style.display = 'none';
+
+      try {
+        const resultado = await eliminarClientePorDocumento({
+          documento: clienteSeleccionadoParaEliminar.documento,
+          password: password
+        });
+
+        if (resultado.ok) {
+          const nombreEliminado = clienteSeleccionadoParaEliminar.nombre || 'Cliente';
+          cerrarModalEliminar();
+          mostrarAlerta(`✓ El cliente "${nombreEliminado}" fue eliminado exitosamente.`);
+          await cargarClientes();
+        } else {
+          modalEliminarMsg.style.display = 'block';
+          modalEliminarMsg.style.backgroundColor = '#fee2e2';
+          modalEliminarMsg.style.color = '#991b1b';
+          modalEliminarMsg.style.border = '1px solid #f87171';
+          modalEliminarMsg.textContent = resultado.error || 'Contraseña incorrecta. No se autorizó la eliminación.';
+          btnEjecutarEliminar.disabled = false;
+          btnEjecutarEliminar.textContent = 'Sí, eliminar definitivamente';
+        }
+      } catch (err) {
+        modalEliminarMsg.style.display = 'block';
+        modalEliminarMsg.style.backgroundColor = '#fee2e2';
+        modalEliminarMsg.style.color = '#991b1b';
+        modalEliminarMsg.style.border = '1px solid #f87171';
+        modalEliminarMsg.textContent = 'Error: ' + err.message;
+        btnEjecutarEliminar.disabled = false;
+        btnEjecutarEliminar.textContent = 'Sí, eliminar definitivamente';
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // PESTAÑA TRABAJADORES: PROTECCIÓN CON CONTRASEÑA
+    // -----------------------------------------------------------------
+    btnTogglePwdTrabajadores.addEventListener('click', () => {
+      const isPwd = inputPwdTrabajadores.type === 'password';
+      inputPwdTrabajadores.type = isPwd ? 'text' : 'password';
+      btnTogglePwdTrabajadores.textContent = isPwd ? '🙈' : '👁️';
+    });
+
+    formDesbloquear.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pwd = inputPwdTrabajadores.value;
+      if (!pwd) return;
+
+      btnValidarPwd.disabled = true;
+      btnValidarPwd.textContent = 'Comprobando contraseña...';
+      msgErrorTrabajadores.style.display = 'none';
+
+      try {
+        const validacion = await validarContrasenaAcceso(pwd);
+        if (validacion.ok) {
+          trabajadoresDesbloqueadosEnSesion = true;
+          badgeTotalTrabajadores.textContent = 'Desbloqueado';
+          vistaBloqueada.style.display = 'none';
+          vistaDesbloqueada.style.display = 'block';
+          await cargarTrabajadores();
+        } else {
+          msgErrorTrabajadores.style.display = 'block';
+          msgErrorTrabajadores.style.backgroundColor = '#fee2e2';
+          msgErrorTrabajadores.style.color = '#991b1b';
+          msgErrorTrabajadores.style.border = '1px solid #f87171';
+          msgErrorTrabajadores.textContent = validacion.error || 'Contraseña incorrecta. Autorización denegada.';
+        }
+      } catch (err) {
+        msgErrorTrabajadores.style.display = 'block';
+        msgErrorTrabajadores.style.backgroundColor = '#fee2e2';
+        msgErrorTrabajadores.style.color = '#991b1b';
+        msgErrorTrabajadores.style.border = '1px solid #f87171';
+        msgErrorTrabajadores.textContent = 'Error al comprobar: ' + err.message;
+      } finally {
+        btnValidarPwd.disabled = false;
+        btnValidarPwd.textContent = '🔓 Desbloquear personal';
+      }
+    });
+
+    btnVolverABloquear.addEventListener('click', () => {
+      trabajadoresDesbloqueadosEnSesion = false;
+      badgeTotalTrabajadores.textContent = 'Protegido';
+      inputPwdTrabajadores.value = '';
+      vistaDesbloqueada.style.display = 'none';
+      vistaBloqueada.style.display = 'block';
+    });
+
+    async function cargarTrabajadores() {
+      try {
+        tablaTrabajadoresBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center; padding:20px; color:#64748b;">
+              Cargando nómina de personal...
+            </td>
+          </tr>
+        `;
+        const usuarios = await obtenerUsuarios();
+        listaTrabajadoresOriginal = Array.isArray(usuarios) ? usuarios : [];
+
+        // Estadísticas
+        const total = listaTrabajadoresOriginal.length;
+        const admins = listaTrabajadoresOriginal.filter(u => (u.rol || '').toLowerCase().includes('admin')).length;
+        const cobradores = listaTrabajadoresOriginal.filter(u => (u.rol || '').toLowerCase().includes('cobrador')).length;
+
+        statTotalTrabajadores.textContent = total;
+        statTotalAdmins.textContent = admins;
+        statTotalCobradores.textContent = cobradores;
+
+        if (total === 0) {
+          tablaTrabajadoresBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align:center; padding:28px; color:#64748b;">
+                No hay trabajadores registrados en este momento.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tablaTrabajadoresBody.innerHTML = listaTrabajadoresOriginal.map(u => {
+          const rol = u.rol || 'Cobrador';
+          let rolClass = 'cobrador';
+          if (rol.toLowerCase().includes('admin')) rolClass = 'admin';
+          else if (rol.toLowerCase().includes('super')) rolClass = 'supervisor';
+          else if (rol.toLowerCase().includes('cajer')) rolClass = 'cajero';
+
+          const cedulaStr = u.cedula || u.documento || 'No registrada';
+
+          return `
+            <tr>
+              <td>
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <div style="width:36px; height:36px; border-radius:50%; background:#e0e7ff; color:#3730a3; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem;">
+                    ${(u.nombre || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <strong style="display:block; color:#0f172a; font-size:0.92rem;">${u.nombre || 'Trabajador'}</strong>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span style="font-family:monospace; font-weight:600; color:#334155; font-size:0.9rem;">
+                  ${cedulaStr}
+                </span>
+              </td>
+              <td>
+                <span style="color:#475569; font-size:0.88rem;">${u.correo || '-'}</span>
+              </td>
+              <td>
+                <span class="badge-rol ${rolClass}">${rol}</span>
+              </td>
+              <td>
+                <span style="font-size:0.85rem; color:#64748b;">${formatFecha(u.created_at)}</span>
+              </td>
+              <td>
+                <span class="status paid">Activo</span>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('Error al cargar trabajadores:', err);
+        tablaTrabajadoresBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center; padding:20px; color:#dc2626;">
+              Error al consultar personal: ${err.message}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // MODAL DE REGISTRO RÁPIDO DE CLIENTE EN SUPABASE
+    // -----------------------------------------------------------------
+    const btnAbrirModalNuevo = document.getElementById('btnAbrirModalNuevoCliente');
+    const modalNuevo = document.getElementById('modalNuevoCliente');
+    const btnCerrarModalNuevo = document.getElementById('btnCerrarModalNuevo');
+    const btnCancelarNuevo = document.getElementById('btnCancelarNuevo');
+    const formNuevoCliente = document.getElementById('formRegistrarNuevoClienteModal');
+    const nuevoCliMsg = document.getElementById('nuevoCliMsg');
+    const btnGuardarNuevo = document.getElementById('btnGuardarNuevoCliente');
+
+    function abrirModalNuevo() {
+      if (formNuevoCliente) formNuevoCliente.reset();
+      if (nuevoCliMsg) {
+        nuevoCliMsg.style.display = 'none';
+        nuevoCliMsg.textContent = '';
+      }
+      if (modalNuevo) modalNuevo.style.display = 'flex';
+      setTimeout(() => document.getElementById('nuevoCliNombre')?.focus(), 50);
+    }
+
+    function cerrarModalNuevo() {
+      if (modalNuevo) modalNuevo.style.display = 'none';
+    }
+
+    btnAbrirModalNuevo?.addEventListener('click', abrirModalNuevo);
+    btnCerrarModalNuevo?.addEventListener('click', cerrarModalNuevo);
+    btnCancelarNuevo?.addEventListener('click', cerrarModalNuevo);
+    modalNuevo?.addEventListener('click', (e) => {
+      if (e.target === modalNuevo) cerrarModalNuevo();
+    });
+
+    formNuevoCliente?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById('nuevoCliNombre')?.value.trim();
+      const documento = document.getElementById('nuevoCliDocumento')?.value.trim();
+      const telefono = document.getElementById('nuevoCliTelefono')?.value.trim();
+      const correo = document.getElementById('nuevoCliCorreo')?.value.trim();
+      const direccion = document.getElementById('nuevoCliDireccion')?.value.trim();
+      const monto_deuda = parseFloat(document.getElementById('nuevoCliDeuda')?.value) || 0;
+      const estado = document.getElementById('nuevoCliEstado')?.value || 'Activo';
+      const observaciones = document.getElementById('nuevoCliObservaciones')?.value.trim();
+
+      if (!nombre || !documento) {
+        if (nuevoCliMsg) {
+          nuevoCliMsg.style.display = 'block';
+          nuevoCliMsg.style.background = '#fef2f2';
+          nuevoCliMsg.style.color = '#dc2626';
+          nuevoCliMsg.textContent = 'Nombre y documento son obligatorios.';
+        }
+        return;
+      }
+
+      if (btnGuardarNuevo) {
+        btnGuardarNuevo.disabled = true;
+        btnGuardarNuevo.textContent = 'Guardando en Supabase...';
+      }
+
+      try {
+        const resultado = await registrarCliente({
+          nombre,
+          documento,
+          telefono,
+          correo,
+          direccion,
+          monto_deuda,
+          estado,
+          observaciones
+        });
+
+        if (nuevoCliMsg) {
+          nuevoCliMsg.style.display = 'block';
+          nuevoCliMsg.style.background = '#ecfdf5';
+          nuevoCliMsg.style.color = '#059669';
+          nuevoCliMsg.textContent = `¡Cliente "${resultado.nombre}" registrado exitosamente en Supabase!`;
+        }
+
+        await cargarClientes();
+
+        setTimeout(() => {
+          cerrarModalNuevo();
+          mostrarAlerta(`Cliente "${resultado.nombre}" guardado con éxito en Supabase y visible en el directorio.`, 'success');
+        }, 600);
+      } catch (err) {
+        if (nuevoCliMsg) {
+          nuevoCliMsg.style.display = 'block';
+          nuevoCliMsg.style.background = '#fef2f2';
+          nuevoCliMsg.style.color = '#dc2626';
+          nuevoCliMsg.textContent = 'Error al registrar cliente: ' + err.message;
+        }
+      } finally {
+        if (btnGuardarNuevo) {
+          btnGuardarNuevo.disabled = false;
+          btnGuardarNuevo.textContent = '💾 Guardar en Supabase';
+        }
+      }
+    });
+
+    // -----------------------------------------------------------------
+    // SINCRONIZACIÓN AUTOMÁTICA EN TIEMPO REAL CON SUPABASE
+    // -----------------------------------------------------------------
+    // 1. Escuchar eventos de clientes actualizados en la aplicación
+    window.addEventListener('clientes_actualizados', () => {
+      cargarClientes();
+    });
+
+    // 2. Escuchar cambios entre pestañas del navegador (Storage API)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'sistema_clientes') {
+        cargarClientes();
+      }
+    });
+
+    // 3. Cuando el usuario vuelve a enfocar la ventana del directorio
+    window.addEventListener('focus', () => {
+      cargarClientes();
+    });
+
+    // 4. Suscripción a canal Supabase Realtime si está habilitado
+    try {
+      const client = getDb();
+      if (client && typeof client.channel === 'function') {
+        client
+          .channel('realtime_directorio_clientes')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, () => {
+            cargarClientes();
+          })
+          .subscribe();
+      }
+    } catch (e) {
+      console.warn('Realtime Supabase en clientes:', e.message);
+    }
+
+    // Carga inicial
+    cargarClientes();
+
+  </script>
+</body>
+</html>
