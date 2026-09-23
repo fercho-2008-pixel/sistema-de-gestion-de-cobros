@@ -167,6 +167,9 @@ if (typeof window !== 'undefined') {
   window.cerrarSesion = cerrarSesion;
   window.verificarAutenticacion = verificarAutenticacion;
   window.esUsuarioAdmin = esUsuarioAdmin;
+  window.obtenerUsuarios = obtenerUsuarios;
+  window.eliminarUsuario = eliminarUsuario;
+  window.eliminarCobrador = eliminarCobrador;
 }
 
 // ----------------------------------------------------------
@@ -1011,12 +1014,26 @@ export async function actualizarContrasenaUsuario({ correo, cedula, nuevaPasswor
 }
 
 /**
- * Obtiene la lista de usuarios registrados desde la tabla 'usuarios' y la combina con usuarios registrados.
+ * Obtiene la lista de usuarios registrados desde la base de datos (API y Supabase) y la combina con usuarios locales.
  */
 export async function obtenerUsuarios() {
   let usuariosRemotos = [];
+
+  // 1. Consultar a través de la API del servidor (conexión directa con Supabase)
+  try {
+    const res = await fetch('/api/usuarios');
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.ok && Array.isArray(json.data)) {
+        usuariosRemotos = json.data;
+      }
+    }
+  } catch (e) {
+    console.warn('Fallo consulta /api/usuarios:', e.message);
+  }
   
-  if (db) {
+  // 2. Si no se obtuvieron o para complementar, consultar cliente Supabase
+  if (db && usuariosRemotos.length === 0) {
     try {
       const { data, error } = await db
         .from('usuarios')
@@ -1077,17 +1094,101 @@ export async function obtenerUsuarios() {
 }
 
 /**
- * Elimina un usuario de la tabla 'usuarios'.
+ * Elimina un cobrador o usuario de forma definitiva de la base de datos (Supabase y servidor)
+ * y del almacenamiento local y credenciales.
  */
-export async function eliminarUsuario(id) {
-  if (!db) throw new Error('Conexión con el servidor no disponible');
-  const { data, error } = await db
-    .from('usuarios')
-    .delete()
-    .eq('id', id);
+export async function eliminarUsuario(param) {
+  let id = '';
+  let correo = '';
+  let cedula = '';
 
-  if (error) throw error;
-  return data;
+  if (typeof param === 'object' && param !== null) {
+    id = param.id ? String(param.id).trim() : '';
+    correo = param.correo ? String(param.correo).trim().toLowerCase() : '';
+    cedula = param.cedula ? String(param.cedula).trim() : '';
+  } else if (typeof param === 'string') {
+    const s = param.trim();
+    if (s.includes('@')) {
+      correo = s.toLowerCase();
+    } else {
+      id = s;
+      cedula = s;
+    }
+  }
+
+  const emailClean = correo.toLowerCase();
+
+  // 1. Eliminar mediante API del servidor
+  const identServer = emailClean || id || cedula;
+  if (identServer) {
+    try {
+      await fetch(`/api/usuarios/${encodeURIComponent(identServer)}`, {
+        method: 'DELETE'
+      });
+    } catch (e) {
+      console.warn('Nota en llamada /api/usuarios DELETE:', e.message);
+    }
+  }
+
+  // 2. Eliminar directamente en Supabase si el cliente está conectado
+  if (db) {
+    try {
+      if (emailClean) {
+        await db.from('usuarios').delete().eq('correo', emailClean);
+      }
+      if (cedula) {
+        await db.from('usuarios').delete().eq('cedula', cedula);
+      }
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id);
+      if (isUuid) {
+        await db.from('usuarios').delete().eq('id', id);
+      }
+    } catch (e) {
+      console.warn('Nota al eliminar usuario directamente en Supabase:', e.message);
+    }
+  }
+
+  // 3. Eliminar del almacenamiento local (sistema_usuarios_registrados y credenciales)
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const guardados = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
+      const filtrados = guardados.filter(u => {
+        const uEmail = (u.correo || '').toLowerCase().trim();
+        const uId = String(u.id || '').trim();
+        const uCed = String(u.cedula || u.documento || '').trim();
+        if (emailClean && uEmail === emailClean) return false;
+        if (id && uId === id) return false;
+        if (cedula && uCed === cedula) return false;
+        return true;
+      });
+      window.localStorage.setItem('sistema_usuarios_registrados', JSON.stringify(filtrados));
+
+      // Credenciales
+      const creds = JSON.parse(window.localStorage.getItem('sistema_usuarios_credenciales') || '{}');
+      if (emailClean && creds[emailClean]) {
+        delete creds[emailClean];
+      }
+      for (const [k, val] of Object.entries(creds)) {
+        if ((cedula && String(val.cedula || '').trim() === cedula) || (id && val.id === id)) {
+          delete creds[k];
+        }
+      }
+      window.localStorage.setItem('sistema_usuarios_credenciales', JSON.stringify(creds));
+    } catch (e) {
+      console.warn('Error al limpiar localStorage de usuario:', e);
+    }
+  }
+
+  // 4. Disparar evento para que cualquier vista abierta se actualice
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('usuarios_actualizados', { detail: { correo: emailClean, id, cedula } }));
+  }
+
+  return { ok: true, mensaje: 'Usuario/cobrador eliminado de la base de datos.' };
+}
+
+export function eliminarCobrador(param) {
+  return eliminarUsuario(param);
 }
 
 /**

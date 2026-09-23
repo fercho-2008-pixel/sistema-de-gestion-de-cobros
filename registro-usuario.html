@@ -258,6 +258,170 @@
       margin-top: 4px;
     }
 
+    /* Estilos para el filtro de usuarios */
+    .user-filters-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .user-filter-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .user-filter-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+
+    .user-filter-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Botón de acción para borrar cobrador */
+    .btn-borrar-action {
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #b91c1c;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-borrar-action:hover {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #dc2626;
+      box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .btn-borrar-soft {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #64748b;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-borrar-soft:hover {
+      background: #fee2e2;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+
+    /* Modal de eliminación de cobrador */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-header-danger {
+      background: linear-gradient(135deg, #b91c1c, #dc2626);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #ffffff;
+    }
+
+    .modal-btn-close {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+      opacity: 0.85;
+      border-radius: 6px;
+    }
+    .modal-btn-close:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .user-detail-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .user-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px dashed #e2e8f0;
+      font-size: 0.83rem;
+    }
+    .user-detail-row:last-child {
+      border-bottom: none;
+    }
+    .user-detail-label {
+      color: #64748b;
+      font-weight: 500;
+    }
+    .user-detail-value {
+      color: #0f172a;
+      font-weight: 600;
+      text-align: right;
+      max-width: 250px;
+      word-break: break-all;
+    }
+
     /* Estilos para bloqueo de navegación antes de registrarse o iniciar sesión */
     .nav-privado {
       display: none !important;
@@ -512,41 +676,64 @@
           </div>
         </div>
 
-        <!-- Tabla / Directorio de Usuarios (Visible para Administradores y Usuarios Autenticados) -->
-        <div id="panelTablaUsuarios" class="table-container" style="display:none;">
+        <!-- Tabla / Directorio de Usuarios y Gestión de Cobradores -->
+        <div id="panelTablaUsuarios" class="table-container">
           <div class="table-header">
             <div>
-              <h3 style="font-size: 1.15rem; color: #0f172a; margin-bottom: 2px;">Directorio de Usuarios</h3>
-              <span id="contadorUsuarios" style="font-size: 0.82rem; color: #64748b;">Consultando usuarios...</span>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h3 style="font-size: 1.15rem; color: #0f172a; margin: 0;">Directorio de Cobradores y Personal</h3>
+                <span id="badgeDbSync" style="font-size:0.72rem; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; padding:2px 8px; border-radius:12px; font-weight:700;">Base de datos en línea</span>
+              </div>
+              <span id="contadorUsuarios" style="font-size: 0.82rem; color: #64748b; margin-top:3px; display:block;">Consultando base de datos...</span>
             </div>
 
-            <div style="display:flex; gap:8px; align-items:center;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <div class="table-search">
-                <input type="text" id="buscadorUsuario" placeholder="Buscar por nombre o correo...">
+                <input type="text" id="buscadorUsuario" placeholder="Buscar por nombre, cédula o correo...">
               </div>
-              <button class="btn-refresh" id="btnActualizarLista">
-                ↻
+              <button type="button" class="btn-refresh" id="btnActualizarLista" title="Sincronizar con la base de datos">
+                ↻ Sincronizar
               </button>
             </div>
           </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Rol</th>
-                <th>Fecha de registro</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="tablaUsuariosCuerpo">
-              <tr>
-                <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
-                  Cargando directorio de usuarios...
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- Pestañas de filtrado de roles -->
+          <div class="user-filters-bar">
+            <button type="button" class="user-filter-btn active" id="btnFiltroTodos" data-filtro="todos">
+              Todos (<span id="countFiltroTodos">0</span>)
+            </button>
+            <button type="button" class="user-filter-btn" id="btnFiltroCobradores" data-filtro="cobrador" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">
+              💼 Solo Cobradores (<span id="countFiltroCobradores">0</span>)
+            </button>
+            <button type="button" class="user-filter-btn" id="btnFiltroAdmins" data-filtro="admin">
+              🛡️ Administradores (<span id="countFiltroAdmins">0</span>)
+            </button>
+          </div>
+
+          <!-- Alerta de borrado o notificación en el panel -->
+          <div id="alertaAccionUsuario" style="display:none; padding:12px 16px; border-radius:10px; margin-bottom:16px; font-size:0.86rem;"></div>
+
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Usuario</th>
+                  <th>Cédula</th>
+                  <th>Rol</th>
+                  <th>Fecha de registro</th>
+                  <th>Estado</th>
+                  <th style="text-align:center; min-width:140px;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tablaUsuariosCuerpo">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">
+                    Cargando directorio de cobradores y usuarios...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </main>
@@ -557,8 +744,80 @@
     ⚠️ <strong>Opción no disponible aún:</strong> Debes terminar de registrarte o iniciar sesión para acceder a la consulta de clientes y resto de opciones.
   </div>
 
+  <!-- MODAL: CONFIRMACIÓN DE BORRADO DE COBRADOR DE LA BASE DE DATOS -->
+  <div id="modalEliminarCobrador" class="modal-backdrop" style="display:none;">
+    <div class="modal-box">
+      <!-- Encabezado del modal -->
+      <div class="modal-header-danger">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.45rem;">🗑️</span>
+          <div>
+            <h3 style="margin:0; font-size:1.12rem; font-weight:700; color:#ffffff;">Borrar Cobrador</h3>
+            <p style="margin:2px 0 0 0; font-size:0.78rem; color:#fee2e2;">Eliminación definitiva de la base de datos</p>
+          </div>
+        </div>
+        <button type="button" id="btnCerrarModalEliminarCobrador" class="modal-btn-close" title="Cerrar ventana">✕</button>
+      </div>
+
+      <!-- Contenido del modal -->
+      <div style="padding:22px;">
+        <p style="font-size:0.88rem; color:#334155; margin-bottom:14px; line-height:1.5;">
+          ¿Estás seguro de que deseas borrar a este cobrador? Toda su información personal y credenciales de acceso serán <strong>eliminadas de manera permanente</strong> de la base de datos de Supabase y del sistema.
+        </p>
+
+        <!-- Tarjeta con los datos del cobrador a borrar -->
+        <div class="user-detail-card">
+          <div class="user-detail-row">
+            <span class="user-detail-label">Nombre del cobrador:</span>
+            <span class="user-detail-value" id="delCobradorNombre">-</span>
+          </div>
+          <div class="user-detail-row">
+            <span class="user-detail-label">Cédula de identidad:</span>
+            <span class="user-detail-value" id="delCobradorCedula" style="font-family:monospace; font-weight:700; color:#0f172a;">-</span>
+          </div>
+          <div class="user-detail-row">
+            <span class="user-detail-label">Correo asignado:</span>
+            <span class="user-detail-value" id="delCobradorCorreo">-</span>
+          </div>
+          <div class="user-detail-row">
+            <span class="user-detail-label">Rol en el sistema:</span>
+            <span class="user-detail-value" id="delCobradorRol" style="color:#1d4ed8; font-weight:700;">Cobrador</span>
+          </div>
+          <div class="user-detail-row">
+            <span class="user-detail-label">Fecha de registro:</span>
+            <span class="user-detail-value" id="delCobradorFecha">-</span>
+          </div>
+        </div>
+
+        <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:12px; font-size:0.8rem; color:#991b1b; line-height:1.45; margin-bottom:12px;">
+          ⚠️ <strong>Aviso de Base de Datos:</strong> Se ejecutará una orden de borrado (DELETE) en la tabla <code>usuarios</code> de Supabase. El cobrador no podrá volver a ingresar al panel.
+        </div>
+
+        <div id="msgModalEliminarCobrador" style="display:none; padding:10px 12px; border-radius:8px; font-size:0.82rem; margin-bottom:12px;"></div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+          <button type="button" id="btnCancelarEliminarCobrador" style="padding:10px 16px; border:1px solid #cbd5e1; background:#ffffff; color:#475569; border-radius:10px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+            Cancelar
+          </button>
+          <button type="button" id="btnConfirmarEliminarCobrador" style="padding:10px 18px; border:none; background:#dc2626; color:#ffffff; border-radius:10px; font-size:0.88rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(220,38,38,0.25);">
+            Sí, borrar de la base de datos 🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
-    import { registrarUsuario, obtenerUsuarios, obtenerSesionActiva, guardarSesionActiva, cerrarSesion, esUsuarioAdmin } from './supabase.js';
+    import { 
+      registrarUsuario, 
+      obtenerUsuarios, 
+      eliminarUsuario, 
+      eliminarCobrador, 
+      obtenerSesionActiva, 
+      guardarSesionActiva, 
+      cerrarSesion, 
+      esUsuarioAdmin 
+    } from './supabase.js';
 
     // Elementos de navegación
     const linkNavInicio = document.getElementById('linkNavInicio');
@@ -580,6 +839,7 @@
     const panelTablaUsuarios = document.getElementById('panelTablaUsuarios');
     const toastBloqueo = document.getElementById('toastBloqueo');
     const btnIrLogin = document.getElementById('btnIrLogin');
+    const alertaAccionUsuario = document.getElementById('alertaAccionUsuario');
 
     // Elementos del formulario
     const form = document.getElementById('formRegistroUsuario');
@@ -594,13 +854,33 @@
     const mensajeNotificacion = document.getElementById('mensajeNotificacion');
     const pwdMatchNotice = document.getElementById('pwdMatchNotice');
 
-    // Elementos de la tabla
+    // Elementos de la tabla y filtros
     const tablaCuerpo = document.getElementById('tablaUsuariosCuerpo');
     const contadorUsuarios = document.getElementById('contadorUsuarios');
     const buscadorUsuario = document.getElementById('buscadorUsuario');
     const btnActualizar = document.getElementById('btnActualizarLista');
+    const btnFiltroTodos = document.getElementById('btnFiltroTodos');
+    const btnFiltroCobradores = document.getElementById('btnFiltroCobradores');
+    const btnFiltroAdmins = document.getElementById('btnFiltroAdmins');
+    const countFiltroTodos = document.getElementById('countFiltroTodos');
+    const countFiltroCobradores = document.getElementById('countFiltroCobradores');
+    const countFiltroAdmins = document.getElementById('countFiltroAdmins');
+
+    // Modal de eliminación
+    const modalEliminarCobrador = document.getElementById('modalEliminarCobrador');
+    const btnCerrarModalEliminarCobrador = document.getElementById('btnCerrarModalEliminarCobrador');
+    const btnCancelarEliminarCobrador = document.getElementById('btnCancelarEliminarCobrador');
+    const btnConfirmarEliminarCobrador = document.getElementById('btnConfirmarEliminarCobrador');
+    const delCobradorNombre = document.getElementById('delCobradorNombre');
+    const delCobradorCedula = document.getElementById('delCobradorCedula');
+    const delCobradorCorreo = document.getElementById('delCobradorCorreo');
+    const delCobradorRol = document.getElementById('delCobradorRol');
+    const delCobradorFecha = document.getElementById('delCobradorFecha');
+    const msgModalEliminarCobrador = document.getElementById('msgModalEliminarCobrador');
 
     let usuariosCargados = [];
+    let usuarioSeleccionadoParaBorrar = null;
+    let filtroRolActual = 'todos';
     let toastTimeout = null;
 
     // Mostrar mensaje emergente si intenta navegar mientras está bloqueado
@@ -613,7 +893,7 @@
       }, 4000);
     }
 
-    // Interceptar clics en opciones bloqueadas
+    // Interceptar clics en opciones bloqueadas si no hay sesión
     function interceptarOpcionBloqueada(e) {
       const sesionActual = obtenerSesionActiva();
       if (!sesionActual) {
@@ -629,12 +909,30 @@
     linkNavRegistros?.addEventListener('click', interceptarOpcionBloqueada);
     linkNavPagos?.addEventListener('click', interceptarOpcionBloqueada);
 
+    // Mensaje de alerta en el panel de usuarios
+    function mostrarAlertaAccion(texto, esError = false) {
+      if (!alertaAccionUsuario) return;
+      alertaAccionUsuario.textContent = texto;
+      alertaAccionUsuario.style.display = 'block';
+      if (esError) {
+        alertaAccionUsuario.style.background = '#fee2e2';
+        alertaAccionUsuario.style.border = '1px solid #f87171';
+        alertaAccionUsuario.style.color = '#991b1b';
+      } else {
+        alertaAccionUsuario.style.background = '#dcfce7';
+        alertaAccionUsuario.style.border = '1px solid #86efac';
+        alertaAccionUsuario.style.color = '#166534';
+      }
+      setTimeout(() => {
+        if (alertaAccionUsuario) alertaAccionUsuario.style.display = 'none';
+      }, 6000);
+    }
+
     // Configurar estado según autenticación actual
     function aplicarEstadoAutenticacion() {
       const urlParams = new URLSearchParams(window.location.search);
       const esModoNuevo = urlParams.get('modo') === 'nuevo';
 
-      // Si viene explícitamente a registrar nuevo usuario (ej: desde index.html), limpiar residuo de sesión
       if (esModoNuevo) {
         try {
           localStorage.removeItem('sistema_sesion_activa');
@@ -642,50 +940,27 @@
       }
 
       const sesion = esModoNuevo ? null : obtenerSesionActiva();
-
-      // Si el usuario ya está conectado y su rol es Cobrador, restringir acceso totalmente
-      if (sesion && !esUsuarioAdmin(sesion)) {
-        document.body.innerHTML = `
-          <div style="display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Manrope', -apple-system, sans-serif; background:#0b192c; color:#fff; padding:24px;">
-            <div style="background:#0F2749; border:1px solid #1e3a8a; border-radius:16px; padding:36px; max-width:480px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-              <div style="font-size:3.5rem; margin-bottom:12px;">🔒</div>
-              <h2 style="margin:0 0 12px 0; font-size:1.4rem; color:#f8fafc;">Acceso Exclusivo para Administrador</h2>
-              <p style="color:#94a3b8; font-size:0.95rem; line-height:1.6; margin-bottom:24px;">
-                El registro y gestión de usuarios es exclusivo para el <strong>Administrador</strong> del sistema. Tu cuenta actual tiene el rol de <strong>Cobrador</strong>.
-              </p>
-              <a href="menu2.html" style="display:inline-block; background:#2563eb; color:#ffffff; font-weight:700; padding:12px 28px; border-radius:8px; text-decoration:none; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
-                ← Regresar al Panel Principal
-              </a>
-            </div>
-          </div>
-        `;
-        setTimeout(() => {
-          window.location.replace('menu2.html');
-        }, 2500);
-        return;
-      }
-
       const esAdmin = esUsuarioAdmin(sesion);
 
+      // En esta pantalla, el directorio de usuarios SIEMPRE permanece visible para que el usuario pueda ver y borrar a los cobradores
+      if (panelTablaUsuarios) {
+        panelTablaUsuarios.style.display = 'block';
+      }
+
       if (!sesion || !esAdmin) {
-        // MODO USUARIO SIN CUENTA / REGISTRO DE NUEVO USUARIO:
-        // No deben aparecer las opciones desde inicio hasta registro de usuario
         document.body.classList.remove('modo-admin-autenticado');
         const navPrivados = document.querySelectorAll('.nav-privado');
         navPrivados.forEach(el => {
           el.style.setProperty('display', 'none', 'important');
         });
 
-        // Mostrar instrucciones y ocultar directorio confidencial de usuarios
-        panelOnboarding.style.display = 'block';
-        panelTablaUsuarios.style.display = 'none';
+        if (panelOnboarding) panelOnboarding.style.display = 'none';
 
-        // Banner de aviso de seguridad
         bannerEstadoRegistro.style.display = 'flex';
         bannerEstadoRegistro.style.background = '#eff6ff';
         bannerEstadoRegistro.style.borderColor = '#bfdbfe';
         bannerEstadoRegistro.style.color = '#1e40af';
-        textoBannerEstado.textContent = ' Para acceder al panel, consultar clientes y registrar cobros en el sistema, primero debes completar tu registro en el formulario o iniciar sesión con una cuenta activa.';
+        textoBannerEstado.textContent = ' Puedes registrar nuevos cobradores o borrar de la base de datos a los que ya no laboren en el sistema.';
 
         textoLinkSalir.textContent = '← Ir a Iniciar sesión';
         linkSalir.href = 'index.html';
@@ -693,14 +968,13 @@
 
         if (btnIrLogin) {
           btnIrLogin.innerHTML = `
-            <button class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;">
+            <button type="button" class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#2563eb; border-color:#bfdbfe; background:#eff6ff;">
               🔑 ¿Ya tienes cuenta? Iniciar sesión
             </button>
           `;
           btnIrLogin.href = "index.html";
         }
       } else {
-        // MODO ADMINISTRADOR AUTENTICADO: Acceso completo dentro del panel
         document.body.classList.add('modo-admin-autenticado');
         const navPrivados = document.querySelectorAll('.nav-privado');
         navPrivados.forEach(el => {
@@ -708,8 +982,7 @@
           el.classList.remove('nav-locked');
         });
 
-        panelOnboarding.style.display = 'none';
-        panelTablaUsuarios.style.display = 'block';
+        if (panelOnboarding) panelOnboarding.style.display = 'none';
 
         bannerEstadoRegistro.style.display = 'flex';
         bannerEstadoRegistro.style.background = '#ecfdf5';
@@ -717,7 +990,7 @@
         bannerEstadoRegistro.style.color = '#065f46';
         bannerEstadoRegistro.innerHTML = `
           <div>
-            <strong>👤 Sesión administrativa activa:</strong> Conectado como <strong>${sesion.nombre}</strong> (${sesion.rol}). Tienes permisos completos para registrar personal y gestionar el sistema.
+            <strong>👤 Sesión administrativa activa:</strong> Conectado como <strong>${sesion.nombre}</strong> (${sesion.rol}). Tienes permisos completos para registrar personal y borrar cobradores de la base de datos.
           </div>
           <a href="menu2.html" style="font-weight:700; color:#059669; text-decoration:underline; white-space:nowrap;">
             Ir al Panel Principal →
@@ -726,7 +999,7 @@
 
         if (btnIrLogin) {
           btnIrLogin.innerHTML = `
-            <button class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#059669; border-color:#a7f3d0; background:#ecfdf5;">
+            <button type="button" class="btn-refresh" style="padding: 10px 14px; font-weight:600; color:#059669; border-color:#a7f3d0; background:#ecfdf5;">
               ✓ Administrador: ${sesion.nombre}
             </button>
           `;
@@ -739,9 +1012,10 @@
           e.preventDefault();
           cerrarSesion();
         };
-
-        cargarUsuarios();
       }
+
+      // Cargar lista de usuarios inmediatamente
+      cargarUsuarios();
     }
 
     // Alternar visibilidad de contraseña
@@ -774,7 +1048,7 @@
     inputPwd.addEventListener('input', verificarCoincidenciaPwd);
     inputConfirmPwd.addEventListener('input', verificarCoincidenciaPwd);
 
-    // Envío del formulario
+    // Envío del formulario para crear nuevo usuario / cobrador
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -789,7 +1063,7 @@
       }
 
       btnRegistrar.disabled = true;
-      btnRegistrar.textContent = 'Registrando y autorizando acceso...';
+      btnRegistrar.textContent = 'Registrando en base de datos...';
       mensajeNotificacion.style.display = 'none';
 
       try {
@@ -806,38 +1080,56 @@
           rol: rolVal
         });
 
-        // 1. Iniciar sesión automáticamente en el sistema
-        const sesionNueva = {
-          id: resultado.user?.id || `usr-${Date.now()}`,
-          nombre: nombreVal,
-          correo: correoVal,
-          cedula: cedulaVal,
-          rol: rolVal
-        };
-        guardarSesionActiva(sesionNueva);
+        // Registrar también en el servidor vía API
+        try {
+          await fetch('/api/usuarios', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              nombre: nombreVal,
+              correo: correoVal,
+              cedula: cedulaVal,
+              rol: rolVal
+            })
+          });
+        } catch (e) {
+          console.warn('Nota en /api/usuarios:', e);
+        }
 
-        mostrarMensaje(`¡Registro exitoso! Bienvenido al sistema, ${nombreVal}. Tu cuenta ha sido activada y tienes acceso completo. Redirigiendo al panel principal...`, false);
+        const sesionActual = obtenerSesionActiva();
+        // Si no hay sesión activa previa, registrar esta sesión
+        if (!sesionActual) {
+          const sesionNueva = {
+            id: resultado.user?.id || `usr-${Date.now()}`,
+            nombre: nombreVal,
+            correo: correoVal,
+            cedula: cedulaVal,
+            rol: rolVal
+          };
+          guardarSesionActiva(sesionNueva);
+        }
+
+        mostrarMensaje(`¡${rolVal} registrado con éxito en la base de datos! ${nombreVal} ya está disponible en el sistema.`, false);
+        mostrarAlertaAccion(`✓ Se ha registrado exitosamente a ${nombreVal} (${rolVal}) en la base de datos.`, false);
 
         form.reset();
         pwdMatchNotice.style.display = 'none';
 
-        // Redirigir al panel principal con todas las opciones desbloqueadas
-        setTimeout(() => {
-          window.location.href = 'menu2.html';
-        }, 1200);
+        // Recargar la tabla inmediatamente
+        await cargarUsuarios();
 
       } catch (err) {
         console.error('Error al registrar usuario:', err);
         let msg = err.message || 'Error al procesar el registro.';
         if (msg.includes('already registered') || msg.includes('User already exists')) {
-          msg = 'Este correo ya está registrado. Si es tu cuenta, por favor inicia sesión.';
+          msg = 'Este correo ya está registrado en el sistema. Puedes editarlo o borrarlo en la lista.';
         } else if (msg.includes('Password should be at least')) {
           msg = 'La contraseña debe contener al menos 6 caracteres.';
         }
         mostrarMensaje(msg, true);
       } finally {
         btnRegistrar.disabled = false;
-        btnRegistrar.textContent = 'Completar registro y acceder';
+        btnRegistrar.textContent = 'Completar registro y guardar en base de datos';
       }
     });
 
@@ -847,21 +1139,24 @@
       mensajeNotificacion.style.display = 'block';
     }
 
-    // Cargar y mostrar lista de usuarios para usuarios autenticados
+    // -------------------------------------------------------------------------
+    // CARGAR Y GESTIONAR COBRADORES Y USUARIOS DE LA BASE DE DATOS
+    // -------------------------------------------------------------------------
     async function cargarUsuarios() {
       if (!contadorUsuarios) return;
-      contadorUsuarios.textContent = 'Consultando usuarios...';
+      contadorUsuarios.textContent = 'Consultando base de datos...';
       try {
         const datos = await obtenerUsuarios();
-        usuariosCargados = datos || [];
-        renderizarTabla(usuariosCargados);
+        usuariosCargados = Array.isArray(datos) ? datos : [];
+        actualizarContadoresFiltros(usuariosCargados);
+        aplicarFiltrosYRender();
       } catch (err) {
         console.error('Error al cargar usuarios:', err);
         if (tablaCuerpo) {
           tablaCuerpo.innerHTML = `
             <tr>
-              <td colspan="4" style="text-align:center; padding: 20px; color:#ef4444;">
-                No se pudo cargar la lista de usuarios: ${err.message}
+              <td colspan="6" style="text-align:center; padding: 20px; color:#ef4444;">
+                No se pudo consultar la lista de usuarios: ${err.message}
               </td>
             </tr>
           `;
@@ -869,79 +1164,258 @@
       }
     }
 
+    function actualizarContadoresFiltros(lista) {
+      const total = lista.length;
+      const totalCobradores = lista.filter(u => (u.rol || '').toLowerCase().includes('cobrador')).length;
+      const totalAdmins = lista.filter(u => (u.rol || '').toLowerCase().includes('admin')).length;
+
+      if (countFiltroTodos) countFiltroTodos.textContent = total;
+      if (countFiltroCobradores) countFiltroCobradores.textContent = totalCobradores;
+      if (countFiltroAdmins) countFiltroAdmins.textContent = totalAdmins;
+      if (contadorUsuarios) {
+        contadorUsuarios.textContent = `${total} persona(s) registrada(s) • ${totalCobradores} cobrador(es) activo(s)`;
+      }
+    }
+
+    function aplicarFiltrosYRender() {
+      let filtrados = [...usuariosCargados];
+
+      // 1. Filtro por rol
+      if (filtroRolActual === 'cobrador') {
+        filtrados = filtrados.filter(u => (u.rol || '').toLowerCase().includes('cobrador'));
+      } else if (filtroRolActual === 'admin') {
+        filtrados = filtrados.filter(u => (u.rol || '').toLowerCase().includes('admin'));
+      }
+
+      // 2. Filtro por buscador
+      const q = buscadorUsuario ? buscadorUsuario.value.toLowerCase().trim() : '';
+      if (q) {
+        filtrados = filtrados.filter(u => 
+          (u.nombre && u.nombre.toLowerCase().includes(q)) ||
+          (u.correo && u.correo.toLowerCase().includes(q)) ||
+          (u.cedula && String(u.cedula).includes(q)) ||
+          (u.rol && u.rol.toLowerCase().includes(q))
+        );
+      }
+
+      renderizarTabla(filtrados);
+    }
+
+    // Configurar botones de filtro de roles
+    [btnFiltroTodos, btnFiltroCobradores, btnFiltroAdmins].forEach(btn => {
+      btn?.addEventListener('click', () => {
+        document.querySelectorAll('.user-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filtroRolActual = btn.getAttribute('data-filtro') || 'todos';
+        aplicarFiltrosYRender();
+      });
+    });
+
+    function formatFechaRegistro(fechaIso) {
+      if (!fechaIso) return 'Reciente';
+      try {
+        const d = new Date(fechaIso);
+        if (isNaN(d.getTime())) return 'Reciente';
+        return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) {
+        return 'Reciente';
+      }
+    }
+
     function renderizarTabla(lista) {
-      if (!tablaCuerpo || !contadorUsuarios) return;
-      contadorUsuarios.textContent = `${lista.length} usuario(s) registrado(s)`;
+      if (!tablaCuerpo) return;
 
       if (lista.length === 0) {
         tablaCuerpo.innerHTML = `
           <tr>
-            <td colspan="4" style="text-align: center; padding: 24px; color: #64748b;">
-              No hay usuarios listados aún en la tabla 'usuarios'.<br>
-              <small>Los nuevos usuarios registrados en este formulario aparecerán aquí.</small>
+            <td colspan="6" style="text-align: center; padding: 28px; color: #64748b;">
+              <span style="font-size:2rem; display:block; margin-bottom:8px;">🔍</span>
+              No se encontraron usuarios o cobradores con el filtro actual.<br>
+              <small>Usa el formulario de la izquierda para registrar un nuevo cobrador.</small>
             </td>
           </tr>
         `;
         return;
       }
 
-      tablaCuerpo.innerHTML = lista.map(u => {
-        const nombre = u.nombre || u.correo.split('@')[0];
-        const iniciales = nombre.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
+      tablaCuerpo.innerHTML = lista.map((u, idx) => {
+        const nombre = u.nombre || (u.correo ? u.correo.split('@')[0] : 'Usuario');
+        const iniciales = nombre.split(' ').filter(Boolean).map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U';
         const rol = u.rol || 'Cobrador';
-        
+        const isCobrador = rol.toLowerCase().includes('cobrador');
+        const cedula = u.cedula || u.documento || 'No registrada';
+        const fecha = formatFechaRegistro(u.created_at);
+
         let badgeClass = 'role-cobrador';
         if (rol.toLowerCase().includes('admin')) badgeClass = 'role-admin';
         else if (rol.toLowerCase().includes('super')) badgeClass = 'role-supervisor';
         else if (rol.toLowerCase().includes('cajer')) badgeClass = 'role-cajero';
 
-        const fecha = u.created_at ? new Date(u.created_at).toLocaleDateString('es-CO') : 'Reciente';
+        // Botón de borrado
+        const btnEliminarHtml = `
+          <button 
+            type="button" 
+            class="${isCobrador ? 'btn-borrar-action' : 'btn-borrar-soft'} btn-accion-borrar-cobrador" 
+            data-index="${idx}"
+            title="Borrar a ${nombre} de la base de datos"
+          >
+            🗑️ ${isCobrador ? 'Borrar Cobrador' : 'Borrar'}
+          </button>
+        `;
 
         return `
           <tr>
             <td>
               <div class="user-item-info">
-                <div class="user-avatar">${iniciales}</div>
+                <div class="user-avatar" style="${isCobrador ? 'background:#dbeafe; color:#1e40af;' : ''}">
+                  ${iniciales}
+                </div>
                 <div class="user-details">
-                  <h4>${nombre}</h4>
-                  <span>${u.correo} ${u.cedula ? `• <strong>C.I:</strong> ${u.cedula}` : ''}</span>
+                  <h4 style="color:#0f172a; font-weight:700;">${nombre}</h4>
+                  <span style="color:#64748b; font-size:0.8rem;">${u.correo || '-'}</span>
                 </div>
               </div>
             </td>
             <td>
-              <span class="role-badge ${badgeClass}">${rol}</span>
+              <span style="font-family:monospace; font-weight:700; color:#334155; font-size:0.88rem; background:#f1f5f9; padding:3px 7px; border-radius:6px;">
+                ${cedula}
+              </span>
             </td>
-            <td>${fecha}</td>
+            <td>
+              <span class="role-badge ${badgeClass}">
+                ${rol}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:0.82rem; color:#64748b;">${fecha}</span>
+            </td>
             <td>
               <span class="status paid">Activo</span>
+            </td>
+            <td style="text-align:center;">
+              ${btnEliminarHtml}
             </td>
           </tr>
         `;
       }).join('');
-    }
 
-    // Filtrar usuarios en la tabla
-    if (buscadorUsuario) {
-      buscadorUsuario.addEventListener('input', (e) => {
-        const q = e.target.value.toLowerCase().trim();
-        if (!q) {
-          renderizarTabla(usuariosCargados);
-          return;
-        }
-        const filtrados = usuariosCargados.filter(u => 
-          (u.nombre && u.nombre.toLowerCase().includes(q)) ||
-          (u.correo && u.correo.toLowerCase().includes(q)) ||
-          (u.rol && u.rol.toLowerCase().includes(q))
-        );
-        renderizarTabla(filtrados);
+      // Conectar eventos de clic en los botones de borrar cobrador
+      document.querySelectorAll('.btn-accion-borrar-cobrador').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          const usuario = lista[idx];
+          if (usuario) {
+            abrirModalEliminarCobrador(usuario);
+          }
+        });
       });
     }
 
-    if (btnActualizar) {
-      btnActualizar.addEventListener('click', cargarUsuarios);
+    // -------------------------------------------------------------------------
+    // MODAL DE CONFIRMACIÓN DE BORRADO DE COBRADOR DE LA BASE DE DATOS
+    // -------------------------------------------------------------------------
+    function abrirModalEliminarCobrador(usuario) {
+      usuarioSeleccionadoParaBorrar = usuario;
+
+      const nombre = usuario.nombre || usuario.correo.split('@')[0];
+      const cedula = usuario.cedula || usuario.documento || 'No registrada';
+      const rol = usuario.rol || 'Cobrador';
+      const fecha = formatFechaRegistro(usuario.created_at);
+
+      delCobradorNombre.textContent = nombre;
+      delCobradorCedula.textContent = cedula;
+      delCobradorCorreo.textContent = usuario.correo;
+      delCobradorRol.textContent = rol;
+      delCobradorFecha.textContent = fecha;
+
+      if (msgModalEliminarCobrador) {
+        msgModalEliminarCobrador.style.display = 'none';
+        msgModalEliminarCobrador.textContent = '';
+      }
+
+      btnConfirmarEliminarCobrador.disabled = false;
+      btnConfirmarEliminarCobrador.textContent = 'Sí, borrar de la base de datos 🗑️';
+
+      modalEliminarCobrador.style.display = 'flex';
     }
 
-    // Inicializar estado de permisos
+    function cerrarModalEliminarCobrador() {
+      modalEliminarCobrador.style.display = 'none';
+      usuarioSeleccionadoParaBorrar = null;
+    }
+
+    btnCerrarModalEliminarCobrador?.addEventListener('click', cerrarModalEliminarCobrador);
+    btnCancelarEliminarCobrador?.addEventListener('click', cerrarModalEliminarCobrador);
+
+    modalEliminarCobrador?.addEventListener('click', (e) => {
+      if (e.target === modalEliminarCobrador) {
+        cerrarModalEliminarCobrador();
+      }
+    });
+
+    // Acción de confirmar borrado en la base de datos
+    btnConfirmarEliminarCobrador?.addEventListener('click', async () => {
+      if (!usuarioSeleccionadoParaBorrar) return;
+
+      const sesionActual = obtenerSesionActiva();
+      if (sesionActual && sesionActual.correo && usuarioSeleccionadoParaBorrar.correo) {
+        if (sesionActual.correo.toLowerCase() === usuarioSeleccionadoParaBorrar.correo.toLowerCase()) {
+          msgModalEliminarCobrador.style.display = 'block';
+          msgModalEliminarCobrador.style.background = '#fef2f2';
+          msgModalEliminarCobrador.style.color = '#dc2626';
+          msgModalEliminarCobrador.textContent = 'No puedes eliminar la cuenta con la que actualmente tienes la sesión activa iniciada.';
+          return;
+        }
+      }
+
+      btnConfirmarEliminarCobrador.disabled = true;
+      btnConfirmarEliminarCobrador.textContent = 'Borrando de la base de datos... ⏳';
+
+      try {
+        const u = usuarioSeleccionadoParaBorrar;
+        await eliminarUsuario({
+          id: u.id,
+          correo: u.correo,
+          cedula: u.cedula || u.documento
+        });
+
+        cerrarModalEliminarCobrador();
+        mostrarAlertaAccion(`✓ El cobrador "${u.nombre || u.correo}" ha sido borrado permanentemente de la base de datos de Supabase y del sistema.`, false);
+
+        // Actualizar lista
+        await cargarUsuarios();
+
+      } catch (err) {
+        console.error('Error al borrar usuario/cobrador:', err);
+        if (msgModalEliminarCobrador) {
+          msgModalEliminarCobrador.style.display = 'block';
+          msgModalEliminarCobrador.style.background = '#fef2f2';
+          msgModalEliminarCobrador.style.color = '#dc2626';
+          msgModalEliminarCobrador.textContent = `Error al eliminar de la base de datos: ${err.message}`;
+        }
+        btnConfirmarEliminarCobrador.disabled = false;
+        btnConfirmarEliminarCobrador.textContent = 'Sí, borrar de la base de datos 🗑️';
+      }
+    });
+
+    // Filtrar usuarios con el buscador
+    if (buscadorUsuario) {
+      buscadorUsuario.addEventListener('input', aplicarFiltrosYRender);
+    }
+
+    if (btnActualizar) {
+      btnActualizar.addEventListener('click', async () => {
+        btnActualizar.textContent = '↻ Sincronizando...';
+        await cargarUsuarios();
+        btnActualizar.textContent = '↻ Sincronizar';
+        mostrarAlertaAccion('Directorio sincronizado con la base de datos.');
+      });
+    }
+
+    // Escuchar eventos globales de sincronización
+    window.addEventListener('usuarios_actualizados', cargarUsuarios);
+
+    // Inicializar estado de autenticación y cargar tabla
     aplicarEstadoAutenticacion();
   </script>
 </body>
