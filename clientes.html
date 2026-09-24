@@ -1024,17 +1024,41 @@
             </div>
 
             <div>
-              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Monto inicial deuda (COP)</label>
-              <input type="number" id="nuevoCliDeuda" min="0" step="1000" placeholder="0" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Situación del cliente *</label>
+              <select id="nuevoCliSituacion" required style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; background:#ffffff;">
+                <option value="">Selecciona situación laboral</option>
+                <option value="Laburando">Laburando (Empleado / Con trabajo)</option>
+                <option value="Desempleado">Desempleado (Sin empleo actual)</option>
+              </select>
             </div>
 
             <div>
-              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Estado</label>
-              <select id="nuevoCliEstado" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; background:#ffffff;">
-                <option value="Activo">Activo</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="Inactivo">Inactivo</option>
-              </select>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Monto inicial / Préstamo (COP)</label>
+              <div style="position:relative; display:flex; align-items:center;">
+                <span style="position:absolute; left:10px; color:#64748b; font-weight:700; pointer-events:none;">$</span>
+                <input type="text" id="nuevoCliMontoFormat" placeholder="0" inputmode="numeric" style="width:100%; padding:9px 12px 9px 24px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+              </div>
+              <input type="hidden" id="nuevoCliDeuda" value="0" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Tasa de Interés (%)</label>
+              <div style="position:relative; display:flex; align-items:center;">
+                <input type="number" id="nuevoCliInteres" min="0" max="100" step="0.5" placeholder="0" value="0" style="width:100%; padding:9px 28px 9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+                <span style="position:absolute; right:10px; color:#64748b; font-weight:700; pointer-events:none;">%</span>
+              </div>
+            </div>
+
+            <!-- Resumen de cálculo en modal -->
+            <div style="grid-column: span 2; background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #2563eb; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <span style="font-size:0.75rem; color:#64748b; display:block; font-weight:600;">Intereses calculados:</span>
+                <strong id="modalLblInteres" style="font-size:0.88rem; color:#dc2626;">$0 COP</strong>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:0.75rem; color:#1e40af; display:block; font-weight:700;">Total a pagar (Capital + Intereses):</span>
+                <strong id="modalLblTotal" style="font-size:1.05rem; color:#0f172a; font-weight:800;">$0 COP</strong>
+              </div>
             </div>
 
             <div style="grid-column: span 2;">
@@ -1860,8 +1884,70 @@
     const nuevoCliMsg = document.getElementById('nuevoCliMsg');
     const btnGuardarNuevo = document.getElementById('btnGuardarNuevoCliente');
 
+    const selectNuevoSituacion = document.getElementById('nuevoCliSituacion');
+    const txtNuevoObservaciones = document.getElementById('nuevoCliObservaciones');
+    const inputNuevoMontoFormat = document.getElementById('nuevoCliMontoFormat');
+    const inputNuevoDeudaHidden = document.getElementById('nuevoCliDeuda');
+    const inputNuevoInteres = document.getElementById('nuevoCliInteres');
+    const modalLblInteres = document.getElementById('modalLblInteres');
+    const modalLblTotal = document.getElementById('modalLblTotal');
+
+    function formatearMilesCOP(valor) {
+      const soloDigitos = String(valor || '').replace(/\D/g, '');
+      if (!soloDigitos) return '';
+      return Number(soloDigitos).toLocaleString('es-CO');
+    }
+
+    function obtenerNumeroLimpio(valorStr) {
+      const soloDigitos = String(valorStr || '').replace(/\D/g, '');
+      return Number(soloDigitos) || 0;
+    }
+
+    function recalcularModalTotales() {
+      const capital = obtenerNumeroLimpio(inputNuevoMontoFormat?.value);
+      const tasa = parseFloat(inputNuevoInteres?.value) || 0;
+      const interes = Math.round(capital * (tasa / 100));
+      const total = capital + interes;
+
+      if (inputNuevoDeudaHidden) inputNuevoDeudaHidden.value = total;
+      if (modalLblInteres) modalLblInteres.textContent = `$${interes.toLocaleString('es-CO')} COP (${tasa}%)`;
+      if (modalLblTotal) modalLblTotal.textContent = `$${total.toLocaleString('es-CO')} COP`;
+    }
+
+    selectNuevoSituacion?.addEventListener('change', () => {
+      const opcion = selectNuevoSituacion.value;
+      let actual = txtNuevoObservaciones.value || '';
+      actual = actual.replace(/Situación laboral:\s*(Laburando|Desempleado)[^.\n]*[.\n]?/gi, '').trim();
+
+      if (opcion === 'Laburando') {
+        const nota = 'Situación laboral: Laburando (Cliente activo laboralmente).';
+        txtNuevoObservaciones.value = actual ? `${actual}\n${nota}` : nota;
+      } else if (opcion === 'Desempleado') {
+        const nota = 'Situación laboral: Desempleado (Cliente actualmente sin empleo).';
+        txtNuevoObservaciones.value = actual ? `${actual}\n${nota}` : nota;
+      } else {
+        txtNuevoObservaciones.value = actual;
+      }
+    });
+
+    inputNuevoMontoFormat?.addEventListener('input', function() {
+      const cursorPos = this.selectionStart;
+      const lenAntes = this.value.length;
+      this.value = formatearMilesCOP(this.value);
+      const diff = this.value.length - lenAntes;
+      if (cursorPos !== null) {
+        this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+      }
+      recalcularModalTotales();
+    });
+
+    inputNuevoInteres?.addEventListener('input', recalcularModalTotales);
+
     function abrirModalNuevo() {
       if (formNuevoCliente) formNuevoCliente.reset();
+      if (inputNuevoDeudaHidden) inputNuevoDeudaHidden.value = '0';
+      if (modalLblInteres) modalLblInteres.textContent = '$0 COP';
+      if (modalLblTotal) modalLblTotal.textContent = '$0 COP';
       if (nuevoCliMsg) {
         nuevoCliMsg.style.display = 'none';
         nuevoCliMsg.textContent = '';
@@ -1887,14 +1973,20 @@
       const sNombre = document.getElementById('nuevoCliSegundoNombre')?.value.trim();
       const pApellido = document.getElementById('nuevoCliPrimerApellido')?.value.trim();
       const sApellido = document.getElementById('nuevoCliSegundoApellido')?.value.trim();
+      const situacion = selectNuevoSituacion?.value;
 
       const documento = document.getElementById('nuevoCliDocumento')?.value.trim();
       const telefono = document.getElementById('nuevoCliTelefono')?.value.trim();
       const correo = document.getElementById('nuevoCliCorreo')?.value.trim();
       const direccion = document.getElementById('nuevoCliDireccion')?.value.trim();
-      const monto_deuda = parseFloat(document.getElementById('nuevoCliDeuda')?.value) || 0;
-      const estado = document.getElementById('nuevoCliEstado')?.value || 'Activo';
-      const observaciones = document.getElementById('nuevoCliObservaciones')?.value.trim();
+      
+      const capital = obtenerNumeroLimpio(inputNuevoMontoFormat?.value);
+      const tasa = parseFloat(inputNuevoInteres?.value) || 0;
+      const interes = Math.round(capital * (tasa / 100));
+      const totalDeuda = capital + interes;
+
+      const estado = situacion === 'Laburando' ? 'Activo' : 'Pendiente';
+      const observaciones = txtNuevoObservaciones?.value.trim();
 
       if (!pNombre || !sNombre || !pApellido || !sApellido || !documento) {
         if (nuevoCliMsg) {
@@ -1902,6 +1994,16 @@
           nuevoCliMsg.style.background = '#fef2f2';
           nuevoCliMsg.style.color = '#dc2626';
           nuevoCliMsg.textContent = 'Los dos nombres, los dos apellidos y el documento son obligatorios.';
+        }
+        return;
+      }
+
+      if (!situacion) {
+        if (nuevoCliMsg) {
+          nuevoCliMsg.style.display = 'block';
+          nuevoCliMsg.style.background = '#fef2f2';
+          nuevoCliMsg.style.color = '#dc2626';
+          nuevoCliMsg.textContent = 'Por favor selecciona la situación del cliente (Laburando o Desempleado).';
         }
         return;
       }
@@ -1924,7 +2026,11 @@
           telefono,
           correo,
           direccion,
-          monto_deuda,
+          monto_deuda: totalDeuda,
+          monto_capital: capital,
+          monto_interes: interes,
+          tasa_interes: tasa,
+          situacion_laboral: situacion,
           estado,
           observaciones
         });

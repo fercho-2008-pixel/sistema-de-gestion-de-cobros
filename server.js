@@ -252,7 +252,7 @@ app.post('/api/pagos', async (req, res) => {
 // Registrar o actualizar un cliente en Supabase (con fallback)
 app.post('/api/clientes', async (req, res) => {
   try {
-    const { nombre, correo, telefono, documento, estado, direccion, observaciones, monto_deuda } = req.body;
+    const { nombre, correo, telefono, documento, estado, direccion, observaciones, monto_deuda, situacion_laboral, tasa_interes, monto_capital, monto_interes } = req.body;
 
     if (!nombre || !documento) {
       return res.status(400).json({ ok: false, error: 'Nombre y documento son obligatorios.' });
@@ -265,6 +265,10 @@ app.post('/api/clientes', async (req, res) => {
       telefono: telefono ? String(telefono).trim() : null,
       documento: String(documento).trim(),
       estado: estado || 'Activo',
+      situacion_laboral: situacion_laboral || null,
+      tasa_interes: Number(tasa_interes) || 0,
+      monto_capital: Number(monto_capital) || 0,
+      monto_interes: Number(monto_interes) || 0,
       direccion: direccion ? String(direccion).trim() : null,
       observaciones: observaciones ? String(observaciones).trim() : null,
       monto_deuda: Number(monto_deuda) || 0,

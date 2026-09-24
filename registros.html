@@ -129,18 +129,18 @@
                     </div>
 
                     <div class="campo">
-                        <label for="estado">
-                            Estado del cliente
+                        <label for="situacion_laboral">
+                            Situación del cliente *
                         </label>
 
                         <select
-                            id="estado"
-                            name="estado"
+                            id="situacion_laboral"
+                            name="situacion_laboral"
                             required
                         >
-                            <option value="">Selecciona una opción</option>
-                            <option value="Activo">Activo</option>
-                            <option value="Inactivo">Inactivo</option>
+                            <option value="">Selecciona situación laboral</option>
+                            <option value="Laburando">Laburando (Empleado / Con trabajo)</option>
+                            <option value="Desempleado">Desempleado (Sin empleo actual)</option>
                         </select>
                     </div>
 
@@ -158,18 +158,56 @@
                     </div>
 
                     <div class="campo">
-                        <label for="monto_deuda">
+                        <label for="monto_prestamo_format">
                             Monto inicial / Préstamo (COP)
                         </label>
 
-                        <input
-                            type="number"
-                            id="monto_deuda"
-                            name="monto_deuda"
-                            placeholder="0"
-                            min="0"
-                            value="0"
-                        >
+                        <div style="position:relative; display:flex; align-items:center;">
+                            <span style="position:absolute; left:12px; color:#64748b; font-weight:700; pointer-events:none;">$</span>
+                            <input
+                                type="text"
+                                id="monto_prestamo_format"
+                                placeholder="0"
+                                inputmode="numeric"
+                                style="padding-left:28px;"
+                            >
+                        </div>
+                        <input type="hidden" id="monto_deuda" name="monto_deuda" value="0">
+                    </div>
+
+                    <div class="campo">
+                        <label for="porcentaje_interes">
+                            Tasa de Interés (%)
+                        </label>
+
+                        <div style="position:relative; display:flex; align-items:center;">
+                            <input
+                                type="number"
+                                id="porcentaje_interes"
+                                name="porcentaje_interes"
+                                placeholder="Ej. 10"
+                                min="0"
+                                max="100"
+                                step="0.5"
+                                value="0"
+                                style="padding-right:32px;"
+                            >
+                            <span style="position:absolute; right:12px; color:#64748b; font-weight:700; pointer-events:none;">%</span>
+                        </div>
+                    </div>
+
+                    <!-- Panel de cálculo y total automático con intereses -->
+                    <div class="campo campo-completo" style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #2563eb; border-radius:10px; padding:14px 16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                            <div>
+                                <span style="display:block; font-size:0.75rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Intereses calculados:</span>
+                                <strong id="lblInteresCalculado" style="font-size:0.95rem; color:#dc2626;">$0 COP</strong>
+                            </div>
+                            <div style="text-align:right;">
+                                <span style="display:block; font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Monto total a pagar (Capital + Intereses):</span>
+                                <strong id="lblTotalConIntereses" style="font-size:1.25rem; color:#0f172a; font-weight:800;">$0 COP</strong>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="campo campo-completo">
@@ -252,6 +290,80 @@
         const mensaje = document.getElementById("mensajeGuardado");
         const btnGuardar = document.getElementById("btnGuardar");
 
+        const selectSituacion = document.getElementById("situacion_laboral");
+        const txtObservaciones = document.getElementById("observaciones");
+        const inputMontoFormat = document.getElementById("monto_prestamo_format");
+        const inputMontoHidden = document.getElementById("monto_deuda");
+        const inputInteres = document.getElementById("porcentaje_interes");
+        const lblInteres = document.getElementById("lblInteresCalculado");
+        const lblTotal = document.getElementById("lblTotalConIntereses");
+
+        // Formateador estándar de pesos colombianos (COP con separador de miles '.')
+        function formatearMilesCOP(valor) {
+            const soloDigitos = String(valor || '').replace(/\D/g, '');
+            if (!soloDigitos) return '';
+            return Number(soloDigitos).toLocaleString('es-CO');
+        }
+
+        function obtenerNumeroLimpio(valorStr) {
+            const soloDigitos = String(valorStr || '').replace(/\D/g, '');
+            return Number(soloDigitos) || 0;
+        }
+
+        // Actualizar automáticamente observaciones al cambiar situación del cliente
+        selectSituacion.addEventListener("change", function () {
+            const opcion = selectSituacion.value;
+            let actual = txtObservaciones.value;
+
+            // Limpiar menciones previas de situación laboral
+            actual = actual.replace(/Situación laboral:\s*(Laburando|Desempleado)[^.\n]*[.\n]?/gi, '').trim();
+
+            if (opcion === "Laburando") {
+                const nota = "Situación laboral: Laburando (Cliente activo laboralmente).";
+                txtObservaciones.value = actual ? `${actual}\n${nota}` : nota;
+            } else if (opcion === "Desempleado") {
+                const nota = "Situación laboral: Desempleado (Cliente actualmente sin empleo).";
+                txtObservaciones.value = actual ? `${actual}\n${nota}` : nota;
+            } else {
+                txtObservaciones.value = actual;
+            }
+        });
+
+        // Cálculo dinámico de intereses y total con formato COP en vivo
+        function recalcularMontosEIntereses() {
+            const capital = obtenerNumeroLimpio(inputMontoFormat.value);
+            const tasa = parseFloat(inputInteres.value) || 0;
+
+            const interesCalculado = Math.round(capital * (tasa / 100));
+            const totalConIntereses = capital + interesCalculado;
+
+            // Guardar total en campo oculto para el registro de la deuda del cliente
+            inputMontoHidden.value = totalConIntereses;
+
+            // Actualizar etiquetas visuales con formato de moneda de Colombia
+            lblInteres.textContent = `$${interesCalculado.toLocaleString('es-CO')} COP (${tasa}%)`;
+            lblTotal.textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
+        }
+
+        // Formatear automáticamente con puntos de miles al escribir el monto
+        inputMontoFormat.addEventListener("input", function (e) {
+            const cursorPos = this.selectionStart;
+            const lenAntes = this.value.length;
+
+            const formateado = formatearMilesCOP(this.value);
+            this.value = formateado;
+
+            // Mantener cursor en posición coherente tras formatear
+            const diff = this.value.length - lenAntes;
+            if (cursorPos !== null) {
+                this.setSelectionRange(cursorPos + diff, cursorPos + diff);
+            }
+
+            recalcularMontosEIntereses();
+        });
+
+        inputInteres.addEventListener("input", recalcularMontosEIntereses);
+
         function mostrarMensaje(texto, esError = false) {
             mensaje.textContent = texto;
             mensaje.style.display = "block";
@@ -273,11 +385,22 @@
             const sNombre = document.getElementById("segundo_nombre").value.trim();
             const pApellido = document.getElementById("primer_apellido").value.trim();
             const sApellido = document.getElementById("segundo_apellido").value.trim();
+            const situacion = selectSituacion.value;
 
             if (!pNombre || !sNombre || !pApellido || !sApellido) {
                 mostrarMensaje("Los dos nombres y los dos apellidos son campos obligatorios.", true);
                 return;
             }
+
+            if (!situacion) {
+                mostrarMensaje("Por favor selecciona la situación del cliente (Laburando o Desempleado).", true);
+                return;
+            }
+
+            const capital = obtenerNumeroLimpio(inputMontoFormat.value);
+            const tasa = parseFloat(inputInteres.value) || 0;
+            const interesCalculado = Math.round(capital * (tasa / 100));
+            const totalConIntereses = capital + interesCalculado;
 
             const nombreCompleto = `${pNombre} ${sNombre} ${pApellido} ${sApellido}`.replace(/\s+/g, ' ').trim();
 
@@ -290,10 +413,14 @@
                 correo: document.getElementById("correo").value.trim(),
                 telefono: document.getElementById("telefono").value.trim(),
                 documento: document.getElementById("documento").value.trim(),
-                estado: document.getElementById("estado").value,
+                estado: situacion === "Laburando" ? "Activo" : "Pendiente",
+                situacion_laboral: situacion,
+                tasa_interes: tasa,
+                monto_capital: capital,
+                monto_interes: interesCalculado,
                 direccion: document.getElementById("direccion").value.trim(),
-                observaciones: document.getElementById("observaciones").value.trim(),
-                monto_deuda: document.getElementById("monto_deuda").value || 0
+                observaciones: txtObservaciones.value.trim(),
+                monto_deuda: totalConIntereses
             };
 
             btnGuardar.disabled = true;
@@ -302,8 +429,11 @@
 
             try {
                 const clienteGuardado = await registrarCliente(datos);
-                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado correctamente en el sistema.`, false);
+                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado con total de $${totalConIntereses.toLocaleString('es-CO')} COP en el sistema.`, false);
                 formulario.reset();
+                inputMontoHidden.value = "0";
+                lblInteres.textContent = "$0 COP";
+                lblTotal.textContent = "$0 COP";
             } catch (error) {
                 console.error("Error al registrar cliente:", error);
                 let msg = error.message || "Error al conectar con la base de datos.";
