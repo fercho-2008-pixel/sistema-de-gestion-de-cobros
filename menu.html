@@ -30,12 +30,7 @@
     </div>
 
     <div>
-      <div class="stat-row">
-        <div><b>128</b><span>Clientes registrados</span></div>
-        <div><b>86</b><span>Préstamos activos</span></div>
-        <div><b>$45,800</b><span>Saldo pendiente</span></div>
-      </div>
-      <div class="left-foot" style="margin-top:28px;">© 2024 Sistema de Gestión de Cobros</div>
+      <div class="left-foot">© 2024 Sistema de Gestión de Cobros</div>
     </div>
   </div>
 
@@ -67,7 +62,7 @@
                 Ingresar como Administrador
               </div>
               <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.3;">
-                Pide tu cédula de identidad y contraseña
+                Pide tu correo electrónico, cédula y contraseña
               </div>
             </div>
             <div style="font-size:1.3rem; color:#94a3b8; font-weight:700;">➔</div>
@@ -113,10 +108,22 @@
             <span id="badgeRolActual" style="font-size:0.72rem; font-weight:800; padding:3px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; text-transform:uppercase;">ADMIN</span>
           </div>
           <h2 id="formTitulo" style="margin-bottom:4px;">Ingreso como Administrador</h2>
-          <p id="formSubtitulo">Ingresa tu número de cédula y contraseña para continuar.</p>
+          <p id="formSubtitulo">Ingresa tu correo electrónico, número de cédula y contraseña para continuar.</p>
         </div>
 
         <form id="loginForm">
+          <!-- CAMPO PARA ADMINISTRADOR: CORREO ELECTRÓNICO -->
+          <div class="field" id="grupoAdminCorreo">
+            <label for="correoAdmin" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Correo del Administrador *</span>
+              <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 7px; border-radius:4px; font-weight:700;">SOLO ADMIN</span>
+            </label>
+            <input id="correoAdmin" class="input filled" type="email" placeholder="admin@cobros.com" autocomplete="email" />
+            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+              Ingresa tu correo electrónico de administrador registrado.
+            </div>
+          </div>
+
           <!-- CAMPO PARA ADMINISTRADOR: CÉDULA -->
           <div class="field" id="grupoAdminCedula">
             <label for="cedulaAdmin" style="display:flex; justify-content:space-between; align-items:center;">
@@ -355,8 +362,10 @@
 
   // Campos del formulario
   let modoActual = 'admin'; // 'admin' | 'cobrador'
+  const grupoAdminCorreo = document.getElementById('grupoAdminCorreo');
   const grupoAdminCedula = document.getElementById('grupoAdminCedula');
   const grupoCobradorCorreo = document.getElementById('grupoCobradorCorreo');
+  const inputCorreoAdmin = document.getElementById('correoAdmin');
   const inputCedulaAdmin = document.getElementById('cedulaAdmin');
   const inputCorreoCobrador = document.getElementById('correoCobrador');
   const lblPassword = document.getElementById('lblPassword');
@@ -381,10 +390,12 @@
       badgeRolActual.style.background = '#dbeafe';
       badgeRolActual.style.color = '#1e40af';
       formTitulo.textContent = 'Ingreso como Administrador';
-      formSubtitulo.textContent = 'Digita tu número de cédula y contraseña autorizada.';
+      formSubtitulo.textContent = 'Digita tu correo electrónico, número de cédula y contraseña autorizada.';
 
+      grupoAdminCorreo.style.display = 'block';
       grupoAdminCedula.style.display = 'block';
       grupoCobradorCorreo.style.display = 'none';
+      inputCorreoAdmin.setAttribute('required', 'required');
       inputCedulaAdmin.setAttribute('required', 'required');
       inputCorreoCobrador.removeAttribute('required');
 
@@ -392,7 +403,7 @@
       btnIniciar.innerHTML = 'Ingresar como Administrador 🛡️';
       btnIniciar.style.background = '#0f2749';
 
-      setTimeout(() => inputCedulaAdmin.focus(), 60);
+      setTimeout(() => inputCorreoAdmin.focus(), 60);
     } else {
       formKicker.textContent = 'Acceso Operativo';
       badgeRolActual.textContent = 'COBRADOR';
@@ -401,10 +412,12 @@
       formTitulo.textContent = 'Ingreso como Cobrador';
       formSubtitulo.textContent = 'Digita tu correo asignado de cobrador y tu contraseña.';
 
+      grupoAdminCorreo.style.display = 'none';
       grupoAdminCedula.style.display = 'none';
       grupoCobradorCorreo.style.display = 'block';
-      inputCorreoCobrador.setAttribute('required', 'required');
+      inputCorreoAdmin.removeAttribute('required');
       inputCedulaAdmin.removeAttribute('required');
+      inputCorreoCobrador.setAttribute('required', 'required');
 
       lblPassword.textContent = 'Contraseña del Cobrador *';
       btnIniciar.innerHTML = 'Ingresar como Cobrador 💼';
@@ -420,6 +433,7 @@
     seccionElegirRol.style.display = 'block';
     loginMsg.style.display = 'none';
     inputLoginPassword.value = '';
+    inputCorreoAdmin.value = '';
     inputCedulaAdmin.value = '';
     inputCorreoCobrador.value = '';
   }
@@ -468,8 +482,9 @@
     msgPaso2.style.display = 'none';
 
     // Precargar datos si el usuario ya escribió en el login
-    if (modoActual === 'admin' && inputCedulaAdmin.value.trim()) {
-      inputRecCedula.value = inputCedulaAdmin.value.trim();
+    if (modoActual === 'admin') {
+      if (inputCorreoAdmin.value.trim()) inputRecCorreo.value = inputCorreoAdmin.value.trim();
+      if (inputCedulaAdmin.value.trim()) inputRecCedula.value = inputCedulaAdmin.value.trim();
     } else if (modoActual === 'cobrador' && inputCorreoCobrador.value.trim()) {
       inputRecCorreo.value = inputCorreoCobrador.value.trim();
     }
@@ -587,6 +602,7 @@
         const esAdmin = usuarioVerificadoActual.rol === 'Administrador' || !usuarioVerificadoActual.rol;
         if (esAdmin) {
           seleccionarModo('admin');
+          inputCorreoAdmin.value = usuarioVerificadoActual.correo || '';
           inputCedulaAdmin.value = usuarioVerificadoActual.cedula || '';
         } else {
           seleccionarModo('cobrador');
@@ -651,24 +667,29 @@
     loginMsg.textContent = 'Has cerrado sesión correctamente.';
   }
 
-  // SUBMIT DEL LOGIN CON AUTENTICACIÓN POR ROL (ADMIN CON CÉDULA / COBRADOR CON CORREO)
+  // SUBMIT DEL LOGIN CON AUTENTICACIÓN POR ROL (ADMIN CON CORREO + CÉDULA / COBRADOR CON CORREO)
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const identificador = modoActual === 'admin' 
-      ? inputCedulaAdmin.value.trim() 
+    const correoVal = modoActual === 'admin' 
+      ? inputCorreoAdmin.value.trim() 
       : inputCorreoCobrador.value.trim();
+    const cedulaVal = modoActual === 'admin' 
+      ? inputCedulaAdmin.value.trim() 
+      : '';
     const password = inputLoginPassword.value;
 
     btnIniciar.disabled = true;
     btnIniciar.textContent = modoActual === 'admin' 
-      ? 'Validando cédula de Administrador...' 
+      ? 'Validando datos de Administrador...' 
       : 'Verificando credenciales de Cobrador...';
     loginMsg.style.display = 'none';
 
     try {
       const resp = await autenticarUsuarioConRol({
         modo: modoActual,
-        identificador: identificador,
+        correo: correoVal,
+        cedula: cedulaVal,
+        identificador: modoActual === 'admin' ? correoVal : correoVal,
         password: password
       });
 

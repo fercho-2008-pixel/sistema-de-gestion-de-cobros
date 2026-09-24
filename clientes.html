@@ -75,74 +75,142 @@
       color: #f59e0b;
     }
 
-    /* Filtros y ordenamiento */
+    /* Barra de opciones y ordenamiento con tipografía compacta y fondo diferenciador */
     .toolbar-filtros {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 10px;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
-      background: #ffffff;
-      padding: 16px 20px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #2563eb;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
     }
 
     .grupo-busqueda {
       display: flex;
       flex: 1;
-      min-width: 260px;
-      max-width: 420px;
+      min-width: 220px;
+      max-width: 360px;
       position: relative;
     }
 
     .input-busqueda {
       width: 100%;
-      padding: 10px 14px 10px 38px;
+      padding: 6px 12px 6px 32px;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      font-size: 0.9rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      background-color: #ffffff;
       outline: none;
-      transition: border 0.2s ease;
+      transition: all 0.2s ease;
     }
 
     .input-busqueda:focus {
       border-color: #2563eb;
+      background-color: #ffffff;
       box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
     }
 
     .icon-busqueda {
       position: absolute;
-      left: 12px;
+      left: 10px;
       top: 50%;
       transform: translateY(-50%);
-      color: #94a3b8;
+      color: #64748b;
+      font-size: 0.82rem;
       pointer-events: none;
     }
 
     .grupo-orden {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
+    .label-orden-titulo {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
     .select-orden {
-      padding: 10px 14px;
+      padding: 6px 10px;
       border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      font-size: 0.9rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
       background-color: #ffffff;
       color: #1e293b;
-      font-weight: 500;
+      font-weight: 600;
       outline: none;
       cursor: pointer;
+      transition: all 0.15s ease;
     }
 
     .select-orden:focus {
       border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+    }
+
+    /* Barra rápida de ordenamiento y opciones */
+    .barra-orden-rapido {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .btn-orden-rapido {
+      padding: 4px 9px;
+      font-size: 0.74rem;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      line-height: 1.3;
+    }
+
+    .btn-orden-rapido:hover {
+      background: #e0e7ff;
+      border-color: #a5b4fc;
+      color: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    .btn-orden-rapido.active {
+      background: #2563eb;
+      border-color: #1d4ed8;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+    }
+
+    /* Separador visual decorativo para el listado */
+    .separador-listado {
+      height: 1px;
+      background: linear-gradient(90deg, #2563eb 0%, #cbd5e1 35%, transparent 100%);
+      margin-bottom: 14px;
     }
 
     /* Tarjetas de estadísticas */
@@ -301,35 +369,6 @@
       background: #d1fae5;
       color: #065f46;
       transform: translateY(-1px);
-    }
-
-    .btn-orden-rapido {
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      border-radius: 8px;
-      border: 1px solid #e2e8f0;
-      background: #ffffff;
-      color: #475569;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.15s ease;
-    }
-
-    .btn-orden-rapido:hover {
-      background: #f8fafc;
-      border-color: #cbd5e1;
-      color: #0f172a;
-    }
-
-    .btn-orden-rapido.active {
-      background: #eff6ff;
-      border-color: #93c5fd;
-      color: #1d4ed8;
-      font-weight: 700;
-      box-shadow: 0 1px 2px rgba(37,99,235,0.1);
     }
 
     .th-sortable {
@@ -603,7 +642,7 @@
           </div>
         </div>
 
-        <!-- BARRA DE HERRAMIENTAS: BÚSQUEDA Y ORDENAMIENTO -->
+        <!-- BARRA DE HERRAMIENTAS: BÚSQUEDA Y ORDENAMIENTO COMPACTA -->
         <div class="toolbar-filtros">
           <div class="grupo-busqueda">
             <span class="icon-busqueda">🔍</span>
@@ -616,13 +655,13 @@
             />
           </div>
 
-          <div class="grupo-orden" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <label for="selectOrdenClientes" style="font-size:0.85rem; font-weight:600; color:#475569;">
-              Organizar por:
+          <div class="grupo-orden">
+            <label for="selectOrdenClientes" class="label-orden-titulo">
+              ⚡ Organizar:
             </label>
             <select id="selectOrdenClientes" class="select-orden">
               <option value="registro_asc" selected>📅 Orden de registro: Primeros registrados (como fue registrado)</option>
-              <option value="registro_desc">🕒 Orden de registro: Últimos registrados (más recientes primero)</option>
+              <option value="registro_desc">🕒 Orden de registro: Últimos registrados (más recientes)</option>
               <option value="mayor_deuda">💰 Mayor deuda pendiente</option>
               <option value="menor_deuda">📉 Menor deuda / Al día ($0)</option>
               <option value="nombre_az">🔤 Nombre (A - Z)</option>
@@ -632,34 +671,40 @@
 
             <select id="selectFiltroEstado" class="select-orden">
               <option value="todos">Todos los estados</option>
-              <option value="con_deuda">Solo con deuda pendiente</option>
-              <option value="al_dia">Solo clientes al día ($0)</option>
+              <option value="con_deuda">Solo con deuda</option>
+              <option value="al_dia">Solo al día ($0)</option>
             </select>
           </div>
         </div>
 
-        <!-- ACCESOS RÁPIDOS DE ORGANIZACIÓN -->
-        <div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; align-items:center;">
-          <span style="font-size:0.82rem; font-weight:600; color:#64748b;">Organizar rápido:</span>
+        <!-- ACCESOS RÁPIDOS DE ORGANIZACIÓN COMPACTOS -->
+        <div class="barra-orden-rapido">
+          <span style="font-size:0.73rem; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.02em;">Opciones rápidas:</span>
           <button type="button" class="btn-orden-rapido active" id="btnOrdenComoFueRegistrado" data-orden="registro_asc" title="Organizar en el orden exacto en que fueron registrados (del primero al último)">
             📅 Como fue registrado (1º al último)
           </button>
           <button type="button" class="btn-orden-rapido" id="btnOrdenRecientes" data-orden="registro_desc" title="Organizar con los más recientes primero">
-            🕒 Más recientes primero
+            🕒 Más recientes
           </button>
           <button type="button" class="btn-orden-rapido" id="btnOrdenMayorDeuda" data-orden="mayor_deuda" title="Organizar por mayor saldo pendiente de pago">
-            💰 Mayor deuda pendiente
+            💰 Mayor deuda
           </button>
           <button type="button" class="btn-orden-rapido" id="btnOrdenNombre" data-orden="nombre_az" title="Organizar por orden alfabético de la A a la Z">
-            🔤 Nombre (A - Z)
+            🔤 Nombre (A-Z)
           </button>
         </div>
 
+        <!-- SEPARADOR VISUAL CON COLOR ENTRE OPCIONES Y LISTADO -->
+        <div class="separador-listado"></div>
+
         <!-- TABLA DE CLIENTES -->
-        <div class="section">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h3 style="margin:0; font-size:1.1rem; color:#0f172a;">Listado General de Clientes</h3>
-            <span id="lblConteoResultados" style="font-size:0.85rem; color:#64748b;">Mostrando 0 clientes</span>
+        <div class="section" style="border-top:3px solid #1e40af; box-shadow:0 8px 24px rgba(15,23,42,0.06);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:#2563eb; display:inline-block;"></span>
+              <h3 style="margin:0; font-size:1.02rem; color:#0f172a; font-weight:700;">Listado General de Clientes</h3>
+            </div>
+            <span id="lblConteoResultados" style="font-size:0.8rem; font-weight:600; color:#1e40af; background:#eff6ff; padding:3px 10px; border-radius:999px; border:1px solid #bfdbfe;">Mostrando 0 clientes</span>
           </div>
 
           <div style="overflow-x:auto;">
@@ -938,9 +983,24 @@
       <div style="padding:22px; overflow-y:auto; flex:1;">
         <form id="formRegistrarNuevoClienteModal">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
-            <div style="grid-column: span 2;">
-              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Nombre completo *</label>
-              <input type="text" id="nuevoCliNombre" required placeholder="Ej. Carlos Mendoza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Primer nombre *</label>
+              <input type="text" id="nuevoCliPrimerNombre" required placeholder="Ej. Carlos" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Segundo nombre *</label>
+              <input type="text" id="nuevoCliSegundoNombre" required placeholder="Ej. Andrés" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Primer apellido *</label>
+              <input type="text" id="nuevoCliPrimerApellido" required placeholder="Ej. Mendoza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Segundo apellido *</label>
+              <input type="text" id="nuevoCliSegundoApellido" required placeholder="Ej. Gómez" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
             </div>
 
             <div>
@@ -1807,7 +1867,7 @@
         nuevoCliMsg.textContent = '';
       }
       if (modalNuevo) modalNuevo.style.display = 'flex';
-      setTimeout(() => document.getElementById('nuevoCliNombre')?.focus(), 50);
+      setTimeout(() => document.getElementById('nuevoCliPrimerNombre')?.focus(), 50);
     }
 
     function cerrarModalNuevo() {
@@ -1823,7 +1883,11 @@
 
     formNuevoCliente?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nombre = document.getElementById('nuevoCliNombre')?.value.trim();
+      const pNombre = document.getElementById('nuevoCliPrimerNombre')?.value.trim();
+      const sNombre = document.getElementById('nuevoCliSegundoNombre')?.value.trim();
+      const pApellido = document.getElementById('nuevoCliPrimerApellido')?.value.trim();
+      const sApellido = document.getElementById('nuevoCliSegundoApellido')?.value.trim();
+
       const documento = document.getElementById('nuevoCliDocumento')?.value.trim();
       const telefono = document.getElementById('nuevoCliTelefono')?.value.trim();
       const correo = document.getElementById('nuevoCliCorreo')?.value.trim();
@@ -1832,15 +1896,17 @@
       const estado = document.getElementById('nuevoCliEstado')?.value || 'Activo';
       const observaciones = document.getElementById('nuevoCliObservaciones')?.value.trim();
 
-      if (!nombre || !documento) {
+      if (!pNombre || !sNombre || !pApellido || !sApellido || !documento) {
         if (nuevoCliMsg) {
           nuevoCliMsg.style.display = 'block';
           nuevoCliMsg.style.background = '#fef2f2';
           nuevoCliMsg.style.color = '#dc2626';
-          nuevoCliMsg.textContent = 'Nombre y documento son obligatorios.';
+          nuevoCliMsg.textContent = 'Los dos nombres, los dos apellidos y el documento son obligatorios.';
         }
         return;
       }
+
+      const nombreCompleto = `${pNombre} ${sNombre} ${pApellido} ${sApellido}`.replace(/\s+/g, ' ').trim();
 
       if (btnGuardarNuevo) {
         btnGuardarNuevo.disabled = true;
@@ -1849,7 +1915,11 @@
 
       try {
         const resultado = await registrarCliente({
-          nombre,
+          nombre: nombreCompleto,
+          primer_nombre: pNombre,
+          segundo_nombre: sNombre,
+          primer_apellido: pApellido,
+          segundo_apellido: sApellido,
           documento,
           telefono,
           correo,

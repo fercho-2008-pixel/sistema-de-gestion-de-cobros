@@ -1291,30 +1291,11 @@ export async function eliminarClientePorDocumento({ documento, password }) {
 }
 
 /**
- * Autentica al usuario diferenciando entre Administrador (requiere Cédula) y Cobrador (requiere Correo/Usuario).
+ * Autentica al usuario diferenciando entre Administrador (requiere Correo, Cédula y Contraseña) y Cobrador (requiere Correo y Contraseña).
  */
-export async function autenticarUsuarioConRol({ modo = 'admin', identificador = '', password = '' }) {
+export async function autenticarUsuarioConRol({ modo = 'admin', identificador = '', password = '', correo = '', cedula = '' }) {
   const modoClean = modo.toLowerCase().trim();
-  const idClean = String(identificador || '').trim();
   const pwdTrim = String(password || '').trim();
-
-  if (!idClean) {
-    return {
-      ok: false,
-      error: modoClean === 'admin'
-        ? 'Por favor ingresa la cédula del administrador.'
-        : 'Por favor ingresa el correo electrónico del cobrador.'
-    };
-  }
-
-  if (!pwdTrim) {
-    return {
-      ok: false,
-      error: modoClean === 'admin'
-        ? 'Por favor ingresa la contraseña de administrador.'
-        : 'Por favor ingresa la contraseña de cobrador.'
-    };
-  }
 
   // 1. Obtener lista de usuarios
   let usuarios = [];
@@ -1333,84 +1314,127 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
   }
 
   // ==========================================
-  // FLUJO ADMINISTRADOR (AUTORIZACIÓN POR CÉDULA)
+  // FLUJO ADMINISTRADOR (AUTORIZACIÓN POR CORREO + CÉDULA + CLAVE)
   // ==========================================
   if (modoClean === 'admin') {
-    const cedulaClean = idClean;
+    let correoAdmin = String(correo || '').toLowerCase().trim();
+    let cedulaAdmin = String(cedula || '').trim();
 
-    // A. Verificar que no sea un usuario con rol exclusivo de Cobrador
+    // Compatibilidad si se envió solo en identificador
+    if (!correoAdmin && identificador && identificador.includes('@')) {
+      correoAdmin = identificador.toLowerCase().trim();
+    } else if (!cedulaAdmin && identificador && !identificador.includes('@')) {
+      cedulaAdmin = identificador.trim();
+    }
+
+    if (!correoAdmin) {
+      return {
+        ok: false,
+        error: 'Por favor ingresa el correo electrónico del administrador.'
+      };
+    }
+
+    if (!cedulaAdmin) {
+      return {
+        ok: false,
+        error: 'Por favor ingresa la cédula del administrador.'
+      };
+    }
+
+    if (!pwdTrim) {
+      return {
+        ok: false,
+        error: 'Por favor ingresa la contraseña de administrador.'
+      };
+    }
+
+    // A. Verificar si el correo o cédula pertenece a una cuenta exclusiva de Cobrador
     const usuarioCobrador = usuarios.find(u => {
+      const uEmail = (u.correo || '').toLowerCase().trim();
       const uCed = String(u.cedula || u.documento || '').trim();
       const uRol = String(u.rol || '').trim().toLowerCase();
-      return uCed === cedulaClean && (uRol === 'cobrador' || uRol.includes('cajer'));
+      const match = (uEmail && uEmail === correoAdmin) || (uCed && uCed === cedulaAdmin);
+      return match && (uRol === 'cobrador' || uRol.includes('cajer'));
     });
     if (usuarioCobrador) {
       return {
         ok: false,
-        error: 'Esta cédula pertenece a una cuenta con rol de Cobrador. Selecciona la opción "Ingresar como Cobrador" para continuar.'
+        error: 'Esta cuenta o cédula pertenece a un Cobrador. Selecciona la opción "Ingresar como Cobrador" para continuar.'
       };
     }
 
-    // B. Buscar si la cédula coincide con un Administrador registrado
+    // B. Buscar si el correo o cédula coincide con un Administrador registrado
     let adminEncontrado = usuarios.find(u => {
+      const uEmail = (u.correo || '').toLowerCase().trim();
       const uCed = String(u.cedula || u.documento || '').trim();
       const uRol = String(u.rol || '').trim().toLowerCase();
-      return uCed === cedulaClean && (uRol.includes('admin') || !uRol);
+      const match = (uEmail && uEmail === correoAdmin) || (uCed && uCed === cedulaAdmin);
+      return match && (uRol.includes('admin') || !uRol);
     });
 
-    let credsAdmin = null;
-    for (const email of Object.keys(allCreds)) {
-      const c = allCreds[email];
-      if (String(c.cedula || '').trim() === cedulaClean) {
-        credsAdmin = c;
-        break;
+    let credsAdmin = allCreds[correoAdmin] || null;
+    if (!credsAdmin) {
+      for (const em of Object.keys(allCreds)) {
+        const c = allCreds[em];
+        if (String(c.cedula || '').trim() === cedulaAdmin) {
+          credsAdmin = c;
+          break;
+        }
       }
+    }
+
+    // Validar concordancia de cédula si ya estaba registrada para este correo
+    const cedulaRegistrada = String(adminEncontrado?.cedula || adminEncontrado?.documento || credsAdmin?.cedula || '').trim();
+    if (cedulaRegistrada && cedulaRegistrada !== cedulaAdmin) {
+      return {
+        ok: false,
+        error: 'La cédula de identidad no coincide con el correo de administrador registrado.'
+      };
     }
 
     // C. Validar la contraseña del Administrador
     let contrasenaValida = false;
     let usuarioAutenticado = null;
 
-    // 1) Coincide con la contraseña guardada del admin por cédula
+    // 1) Validar contra credenciales guardadas del admin por correo
     if (credsAdmin && credsAdmin.password === pwdTrim) {
       contrasenaValida = true;
       usuarioAutenticado = credsAdmin;
     }
 
-    // 2) Coincide con credenciales de algún administrador registrado en el sistema
-    if (!contrasenaValida) {
-      for (const email of Object.keys(allCreds)) {
-        const c = allCreds[email];
-        const esRolAdmin = !c.rol || c.rol.toLowerCase().includes('admin');
-        if (esRolAdmin && c.password === pwdTrim) {
+    // 2) Validar con Supabase Auth directamente con el correo y contraseña
+    if (!contrasenaValida && db && db.auth) {
+      try {
+        const { data, error } = await db.auth.signInWithPassword({
+          email: correoAdmin,
+          password: pwdTrim
+        });
+        if (!error && data?.user) {
           contrasenaValida = true;
-          usuarioAutenticado = c;
-          // Asociar de inmediato la cédula a este administrador
-          guardarCredencialesUsuario({
-            correo: c.correo || email,
-            password: pwdTrim,
-            cedula: cedulaClean,
-            nombre: c.nombre || 'Administrador',
-            rol: 'Administrador'
-          });
-          break;
+          usuarioAutenticado = {
+            id: data.user.id,
+            nombre: data.user.user_metadata?.nombre || adminEncontrado?.nombre || correoAdmin.split('@')[0],
+            correo: correoAdmin,
+            rol: 'Administrador',
+            cedula: cedulaAdmin
+          };
         }
+      } catch (e) {
+        console.warn('Supabase signInWithPassword:', e.message);
       }
     }
 
     // 3) Probar autenticación con Supabase Auth para cuentas de administrador conocidas
     if (!contrasenaValida && db && db.auth) {
       const correosAProbar = [
-        credsAdmin?.correo,
-        adminEncontrado?.correo,
         'juanfernado20de2008@gmail.com',
         'ferchogarces2008@gmail.com'
-      ].filter(Boolean);
+      ].filter(em => em !== correoAdmin);
 
-      for (const correoAdmin of correosAProbar) {
+      for (const correoRespaldo of correosAProbar) {
         try {
           const { data, error } = await db.auth.signInWithPassword({
-            email: correoAdmin,
+            email: correoRespaldo,
             password: pwdTrim
           });
           if (!error && data?.user) {
@@ -1420,49 +1444,67 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
               nombre: data.user.user_metadata?.nombre || 'Administrador',
               correo: correoAdmin,
               rol: 'Administrador',
-              cedula: cedulaClean
+              cedula: cedulaAdmin
             };
-            guardarCredencialesUsuario({
-              correo: correoAdmin,
-              password: pwdTrim,
-              cedula: cedulaClean,
-              nombre: usuarioAutenticado.nombre,
-              rol: 'Administrador'
-            });
             break;
           }
         } catch (e) {}
       }
     }
 
-    // 4) Probar con validación de clave de administrador general
+    // 4) Probar con validación de clave de administrador general o credenciales locales
+    if (!contrasenaValida) {
+      for (const email of Object.keys(allCreds)) {
+        const c = allCreds[email];
+        const esRolAdmin = !c.rol || c.rol.toLowerCase().includes('admin');
+        if (esRolAdmin && c.password === pwdTrim) {
+          contrasenaValida = true;
+          usuarioAutenticado = {
+            ...c,
+            correo: correoAdmin,
+            cedula: cedulaAdmin
+          };
+          break;
+        }
+      }
+    }
+
+    // 5) Probar con validación de clave maestra de administrador
     if (!contrasenaValida) {
       const validacion = await validarContrasenaAcceso(pwdTrim);
       if (validacion.ok && (!validacion.usuario?.rol || validacion.usuario?.rol === 'Administrador')) {
         contrasenaValida = true;
-        usuarioAutenticado = validacion.usuario;
-        guardarCredencialesUsuario({
-          correo: validacion.usuario.correo || 'juanfernado20de2008@gmail.com',
-          password: pwdTrim,
-          cedula: cedulaClean,
-          nombre: validacion.usuario.nombre || 'Administrador',
+        usuarioAutenticado = {
+          ...(validacion.usuario || {}),
+          correo: correoAdmin,
+          cedula: cedulaAdmin,
+          nombre: validacion.usuario?.nombre || 'Administrador',
           rol: 'Administrador'
-        });
+        };
       }
     }
 
     if (!contrasenaValida) {
       return {
         ok: false,
-        error: 'Cédula o contraseña de Administrador incorrecta. Por favor verifica tus credenciales.'
+        error: 'Correo, cédula o contraseña de Administrador incorrecta. Por favor verifica tus credenciales.'
       };
     }
 
+    // Guardar o sincronizar credenciales actualizadas
+    guardarCredencialesUsuario({
+      correo: correoAdmin,
+      password: pwdTrim,
+      cedula: cedulaAdmin,
+      nombre: usuarioAutenticado?.nombre || adminEncontrado?.nombre || correoAdmin.split('@')[0],
+      rol: 'Administrador'
+    });
+
     const sessionData = {
       id: usuarioAutenticado?.id || adminEncontrado?.id || `usr-${Date.now()}`,
-      nombre: usuarioAutenticado?.nombre || adminEncontrado?.nombre || 'Administrador',
-      correo: usuarioAutenticado?.correo || adminEncontrado?.correo || 'admin@cobros.com',
-      cedula: cedulaClean,
+      nombre: usuarioAutenticado?.nombre || adminEncontrado?.nombre || correoAdmin.split('@')[0],
+      correo: correoAdmin,
+      cedula: cedulaAdmin,
       rol: 'Administrador'
     };
 

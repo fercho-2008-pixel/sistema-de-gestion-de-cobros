@@ -31,16 +31,57 @@
 
                 <div class="form-grid">
 
-                    <div class="campo campo-completo">
-                        <label for="nombre">
-                            Nombre completo
+                    <div class="campo">
+                        <label for="primer_nombre">
+                            Primer nombre *
                         </label>
-
                         <input
                             type="text"
-                            id="nombre"
-                            name="nombre"
-                            placeholder="Ej. María González"
+                            id="primer_nombre"
+                            name="primer_nombre"
+                            placeholder="Ej. Juan"
+                            required
+                            autocomplete="given-name"
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="segundo_nombre">
+                            Segundo nombre *
+                        </label>
+                        <input
+                            type="text"
+                            id="segundo_nombre"
+                            name="segundo_nombre"
+                            placeholder="Ej. Fernando"
+                            required
+                            autocomplete="additional-name"
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="primer_apellido">
+                            Primer apellido *
+                        </label>
+                        <input
+                            type="text"
+                            id="primer_apellido"
+                            name="primer_apellido"
+                            placeholder="Ej. Pérez"
+                            required
+                            autocomplete="family-name"
+                        >
+                    </div>
+
+                    <div class="campo">
+                        <label for="segundo_apellido">
+                            Segundo apellido *
+                        </label>
+                        <input
+                            type="text"
+                            id="segundo_apellido"
+                            name="segundo_apellido"
+                            placeholder="Ej. Gómez"
                             required
                         >
                     </div>
@@ -228,14 +269,30 @@
         formulario.addEventListener("submit", async function (evento) {
             evento.preventDefault();
 
+            const pNombre = document.getElementById("primer_nombre").value.trim();
+            const sNombre = document.getElementById("segundo_nombre").value.trim();
+            const pApellido = document.getElementById("primer_apellido").value.trim();
+            const sApellido = document.getElementById("segundo_apellido").value.trim();
+
+            if (!pNombre || !sNombre || !pApellido || !sApellido) {
+                mostrarMensaje("Los dos nombres y los dos apellidos son campos obligatorios.", true);
+                return;
+            }
+
+            const nombreCompleto = `${pNombre} ${sNombre} ${pApellido} ${sApellido}`.replace(/\s+/g, ' ').trim();
+
             const datos = {
-                nombre: document.getElementById("nombre").value,
-                correo: document.getElementById("correo").value,
-                telefono: document.getElementById("telefono").value,
-                documento: document.getElementById("documento").value,
+                nombre: nombreCompleto,
+                primer_nombre: pNombre,
+                segundo_nombre: sNombre,
+                primer_apellido: pApellido,
+                segundo_apellido: sApellido,
+                correo: document.getElementById("correo").value.trim(),
+                telefono: document.getElementById("telefono").value.trim(),
+                documento: document.getElementById("documento").value.trim(),
                 estado: document.getElementById("estado").value,
-                direccion: document.getElementById("direccion").value,
-                observaciones: document.getElementById("observaciones").value,
+                direccion: document.getElementById("direccion").value.trim(),
+                observaciones: document.getElementById("observaciones").value.trim(),
                 monto_deuda: document.getElementById("monto_deuda").value || 0
             };
 
