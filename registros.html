@@ -9,6 +9,304 @@
     <link rel="stylesheet" href="regristros.css">
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- html2pdf.js para descarga instantánea en PDF de 1 sola hoja -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+      /* Estilos para la ventana modal de factura y generación de PDF en 1 hoja */
+      .modal-factura-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.75);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        overflow-y: auto;
+        padding: 20px 12px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-factura-content {
+        background: #ffffff;
+        width: 100%;
+        max-width: 820px;
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        margin: auto;
+        animation: animModal 0.2s ease-out;
+      }
+
+      @keyframes animModal {
+        from { opacity: 0; transform: scale(0.96) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+      }
+
+      .modal-factura-barra-acciones {
+        background: #0f172a;
+        color: #ffffff;
+        padding: 14px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid #334155;
+      }
+
+      .btn-factura-accion {
+        border: none;
+        padding: 9px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+      }
+
+      .btn-descargar-pdf {
+        background: #2563eb;
+        color: #ffffff;
+      }
+      .btn-descargar-pdf:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+      .btn-imprimir-fac {
+        background: #059669;
+        color: #ffffff;
+      }
+      .btn-imprimir-fac:hover { background: #047857; }
+
+      .btn-cerrar-fac {
+        background: #475569;
+        color: #ffffff;
+      }
+      .btn-cerrar-fac:hover { background: #334155; }
+
+      /* FACTURA EN 1 SOLA HOJA ESTRICTA */
+      .hoja-factura {
+        background: #ffffff;
+        color: #0f172a;
+        padding: 26px 30px;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 800px;
+        margin: 0 auto;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .fac-encabezado {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+      }
+
+      .fac-brand-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #0f172a;
+        letter-spacing: -0.02em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+
+      .fac-brand-sub {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+        margin: 2px 0 0 0;
+      }
+
+      .fac-box-codigo {
+        text-align: right;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 14px;
+      }
+
+      .fac-codigo-etiqueta {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: block;
+      }
+
+      .fac-codigo-numero {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #1e40af;
+        letter-spacing: 1px;
+        display: block;
+        margin-top: 2px;
+      }
+
+      .fac-grid-secciones {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .fac-card-info {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+
+      .fac-card-titulo {
+        font-size: 0.72rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #1e40af;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 4px;
+        margin-bottom: 6px;
+      }
+
+      .fac-fila {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        font-size: 0.82rem;
+      }
+
+      .fac-fila-label {
+        color: #64748b;
+        font-weight: 500;
+      }
+
+      .fac-fila-val {
+        color: #0f172a;
+        font-weight: 600;
+        text-align: right;
+      }
+
+      .fac-tabla-financiera {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+        font-size: 0.82rem;
+      }
+
+      .fac-tabla-financiera th {
+        background: #0f172a;
+        color: #ffffff;
+        padding: 6px 10px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .fac-tabla-financiera td {
+        padding: 6px 10px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      .fac-total-row {
+        background: #eff6ff;
+        font-weight: 800;
+        font-size: 0.95rem;
+      }
+
+      .fac-total-row td {
+        border-top: 2px solid #2563eb;
+        border-bottom: 2px solid #2563eb;
+        color: #1e3a8a;
+      }
+
+      .fac-observaciones-box {
+        background: #fff;
+        border: 1px dashed #cbd5e1;
+        border-radius: 6px;
+        padding: 8px 10px;
+        font-size: 0.78rem;
+        color: #475569;
+        margin-bottom: 14px;
+      }
+
+      .fac-firmas-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 18px;
+        padding-top: 10px;
+      }
+
+      .fac-linea-firma {
+        border-top: 1px solid #475569;
+        text-align: center;
+        padding-top: 4px;
+        font-size: 0.75rem;
+        color: #334155;
+      }
+
+      .fac-pie-validez {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 0.68rem;
+        color: #94a3b8;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 6px;
+      }
+
+      /* COMPATIBILIDAD DE IMPRESIÓN DIRECTA 1 HOJA */
+      @page {
+        size: letter portrait;
+        margin: 8mm;
+      }
+
+      @media print {
+        body * {
+          visibility: hidden !important;
+        }
+        #modalFacturaGenerada,
+        #modalFacturaGenerada *,
+        #facturaImprimible,
+        #facturaImprimible * {
+          visibility: visible !important;
+        }
+        .modal-factura-overlay {
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          background: transparent !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+        .modal-factura-content {
+          box-shadow: none !important;
+          max-width: 100% !important;
+          margin: 0 !important;
+          border-radius: 0 !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        .hoja-factura {
+          padding: 4mm 6mm !important;
+          max-width: 100% !important;
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+      }
+    </style>
 </head>
 
 <body>
@@ -218,9 +516,57 @@
                         <textarea
                             id="observaciones"
                             name="observaciones"
-                            rows="4"
+                            rows="3"
                             placeholder="Escribe información adicional del cliente..."
                         ></textarea>
+                    </div>
+
+                    <!-- SECCIÓN DE INFORMACIÓN DEL COBRADOR / ASESOR (EMISOR DE LA FACTURA) -->
+                    <div class="campo campo-completo" style="background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #2563eb; border-radius:10px; padding:14px 16px;">
+                        <span style="display:block; font-size:0.8rem; color:#1e40af; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">
+                            👤 Información del Cobrador / Asesor (Emisor responsable de la factura)
+                        </span>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px;">
+                            <div>
+                                <label for="cobrador_nombre" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+                                    Nombre del Cobrador *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="cobrador_nombre"
+                                    name="cobrador_nombre"
+                                    placeholder="Nombre de quien registra"
+                                    required
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.9rem;"
+                                >
+                            </div>
+                            <div>
+                                <label for="cobrador_telefono" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+                                    Teléfono del Cobrador *
+                                </label>
+                                <input
+                                    type="tel"
+                                    id="cobrador_telefono"
+                                    name="cobrador_telefono"
+                                    placeholder="+57 300 000 0000"
+                                    required
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.9rem;"
+                                >
+                            </div>
+                            <div>
+                                <label for="cobrador_rol" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+                                    Cargo / Rol
+                                </label>
+                                <input
+                                    type="text"
+                                    id="cobrador_rol"
+                                    name="cobrador_rol"
+                                    value="Cobrador"
+                                    readonly
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f1f5f9; color:#64748b; font-size:0.9rem;"
+                                >
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -239,7 +585,7 @@
                         id="btnGuardar"
                         class="btn-principal"
                     >
-                        Guardar cliente
+                        Guardar cliente y generar factura
                     </button>
                     
 
@@ -256,6 +602,178 @@
         </section>
     </main>
 
+    <!-- ========================================================= -->
+    <!-- MODAL DE FACTURA GENERADA (1 HOJA CON DESCARGA PDF) -->
+    <!-- ========================================================= -->
+    <div id="modalFacturaGenerada" class="modal-factura-overlay" role="dialog" aria-modal="true">
+        <div class="modal-factura-content">
+            <!-- Barra de acciones (no imprimible) -->
+            <div class="modal-factura-barra-acciones no-print">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.3rem;">🧾</span>
+                    <div>
+                        <strong style="display:block; font-size:0.95rem;">Factura Oficial Generada</strong>
+                        <span style="font-size:0.75rem; color:#94a3b8;">Documento en 1 sola hoja listo para descargar en PDF o imprimir</span>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" id="btnDescargarFacturaPDF" class="btn-factura-accion btn-descargar-pdf">
+                        📥 Descargar Factura (PDF)
+                    </button>
+                    <button type="button" id="btnImprimirFactura" class="btn-factura-accion btn-imprimir-fac">
+                        🖨️ Imprimir
+                    </button>
+                    <button type="button" id="btnNuevoRegistroModal" class="btn-factura-accion btn-cerrar-fac">
+                        ➕ Registrar otro cliente
+                    </button>
+                    <button type="button" id="btnCerrarModalFactura" class="btn-factura-accion btn-cerrar-fac" title="Cerrar ventana">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Hoja Imprimible (Exactamente 1 página) -->
+            <div id="facturaImprimible" class="hoja-factura">
+                <!-- Encabezado -->
+                <div class="fac-encabezado">
+                    <div>
+                        <h2 class="fac-brand-title">SISTEMA DE GESTIÓN DE COBROS</h2>
+                        <p class="fac-brand-sub">Comprobante Oficial de Registro y Otorgamiento de Crédito</p>
+                        <div style="margin-top:5px; font-size:0.78rem; color:#475569;">
+                            <span>Fecha y hora de emisión:</span> <strong id="facFechaEmision">-</strong>
+                        </div>
+                    </div>
+                    <div class="fac-box-codigo">
+                        <span class="fac-codigo-etiqueta">Nº FACTURA OFICIAL</span>
+                        <span id="facCodigoNumero" class="fac-codigo-numero">AbCdEfGh12345</span>
+                        <span style="font-size:0.68rem; color:#059669; font-weight:700; display:block; margin-top:2px;">
+                            ✓ CÓDIGO ÚNICO E IRREPETIBLE
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Bloques de datos del cobrador y del cliente -->
+                <div class="fac-grid-secciones">
+                    <!-- Datos del Cobrador / Asesor -->
+                    <div class="fac-card-info">
+                        <div class="fac-card-titulo">
+                            👤 ASESOR / COBRADOR RESPONSABLE
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Nombre:</span>
+                            <span id="facCobradorNombre" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Teléfono:</span>
+                            <span id="facCobradorTelefono" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Cargo / Rol:</span>
+                            <span id="facCobradorRol" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Correo:</span>
+                            <span id="facCobradorCorreo" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Cliente -->
+                    <div class="fac-card-info">
+                        <div class="fac-card-titulo">
+                            📋 INFORMACIÓN DEL CLIENTE
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Nombre completo:</span>
+                            <span id="facClienteNombre" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Cédula / CC:</span>
+                            <span id="facClienteDocumento" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Teléfono:</span>
+                            <span id="facClienteTelefono" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Situación:</span>
+                            <span id="facClienteSituacion" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Correo:</span>
+                            <span id="facClienteCorreo" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                        </div>
+                        <div class="fac-fila">
+                            <span class="fac-fila-label">Dirección:</span>
+                            <span id="facClienteDireccion" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabla Financiera -->
+                <table class="fac-tabla-financiera">
+                    <thead>
+                        <tr>
+                            <th>Concepto Financiero</th>
+                            <th style="text-align:right;">Detalle / Monto (COP)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Capital inicial solicitado / Monto de crédito</td>
+                            <td id="facMontoCapital" style="text-align:right; font-weight:600;">$0 COP</td>
+                        </tr>
+                        <tr>
+                            <td>Tasa de Interés Pactada</td>
+                            <td id="facTasaInteres" style="text-align:right; font-weight:600;">0%</td>
+                        </tr>
+                        <tr>
+                            <td>Monto de Intereses Calculados</td>
+                            <td id="facMontoInteres" style="text-align:right; color:#dc2626; font-weight:600;">$0 COP</td>
+                        </tr>
+                        <tr class="fac-total-row">
+                            <td>MONTO TOTAL A PAGAR (Deuda Inicial)</td>
+                            <td id="facTotalPagar" style="text-align:right; font-weight:800; color:#1e3a8a;">$0 COP</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Observaciones -->
+                <div class="fac-observaciones-box">
+                    <strong style="color:#1e40af; display:block; margin-bottom:2px;">Observaciones y Términos Registrados:</strong>
+                    <div id="facObservacionesTexto" style="white-space:pre-line; color:#334155;">Sin observaciones adicionales.</div>
+                </div>
+
+                <!-- Declaración -->
+                <div style="font-size:0.72rem; color:#64748b; line-height:1.3; background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:12px;">
+                    <strong>Declaración de conformidad:</strong> El cliente titular declara haber recibido la información clara sobre el crédito otorgado, montos e intereses pactados, comprometiéndose al cumplimiento de los pagos correspondientes según los términos convenidos con el cobrador asignado.
+                </div>
+
+                <!-- Firmas -->
+                <div class="fac-firmas-grid">
+                    <div>
+                        <div style="height:36px;"></div>
+                        <div class="fac-linea-firma">
+                            <strong id="facFirmaCobradorNombre">Firma del Cobrador / Asesor</strong>
+                            <div style="font-size:0.7rem; color:#64748b;">Emisor Autorizado</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="height:36px;"></div>
+                        <div class="fac-linea-firma">
+                            <strong id="facFirmaClienteNombre">Firma del Cliente Titular</strong>
+                            <div style="font-size:0.7rem; color:#64748b;" id="facFirmaClienteDoc">C.C. </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pie de página -->
+                <div class="fac-pie-validez">
+                    Documento oficial de control expedido por el Sistema de Gestión de Cobros • Código irrepetible de 8 letras y 5 números • 1 sola hoja
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div style="text-align: center; margin: 20px auto 40px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
         <a href="menu2.html" style="text-decoration:none;">
           <button class="btn-principal" style="background:#0F2749;">
@@ -271,7 +789,7 @@
 
     <!-- Script de integración con Supabase -->
     <script type="module">
-        import { registrarCliente, verificarAutenticacion, esUsuarioAdmin } from './supabase.js';
+        import { registrarCliente, verificarAutenticacion, esUsuarioAdmin, generarCodigoFacturaUnico } from './supabase.js';
 
         // Verificar si el usuario terminó de registrarse o inició sesión
         const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'registros.html' });
@@ -286,6 +804,17 @@
             linkDir.style.display = 'none';
         }
 
+        // Prellenar información del cobrador que registra
+        const inputCobradorNombre = document.getElementById("cobrador_nombre");
+        const inputCobradorTelefono = document.getElementById("cobrador_telefono");
+        const inputCobradorRol = document.getElementById("cobrador_rol");
+
+        if (auth.usuario) {
+            if (inputCobradorNombre) inputCobradorNombre.value = auth.usuario.nombre || '';
+            if (inputCobradorTelefono) inputCobradorTelefono.value = auth.usuario.telefono || '';
+            if (inputCobradorRol) inputCobradorRol.value = auth.usuario.rol || (esAdmin ? 'Administrador' : 'Cobrador');
+        }
+
         const formulario = document.getElementById("formularioRegistroCliente");
         const mensaje = document.getElementById("mensajeGuardado");
         const btnGuardar = document.getElementById("btnGuardar");
@@ -297,6 +826,70 @@
         const inputInteres = document.getElementById("porcentaje_interes");
         const lblInteres = document.getElementById("lblInteresCalculado");
         const lblTotal = document.getElementById("lblTotalConIntereses");
+
+        // Modal de factura
+        const modalFactura = document.getElementById("modalFacturaGenerada");
+        const btnDescargarPDF = document.getElementById("btnDescargarFacturaPDF");
+        const btnImprimir = document.getElementById("btnImprimirFactura");
+        const btnCerrarModal = document.getElementById("btnCerrarModalFactura");
+        const btnNuevoRegistroModal = document.getElementById("btnNuevoRegistroModal");
+
+        let facturaActualParaDescarga = null;
+
+        function cerrarModalFactura() {
+            modalFactura.style.display = 'none';
+        }
+
+        btnCerrarModal?.addEventListener('click', cerrarModalFactura);
+        btnNuevoRegistroModal?.addEventListener('click', () => {
+            cerrarModalFactura();
+            formulario.reset();
+            if (auth.usuario) {
+                if (inputCobradorNombre) inputCobradorNombre.value = auth.usuario.nombre || '';
+                if (inputCobradorTelefono) inputCobradorTelefono.value = auth.usuario.telefono || '';
+                if (inputCobradorRol) inputCobradorRol.value = auth.usuario.rol || (esAdmin ? 'Administrador' : 'Cobrador');
+            }
+            recalcularMontosEIntereses();
+            document.getElementById("primer_nombre")?.focus();
+        });
+
+        // Impresión directa
+        btnImprimir?.addEventListener('click', () => {
+            window.print();
+        });
+
+        // Descarga directa en PDF en 1 sola hoja
+        btnDescargarPDF?.addEventListener('click', async () => {
+            const facturaEl = document.getElementById('facturaImprimible');
+            if (!facturaEl) return;
+
+            const cod = facturaActualParaDescarga?.numero_factura || 'Factura';
+            const doc = facturaActualParaDescarga?.documento || 'Cliente';
+
+            btnDescargarPDF.disabled = true;
+            btnDescargarPDF.textContent = 'Generando PDF...';
+
+            try {
+                if (typeof window.html2pdf !== 'undefined') {
+                    const opt = {
+                        margin: [6, 6, 6, 6],
+                        filename: `Factura_${cod}_${doc}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+                    };
+                    await window.html2pdf().set(opt).from(facturaEl).save();
+                } else {
+                    window.print();
+                }
+            } catch (err) {
+                console.error('Error al generar PDF:', err);
+                window.print();
+            } finally {
+                btnDescargarPDF.disabled = false;
+                btnDescargarPDF.textContent = '📥 Descargar Factura (PDF)';
+            }
+        });
 
         // Formateador estándar de pesos colombianos (COP con separador de miles '.')
         function formatearMilesCOP(valor) {
@@ -387,6 +980,10 @@
             const sApellido = document.getElementById("segundo_apellido").value.trim();
             const situacion = selectSituacion.value;
 
+            const cobNombre = (inputCobradorNombre?.value || auth.usuario?.nombre || 'Cobrador').trim();
+            const cobTel = (inputCobradorTelefono?.value || auth.usuario?.telefono || '').trim();
+            const cobRol = (inputCobradorRol?.value || auth.usuario?.rol || 'Cobrador').trim();
+
             if (!pNombre || !sNombre || !pApellido || !sApellido) {
                 mostrarMensaje("Los dos nombres y los dos apellidos son campos obligatorios.", true);
                 return;
@@ -397,12 +994,20 @@
                 return;
             }
 
+            if (!cobNombre || !cobTel) {
+                mostrarMensaje("Por favor ingresa el nombre y teléfono del cobrador responsable de la factura.", true);
+                return;
+            }
+
             const capital = obtenerNumeroLimpio(inputMontoFormat.value);
             const tasa = parseFloat(inputInteres.value) || 0;
             const interesCalculado = Math.round(capital * (tasa / 100));
             const totalConIntereses = capital + interesCalculado;
 
             const nombreCompleto = `${pNombre} ${sNombre} ${pApellido} ${sApellido}`.replace(/\s+/g, ' ').trim();
+
+            // Generar código único de factura (8 letras con mayúsculas y minúsculas y 5 números)
+            const codigoFacturaUnico = generarCodigoFacturaUnico();
 
             const datos = {
                 nombre: nombreCompleto,
@@ -420,20 +1025,60 @@
                 monto_interes: interesCalculado,
                 direccion: document.getElementById("direccion").value.trim(),
                 observaciones: txtObservaciones.value.trim(),
-                monto_deuda: totalConIntereses
+                monto_deuda: totalConIntereses,
+                numero_factura: codigoFacturaUnico,
+                registrado_por_nombre: cobNombre,
+                registrado_por_telefono: cobTel,
+                registrado_por_correo: auth.usuario?.correo || '',
+                registrado_por_rol: cobRol
             };
 
             btnGuardar.disabled = true;
-            btnGuardar.textContent = "Guardando cliente...";
+            btnGuardar.textContent = "Guardando cliente y emitiendo factura...";
             mensaje.style.display = "none";
 
             try {
                 const clienteGuardado = await registrarCliente(datos);
-                mostrarMensaje(`¡Éxito! Cliente "${clienteGuardado.nombre}" guardado con total de $${totalConIntereses.toLocaleString('es-CO')} COP en el sistema.`, false);
-                formulario.reset();
-                inputMontoHidden.value = "0";
-                lblInteres.textContent = "$0 COP";
-                lblTotal.textContent = "$0 COP";
+                facturaActualParaDescarga = clienteGuardado;
+
+                // Cargar datos en la hoja de factura imprimible (1 hoja)
+                document.getElementById('facCodigoNumero').textContent = clienteGuardado.numero_factura || codigoFacturaUnico;
+                document.getElementById('facFechaEmision').textContent = new Date().toLocaleString('es-CO', {
+                    dateStyle: 'medium',
+                    timeStyle: 'medium'
+                });
+
+                // Cobrador
+                document.getElementById('facCobradorNombre').textContent = cobNombre;
+                document.getElementById('facCobradorTelefono').textContent = cobTel;
+                document.getElementById('facCobradorRol').textContent = cobRol;
+                document.getElementById('facCobradorCorreo').textContent = auth.usuario?.correo || 'N/A';
+                document.getElementById('facFirmaCobradorNombre').textContent = `Firma: ${cobNombre}`;
+
+                // Cliente
+                document.getElementById('facClienteNombre').textContent = clienteGuardado.nombre;
+                document.getElementById('facClienteDocumento').textContent = clienteGuardado.documento;
+                document.getElementById('facClienteTelefono').textContent = clienteGuardado.telefono || 'Sin teléfono';
+                document.getElementById('facClienteSituacion').textContent = clienteGuardado.situacion_laboral || situacion;
+                document.getElementById('facClienteCorreo').textContent = clienteGuardado.correo || 'Sin correo';
+                document.getElementById('facClienteDireccion').textContent = clienteGuardado.direccion || 'Sin dirección';
+                document.getElementById('facFirmaClienteNombre').textContent = `Firma: ${clienteGuardado.nombre}`;
+                document.getElementById('facFirmaClienteDoc').textContent = `C.C. ${clienteGuardado.documento}`;
+
+                // Valores financieros
+                document.getElementById('facMontoCapital').textContent = `$${capital.toLocaleString('es-CO')} COP`;
+                document.getElementById('facTasaInteres').textContent = `${tasa}%`;
+                document.getElementById('facMontoInteres').textContent = `$${interesCalculado.toLocaleString('es-CO')} COP`;
+                document.getElementById('facTotalPagar').textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
+
+                // Observaciones
+                document.getElementById('facObservacionesTexto').textContent = txtObservaciones.value.trim() || 'Sin observaciones adicionales registradas.';
+
+                mostrarMensaje(`✓ ¡Cliente "${clienteGuardado.nombre}" guardado con éxito! Factura #${clienteGuardado.numero_factura} emitida correctamente.`, false);
+
+                // Mostrar el modal con la factura en 1 hoja
+                modalFactura.style.display = 'flex';
+
             } catch (error) {
                 console.error("Error al registrar cliente:", error);
                 let msg = error.message || "Error al conectar con la base de datos.";
@@ -447,7 +1092,7 @@
                 mostrarMensaje(msg, true);
             } finally {
                 btnGuardar.disabled = false;
-                btnGuardar.textContent = "Guardar cliente";
+                btnGuardar.textContent = "Guardar cliente y generar factura";
             }
         });
     </script>

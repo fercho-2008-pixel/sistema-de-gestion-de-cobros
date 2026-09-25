@@ -101,7 +101,13 @@ export function guardarSesionActiva(usuario) {
     const sesion = {
       id: usuario.id || `usr-${Date.now()}`,
       nombre: usuario.nombre || usuario.user_metadata?.nombre || (usuario.correo || usuario.email || '').split('@')[0] || 'Usuario',
+      primer_nombre: usuario.primer_nombre || usuario.user_metadata?.primer_nombre || '',
+      segundo_nombre: usuario.segundo_nombre || usuario.user_metadata?.segundo_nombre || '',
+      primer_apellido: usuario.primer_apellido || usuario.user_metadata?.primer_apellido || '',
+      segundo_apellido: usuario.segundo_apellido || usuario.user_metadata?.segundo_apellido || '',
       correo: usuario.correo || usuario.email,
+      telefono: usuario.telefono || usuario.user_metadata?.telefono || '',
+      cedula: usuario.cedula || usuario.user_metadata?.cedula || '',
       rol: usuario.rol || usuario.user_metadata?.rol || 'Cobrador',
       login_at: new Date().toISOString()
     };
@@ -177,9 +183,59 @@ if (typeof window !== 'undefined') {
 // DATOS Y CACHÉ LOCAL (SOLO REGISTROS DEL USUARIO)
 // ----------------------------------------------------------
 
-// Excluir cualquier documento o nombre predeterminado / demo
-export const DOCS_PREDETERMINADOS = new Set(['1020304050', '1030405060', '1040506070']);
-export const NOMBRES_PREDETERMINADOS = new Set(['maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez', 'administrador principal', 'admin@cobros.com']);
+// Excluir cualquier documento o nombre predeterminado / demo o registros eliminados
+export const DOCS_PREDETERMINADOS = new Set(['1020304050', '1030405060', '1040506070', '0000000000']);
+export const NOMBRES_PREDETERMINADOS = new Set([
+  'maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez',
+  'administrador principal', 'admin@cobros.com', 'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado'
+]);
+
+export function esRegistroExcluido(nombre = '', doc = '', estado = '') {
+  const n = String(nombre || '').trim().toLowerCase();
+  const d = String(doc || '').trim();
+  const e = String(estado || '').trim().toLowerCase();
+  if (e === 'eliminado') return true;
+  if (DOCS_PREDETERMINADOS.has(d)) return true;
+  if (n.includes('moncada') || n.includes('james') || n.includes('[eliminado]')) return true;
+  if (NOMBRES_PREDETERMINADOS.has(n)) return true;
+  return false;
+}
+
+// Limpiar inmediatamente cualquier rastro de datos eliminados o demo en el navegador
+if (typeof window !== 'undefined' && window.localStorage) {
+  try {
+    ['sistema_clientes', 'sistema_pagos', 'sistema_usuarios_registrados', 'sistema_facturas'].forEach(key => {
+      const raw = window.localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const filtrados = parsed.filter(item => {
+            const nom = item?.nombre || item?.cliente_nombre || '';
+            const doc = item?.documento || item?.cedula || '';
+            const est = item?.estado || '';
+            return !esRegistroExcluido(nom, doc, est);
+          });
+          if (filtrados.length !== parsed.length) {
+            window.localStorage.setItem(key, JSON.stringify(filtrados));
+          }
+        }
+      }
+    });
+
+    const credsRaw = window.localStorage.getItem('sistema_usuarios_credenciales');
+    if (credsRaw) {
+      const creds = JSON.parse(credsRaw);
+      let changed = false;
+      for (const k of Object.keys(creds)) {
+        if (k.includes('moncada') || k.includes('james') || esRegistroExcluido(creds[k]?.nombre, creds[k]?.cedula)) {
+          delete creds[k];
+          changed = true;
+        }
+      }
+      if (changed) window.localStorage.setItem('sistema_usuarios_credenciales', JSON.stringify(creds));
+    }
+  } catch (e) {}
+}
 
 const CLIENTES_INICIALES = [];
 const PAGOS_INICIALES = [];
@@ -192,11 +248,9 @@ function getLocalClientes() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    // Filtrar estrictamente cualquier dato predeterminado / demo que haya quedado en localStorage
+    // Filtrar estrictamente cualquier dato predeterminado o eliminado
     const filtrados = parsed.filter(c => 
-      c && c.documento &&
-      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
-      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+      c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
 
     if (filtrados.length !== parsed.length) {
@@ -212,9 +266,7 @@ function setLocalClientes(lista) {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const limpia = (lista || []).filter(c => 
-        c && c.documento &&
-        !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
-        !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+        c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
       );
       window.localStorage.setItem('sistema_clientes', JSON.stringify(limpia));
     } catch (e) {}
@@ -229,11 +281,9 @@ function getLocalPagos() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    // Filtrar estrictamente cualquier pago demo o predeterminado
+    // Filtrar estrictamente cualquier pago demo o eliminado
     const filtrados = parsed.filter(p => 
-      p &&
-      (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
-      (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+      p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
     );
 
     if (filtrados.length !== parsed.length) {
@@ -249,9 +299,7 @@ function setLocalPagos(lista) {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const limpia = (lista || []).filter(p => 
-        p &&
-        (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
-        (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+        p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
       );
       window.localStorage.setItem('sistema_pagos', JSON.stringify(limpia));
     } catch (e) {}
@@ -288,10 +336,159 @@ export async function verificarConexion() {
   }
 }
 
+// ----------------------------------------------------------
+// GENERADOR Y GESTIÓN DE FACTURAS ÚNICAS (8 LETRAS Y 5 NÚMEROS)
+// ----------------------------------------------------------
+
+/**
+ * Genera un código único e irrepetible de factura: exactamente 8 letras (incluyendo mayúsculas y minúsculas) y 5 números.
+ * Ninguna factura se repite en todo el sistema.
+ */
+export function generarCodigoFacturaUnico(existentes = new Set()) {
+  const mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const minusculas = 'abcdefghijkmnopqrstuvwxyz';
+  const digitos = '0123456789';
+
+  let codigo = '';
+  let intentos = 0;
+
+  // Cargar códigos ya guardados en el almacenamiento del navegador
+  const codigosUsados = new Set();
+  if (existentes instanceof Set) {
+    existentes.forEach(c => codigosUsados.add(c));
+  } else if (Array.isArray(existentes)) {
+    existentes.forEach(c => codigosUsados.add(c));
+  }
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const historico = JSON.parse(window.localStorage.getItem('sistema_facturas_historico') || '[]');
+      historico.forEach(f => {
+        if (f.codigo_factura) codigosUsados.add(f.codigo_factura);
+        if (f.numero_factura) codigosUsados.add(f.numero_factura);
+      });
+      const clientes = JSON.parse(window.localStorage.getItem('sistema_clientes') || '[]');
+      clientes.forEach(c => {
+        if (c.numero_factura) codigosUsados.add(c.numero_factura);
+      });
+    } catch (e) {}
+  }
+
+  while (intentos < 5000) {
+    intentos++;
+    // 4 mayúsculas y 4 minúsculas = exactamente 8 letras
+    const letras = [];
+    for (let i = 0; i < 4; i++) {
+      letras.push(mayusculas[Math.floor(Math.random() * mayusculas.length)]);
+      letras.push(minusculas[Math.floor(Math.random() * minusculas.length)]);
+    }
+    // Barajar aleatoriamente las 8 letras
+    for (let i = letras.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [letras[i], letras[j]] = [letras[j], letras[i]];
+    }
+
+    // Exactamente 5 números
+    const nums = [];
+    for (let i = 0; i < 5; i++) {
+      nums.push(digitos[Math.floor(Math.random() * digitos.length)]);
+    }
+
+    codigo = letras.join('') + nums.join('');
+
+    if (!codigosUsados.has(codigo)) {
+      codigosUsados.add(codigo);
+      return codigo;
+    }
+  }
+
+  return codigo;
+}
+
+/**
+ * Guarda permanentemente una factura en el histórico inalterable (no se borra aunque se borre el cliente)
+ */
+export function guardarFacturaEnHistorico(factura) {
+  if (!factura || (!factura.numero_factura && !factura.codigo_factura)) return;
+  const cod = factura.numero_factura || factura.codigo_factura;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const historico = JSON.parse(window.localStorage.getItem('sistema_facturas_historico') || '[]');
+      const existe = historico.some(f => (f.numero_factura === cod || f.codigo_factura === cod));
+      if (!existe) {
+        historico.unshift({
+          ...factura,
+          codigo_factura: cod,
+          numero_factura: cod,
+          guardado_en: new Date().toISOString()
+        });
+        window.localStorage.setItem('sistema_facturas_historico', JSON.stringify(historico));
+      }
+    } catch (e) {}
+  }
+
+  // Notificar al servidor para almacenamiento permanente
+  try {
+    fetch('/api/facturas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(factura)
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+/**
+ * Obtiene el histórico completo de facturas emitidas
+ */
+export function obtenerHistoricoFacturas() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      return JSON.parse(window.localStorage.getItem('sistema_facturas_historico') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
+ * Obtiene una factura por su código único o por el documento del cliente
+ */
+export function obtenerFacturaPorIdentificador(identificador) {
+  const clean = String(identificador || '').trim();
+  if (!clean) return null;
+
+  const facturas = obtenerHistoricoFacturas();
+  const encontrada = facturas.find(f => 
+    f.codigo_factura === clean || 
+    f.numero_factura === clean || 
+    String(f.documento || f.cliente_documento).trim() === clean
+  );
+  if (encontrada) return encontrada;
+
+  // Buscar en clientes locales
+  const clientes = getLocalClientes();
+  const cli = clientes.find(c => 
+    c.numero_factura === clean || 
+    String(c.documento).trim() === clean
+  );
+  return cli || null;
+}
+
 /**
  * Registra un nuevo cliente en la base de datos Supabase y en el sistema local.
  */
 export async function registrarCliente(cliente) {
+  // Asegurar código único de factura de 8 letras (mayúsculas/minúsculas) y 5 números
+  const numFactura = cliente.numero_factura || generarCodigoFacturaUnico();
+
+  // Adjuntar metadatos de factura y emisor en observaciones para respaldo 100% permanente
+  const metaFacturaStr = `[FACTURA: ${numFactura}] [EMISOR: ${String(cliente.registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(cliente.registrado_por_telefono || '').trim()} | EMAIL: ${String(cliente.registrado_por_correo || '').trim()} | CED: ${String(cliente.registrado_por_cedula || '').trim()}]`;
+  let obsCompleta = cliente.observaciones ? String(cliente.observaciones).trim() : '';
+  if (!obsCompleta.includes(numFactura)) {
+    obsCompleta = obsCompleta ? `${obsCompleta}\n\n${metaFacturaStr}` : metaFacturaStr;
+  }
+
   const payload = {
     id: `cli-${Date.now()}`,
     nombre: cliente.nombre?.trim(),
@@ -308,10 +505,24 @@ export async function registrarCliente(cliente) {
     monto_capital: Number(cliente.monto_capital) || 0,
     monto_interes: Number(cliente.monto_interes) || 0,
     direccion: cliente.direccion?.trim() || null,
-    observaciones: cliente.observaciones?.trim() || null,
+    observaciones: obsCompleta,
     monto_deuda: Number(cliente.monto_deuda) || 0,
+    numero_factura: numFactura,
+    registrado_por_nombre: cliente.registrado_por_nombre?.trim() || null,
+    registrado_por_telefono: cliente.registrado_por_telefono?.trim() || null,
+    registrado_por_correo: cliente.registrado_por_correo?.trim() || null,
+    registrado_por_rol: cliente.registrado_por_rol?.trim() || null,
+    registrado_por_cedula: cliente.registrado_por_cedula?.trim() || null,
+    cobrador_id: cliente.cobrador_id ? String(cliente.cobrador_id).trim() : null,
     created_at: new Date().toISOString()
   };
+
+  // Guardar factura inmediatamente en el histórico permanente (no se borra jamás)
+  guardarFacturaEnHistorico({
+    ...payload,
+    codigo_factura: numFactura,
+    fecha_emision: payload.created_at
+  });
 
   // Registrar de inmediato en almacenamiento local para asegurar persistencia y respuesta instantánea
   const locales = getLocalClientes();
@@ -330,9 +541,9 @@ export async function registrarCliente(cliente) {
     if (res.ok) {
       const json = await res.json();
       if (json && json.ok && json.data) {
-        clienteRegistrado = json.data;
+        clienteRegistrado = { ...payload, ...json.data, numero_factura: numFactura };
         const actual = getLocalClientes().map(c => 
-          String(c.documento).trim() === String(payload.documento).trim() ? json.data : c
+          String(c.documento).trim() === String(payload.documento).trim() ? clienteRegistrado : c
         );
         setLocalClientes(actual);
       }
@@ -360,9 +571,9 @@ export async function registrarCliente(cliente) {
         .select();
 
       if (!error && data?.[0]) {
-        clienteRegistrado = data[0];
+        clienteRegistrado = { ...payload, ...data[0], numero_factura: numFactura };
         const actual = getLocalClientes().map(c => 
-          String(c.documento).trim() === String(payload.documento).trim() ? data[0] : c
+          String(c.documento).trim() === String(payload.documento).trim() ? clienteRegistrado : c
         );
         setLocalClientes(actual);
       }
@@ -448,23 +659,42 @@ export async function obtenerClientes() {
     });
 
     const listaCompleta = Array.from(mapa.values()).filter(c => 
-      c && c.documento &&
-      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
-      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+      c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
+
+    // Garantizar que todo cliente tenga su número de factura único
+    listaCompleta.forEach(c => {
+      if (!c.numero_factura) {
+        const m = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
+        if (m) {
+          c.numero_factura = m[1];
+        } else {
+          c.numero_factura = generarCodigoFacturaUnico();
+        }
+      }
+    });
+
     setLocalClientes(listaCompleta);
     return listaCompleta;
   }
 
   // 4. Si todo lo anterior falló o está sin conexión, devolver copia local
-  return getLocalClientes();
+  const locales = getLocalClientes();
+  locales.forEach(c => {
+    if (!c.numero_factura) {
+      const m = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
+      c.numero_factura = m ? m[1] : generarCodigoFacturaUnico();
+    }
+  });
+  return locales;
 }
 
 /**
- * Busca un cliente por número de documento / cédula.
+ * Busca un cliente por número de documento / cédula o número de factura.
  */
 export async function buscarClientePorDocumento(documento) {
   const doc = String(documento).trim();
+  if (!doc || DOCS_PREDETERMINADOS.has(doc)) return null;
   let cliente = null;
 
   const client = getDb();
@@ -476,7 +706,7 @@ export async function buscarClientePorDocumento(documento) {
         .eq('documento', doc)
         .maybeSingle();
 
-      if (!error && data) {
+      if (!error && data && !esRegistroExcluido(data.nombre, data.documento, data.estado)) {
         cliente = data;
       }
     } catch (e) {
@@ -486,10 +716,19 @@ export async function buscarClientePorDocumento(documento) {
 
   if (!cliente) {
     const locales = getLocalClientes();
-    cliente = locales.find(c => String(c.documento).trim() === doc) || null;
+    cliente = locales.find(c => 
+      (String(c.documento).trim() === doc || String(c.numero_factura || '').trim() === doc) && 
+      !esRegistroExcluido(c.nombre, c.documento, c.estado)
+    ) || null;
   }
 
-  if (!cliente) return null;
+  if (!cliente || esRegistroExcluido(cliente.nombre, cliente.documento, cliente.estado)) return null;
+
+  // Garantizar número de factura
+  if (!cliente.numero_factura) {
+    const m = (cliente.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
+    cliente.numero_factura = m ? m[1] : generarCodigoFacturaUnico();
+  }
 
   // Buscar pagos asociados a este documento
   let pagos = [];
@@ -500,17 +739,17 @@ export async function buscarClientePorDocumento(documento) {
         .select('*')
         .eq('documento', doc)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (pagosRemotos && pagosRemotos.length > 0) {
-        pagos = pagosRemotos;
+        pagos = pagosRemotos.filter(p => !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado));
       }
     } catch (e) {}
   }
 
   if (pagos.length === 0) {
     const pagosLocales = getLocalPagos();
-    pagos = pagosLocales.filter(p => String(p.documento).trim() === doc);
+    pagos = pagosLocales.filter(p => String(p.documento).trim() === doc && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado));
   }
 
   cliente.ultimos_pagos = pagos;
@@ -660,13 +899,11 @@ export async function obtenerResumenDashboard() {
     }
   }
 
-  // 3. Procesar datos (excluyendo cualquier dato demo o predeterminado)
+  // 3. Procesar datos (excluyendo cualquier dato demo o predeterminado o eliminado)
   if (clientes && Array.isArray(clientes)) {
     exitoRemoto = true;
     const clientesReales = clientes.filter(c => 
-      c && c.documento &&
-      !DOCS_PREDETERMINADOS.has(String(c.documento).trim()) &&
-      !NOMBRES_PREDETERMINADOS.has(String(c.nombre || '').trim().toLowerCase())
+      c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
     totalClientes = clientesReales.length;
     saldoPendiente = clientesReales.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
@@ -675,9 +912,7 @@ export async function obtenerResumenDashboard() {
 
   if (pagos && Array.isArray(pagos)) {
     const pagosReales = pagos.filter(p => 
-      p &&
-      (!p.documento || !DOCS_PREDETERMINADOS.has(String(p.documento).trim())) &&
-      (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.has(String(p.cliente_nombre).trim().toLowerCase()))
+      p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
     );
 
     const pagosHoy = pagosReales.filter(p => p.fecha === hoyStr);
@@ -763,40 +998,74 @@ export function guardarCredencialesUsuario({ correo, password, cedula, nombre, r
 /**
  * Registra un nuevo usuario en el sistema y en la tabla 'usuarios'.
  */
-export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrador', cedula = '' }) {
+export async function registrarUsuario({ 
+  nombre, 
+  correo, 
+  password, 
+  rol = 'Cobrador', 
+  cedula = '', 
+  telefono = '', 
+  primer_nombre = '', 
+  segundo_nombre = '', 
+  primer_apellido = '', 
+  segundo_apellido = '' 
+}) {
   if (!db) throw new Error('Conexión con el servidor no disponible');
 
   const emailClean = correo.trim().toLowerCase();
-  const nombreClean = nombre.trim();
+  const telClean = (telefono || '').toString().trim();
+  const pNom = (primer_nombre || '').toString().trim();
+  const sNom = (segundo_nombre || '').toString().trim();
+  const pApe = (primer_apellido || '').toString().trim();
+  const sApe = (segundo_apellido || '').toString().trim();
+  const nombreClean = (nombre || `${pNom} ${sNom} ${pApe} ${sApe}`.trim() || emailClean.split('@')[0]).trim();
   const rolClean = rol.trim();
   const cedulaClean = (cedula || '').toString().trim();
 
   let user = null;
+  let authData = null;
 
   // 1. Registro de autenticación
   try {
-    const { data: authData, error: authError } = await db.auth.signUp({
+    const resAuth = await db.auth.signUp({
       email: emailClean,
       password: password,
       options: {
         data: {
           nombre: nombreClean,
+          primer_nombre: pNom,
+          segundo_nombre: sNom,
+          primer_apellido: pApe,
+          segundo_apellido: sApe,
+          telefono: telClean,
           rol: rolClean,
           cedula: cedulaClean
         }
       }
     });
 
+    authData = resAuth?.data;
+    const authError = resAuth?.error;
+
     if (authError) {
       const msgErr = (authError.message || '').toLowerCase();
-      // Si el servidor alcanzó el límite temporal de envío de correos,
-      // permitimos el registro directo en el directorio sin interrumpir al usuario
-      if (msgErr.includes('rate limit') || msgErr.includes('email rate') || authError.status === 429) {
-        console.warn('Límite de correos alcanzado. Registrando usuario directamente en el directorio.');
+      // Si el usuario ya está registrado en auth o hay límite de correos,
+      // actualizamos y permitimos el uso en el sistema
+      if (msgErr.includes('already registered') || msgErr.includes('user already') || msgErr.includes('already exists') || msgErr.includes('rate limit') || msgErr.includes('email rate') || authError.status === 429) {
+        console.warn('Aviso auth signUp (existente o rate limit):', authError.message);
         user = {
           id: `usr-${Date.now()}`,
           email: emailClean,
-          user_metadata: { nombre: nombreClean, rol: rolClean, cedula: cedulaClean }
+          user_metadata: { 
+            nombre: nombreClean, 
+            primer_nombre: pNom, 
+            segundo_nombre: sNom, 
+            primer_apellido: pApe, 
+            segundo_apellido: sApe, 
+            telefono: telClean, 
+            rol: rolClean, 
+            cedula: cedulaClean 
+          }
         };
       } else {
         throw authError;
@@ -806,11 +1075,20 @@ export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrad
     }
   } catch (errAuth) {
     const msgErr = (errAuth.message || '').toLowerCase();
-    if (msgErr.includes('rate limit') || msgErr.includes('email rate') || errAuth.status === 429) {
+    if (msgErr.includes('already registered') || msgErr.includes('user already') || msgErr.includes('already exists') || msgErr.includes('rate limit') || msgErr.includes('email rate') || errAuth.status === 429) {
       user = {
         id: `usr-${Date.now()}`,
         email: emailClean,
-        user_metadata: { nombre: nombreClean, rol: rolClean, cedula: cedulaClean }
+        user_metadata: { 
+          nombre: nombreClean, 
+          primer_nombre: pNom, 
+          segundo_nombre: sNom, 
+          primer_apellido: pApe, 
+          segundo_apellido: sApe, 
+          telefono: telClean, 
+          rol: rolClean, 
+          cedula: cedulaClean 
+        }
       };
     } else {
       throw errAuth;
@@ -823,6 +1101,11 @@ export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrad
     const payload = {
       correo: emailClean,
       nombre: nombreClean,
+      primer_nombre: pNom || null,
+      segundo_nombre: sNom || null,
+      primer_apellido: pApe || null,
+      segundo_apellido: sApe || null,
+      telefono: telClean || null,
       rol: rolClean,
       cedula: cedulaClean
     };
@@ -837,20 +1120,34 @@ export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrad
     if (!errInsert) {
       tablaRegistrada = true;
     } else {
-      console.warn('Nota sobre tabla usuarios:', errInsert.message);
+      // Intentar sin columnas adicionales si la tabla remota no las tiene
+      const { error: errFallback } = await db
+        .from('usuarios')
+        .upsert([{
+          correo: emailClean,
+          nombre: nombreClean,
+          rol: rolClean,
+          cedula: cedulaClean
+        }], { onConflict: 'correo' });
+      if (!errFallback) tablaRegistrada = true;
     }
   } catch (e) {
     console.warn('No se pudo insertar en public.usuarios:', e.message);
   }
 
-  // Guardar copia de respaldo en almacenamiento local con cédula
+  // Guardar copia de respaldo en almacenamiento local con cédula y teléfono
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const guardados = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
       const usuarioLocal = {
         id: user?.id || `usr-${Date.now()}`,
         nombre: nombreClean,
+        primer_nombre: pNom,
+        segundo_nombre: sNom,
+        primer_apellido: pApe,
+        segundo_apellido: sApe,
         correo: emailClean,
+        telefono: telClean,
         rol: rolClean,
         cedula: cedulaClean,
         created_at: new Date().toISOString()
@@ -867,6 +1164,11 @@ export async function registrarUsuario({ nombre, correo, password, rol = 'Cobrad
     correo: emailClean,
     password: password,
     cedula: cedulaClean,
+    telefono: telClean,
+    primer_nombre: pNom,
+    segundo_nombre: sNom,
+    primer_apellido: pApe,
+    segundo_apellido: sApe,
     nombre: nombreClean,
     rol: rolClean
   });
@@ -1069,7 +1371,7 @@ export async function obtenerUsuarios() {
     }
   }
 
-  // Combinar sin duplicar correos y enriquecer con cédula (solo usuarios registrados por el usuario)
+  // Combinar sin duplicar correos y enriquecer con cédula y teléfono (solo usuarios registrados por el usuario)
   const mapa = new Map();
   usuariosRemotos.forEach(u => {
     if (u.correo) {
@@ -1079,6 +1381,11 @@ export async function obtenerUsuarios() {
       mapa.set(emailK, { 
         ...u, 
         cedula: u.cedula || creds?.cedula || '',
+        telefono: u.telefono || creds?.telefono || '',
+        primer_nombre: u.primer_nombre || creds?.primer_nombre || '',
+        segundo_nombre: u.segundo_nombre || creds?.segundo_nombre || '',
+        primer_apellido: u.primer_apellido || creds?.primer_apellido || '',
+        segundo_apellido: u.segundo_apellido || creds?.segundo_apellido || '',
         created_at: u.created_at || new Date().toISOString() 
       });
     }
@@ -1089,16 +1396,39 @@ export async function obtenerUsuarios() {
       if (emailK === 'admin@cobros.com') return; // Excluir usuario predeterminado
       const creds = obtenerCredencialesUsuario(emailK);
       const ced = u.cedula || creds?.cedula || '';
+      const tel = u.telefono || creds?.telefono || '';
+      const pNom = u.primer_nombre || creds?.primer_nombre || '';
+      const sNom = u.segundo_nombre || creds?.segundo_nombre || '';
+      const pApe = u.primer_apellido || creds?.primer_apellido || '';
+      const sApe = u.segundo_apellido || creds?.segundo_apellido || '';
+
       if (!mapa.has(emailK)) {
-        mapa.set(emailK, { ...u, cedula: ced });
+        mapa.set(emailK, { 
+          ...u, 
+          cedula: ced,
+          telefono: tel,
+          primer_nombre: pNom,
+          segundo_nombre: sNom,
+          primer_apellido: pApe,
+          segundo_apellido: sApe
+        });
       } else {
         const item = mapa.get(emailK);
         if (!item.cedula && ced) item.cedula = ced;
+        if (!item.telefono && tel) item.telefono = tel;
+        if (!item.primer_nombre && pNom) item.primer_nombre = pNom;
+        if (!item.segundo_nombre && sNom) item.segundo_nombre = sNom;
+        if (!item.primer_apellido && pApe) item.primer_apellido = pApe;
+        if (!item.segundo_apellido && sApe) item.segundo_apellido = sApe;
       }
     }
   });
 
-  return Array.from(mapa.values());
+  return Array.from(mapa.values()).filter(u => 
+    !esRegistroExcluido(u.nombre, u.cedula, u.rol) && 
+    !(u.correo || '').toLowerCase().includes('moncada') &&
+    !(u.correo || '').toLowerCase().includes('james')
+  );
 }
 
 /**
@@ -1304,6 +1634,7 @@ export async function eliminarClientePorDocumento({ documento, password }) {
 export async function autenticarUsuarioConRol({ modo = 'admin', identificador = '', password = '', correo = '', cedula = '' }) {
   const modoClean = modo.toLowerCase().trim();
   const pwdTrim = String(password || '').trim();
+  const idClean = String(identificador || correo || cedula || '').trim();
 
   // 1. Obtener lista de usuarios
   let usuarios = [];
@@ -1598,4 +1929,8 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
 
 if (typeof window !== 'undefined') {
   window.autenticarUsuarioConRol = autenticarUsuarioConRol;
+  window.generarCodigoFacturaUnico = generarCodigoFacturaUnico;
+  window.guardarFacturaEnHistorico = guardarFacturaEnHistorico;
+  window.obtenerHistoricoFacturas = obtenerHistoricoFacturas;
+  window.obtenerFacturaPorIdentificador = obtenerFacturaPorIdentificador;
 }

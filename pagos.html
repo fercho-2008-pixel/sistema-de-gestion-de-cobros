@@ -61,6 +61,11 @@
 
             <div class="form">
 
+                <div class="group full" id="cajaFacturaCliente" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #2563eb; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase;">Nº Factura del Cliente:</span>
+                    <strong id="lblFacturaCliente" style="font-family:monospace; color:#1d4ed8; font-size:1.05rem; margin-left:8px;">-</strong>
+                </div>
+
                 <div class="group">
                     <label for="clienteNombre">Nombre del Cliente *</label>
                     <input type="text" id="clienteNombre" list="listaClientes" placeholder="Seleccionar o escribir..." required autocomplete="off">
@@ -222,12 +227,23 @@
       verificarCliente(params.get('documento'));
     }
 
+    const cajaFactura = document.getElementById('cajaFacturaCliente');
+    const lblFactura = document.getElementById('lblFacturaCliente');
+
+    function mostrarFacturaCliente(numeroFactura) {
+      if (numeroFactura && cajaFactura && lblFactura) {
+        lblFactura.textContent = numeroFactura;
+        cajaFactura.style.display = 'block';
+      }
+    }
+
     // Auto-completar documento al seleccionar nombre
     inputNombre.addEventListener('change', () => {
       const match = clientesCargados.find(c => c.nombre.toLowerCase() === inputNombre.value.trim().toLowerCase());
       if (match) {
         inputDocumento.value = match.documento;
         deudaActual = Number(match.monto_deuda) || 0;
+        mostrarFacturaCliente(match.numero_factura);
         actualizarResumen();
       }
     });
@@ -245,6 +261,7 @@
         if (cliente) {
           if (!inputNombre.value) inputNombre.value = cliente.nombre;
           deudaActual = Number(cliente.monto_deuda) || 0;
+          mostrarFacturaCliente(cliente.numero_factura);
           actualizarResumen();
         }
       } catch (e) {

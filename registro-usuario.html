@@ -48,6 +48,19 @@
       margin-bottom: 16px;
     }
 
+    .form-row-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 540px) {
+      .form-row-2col {
+        grid-template-columns: 1fr;
+        gap: 0;
+      }
+    }
+
     .field-group label {
       display: block;
       font-size: 0.82rem;
@@ -585,9 +598,43 @@
           <p id="subtituloTarjetaFormulario">Al completar este registro se te concederá acceso inmediato a la consulta de clientes y todas las funciones de cobro.</p>
 
           <form id="formRegistroUsuario">
+            <!-- Aviso de requerimientos obligatorios -->
+            <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:10px 14px; border-radius:10px; font-size:0.8rem; margin-bottom:16px; display:flex; align-items:flex-start; gap:8px;">
+              <span style="font-size:1.1rem; line-height:1;">📋</span>
+              <div>
+                <strong>Requisitos obligatorios para el registro:</strong>
+                <div style="color:#3b82f6; margin-top:2px;">Debes ingresar obligatoriamente los dos nombres, los dos apellidos y el número de teléfono celular.</div>
+              </div>
+            </div>
+
+            <!-- Los dos nombres obligatorios -->
+            <div class="form-row-2col">
+              <div class="field-group">
+                <label for="primerNombreUsuario">Primer nombre *</label>
+                <input type="text" id="primerNombreUsuario" placeholder="Ej: Juan" required autocomplete="given-name">
+              </div>
+              <div class="field-group">
+                <label for="segundoNombreUsuario">Segundo nombre *</label>
+                <input type="text" id="segundoNombreUsuario" placeholder="Ej: Fernando" required autocomplete="additional-name">
+              </div>
+            </div>
+
+            <!-- Los dos apellidos obligatorios -->
+            <div class="form-row-2col">
+              <div class="field-group">
+                <label for="primerApellidoUsuario">Primer apellido *</label>
+                <input type="text" id="primerApellidoUsuario" placeholder="Ej: Pérez" required autocomplete="family-name">
+              </div>
+              <div class="field-group">
+                <label for="segundoApellidoUsuario">Segundo apellido *</label>
+                <input type="text" id="segundoApellidoUsuario" placeholder="Ej: Gómez" required>
+              </div>
+            </div>
+
+            <!-- Teléfono obligatorio -->
             <div class="field-group">
-              <label for="nombreUsuario">Nombre completo *</label>
-              <input type="text" id="nombreUsuario" placeholder="Ej: Carlos Mendoza" required autocomplete="name">
+              <label for="telefonoUsuario">Número de teléfono celular *</label>
+              <input type="tel" id="telefonoUsuario" placeholder="Ej: 300 123 4567" required autocomplete="tel">
             </div>
 
             <div class="field-group">
@@ -719,6 +766,7 @@
                 <tr>
                   <th>Usuario</th>
                   <th>Cédula</th>
+                  <th>Teléfono</th>
                   <th>Rol</th>
                   <th>Fecha de registro</th>
                   <th>Estado</th>
@@ -727,7 +775,7 @@
               </thead>
               <tbody id="tablaUsuariosCuerpo">
                 <tr>
-                  <td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">
+                  <td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">
                     Cargando directorio de cobradores y usuarios...
                   </td>
                 </tr>
@@ -774,6 +822,10 @@
           <div class="user-detail-row">
             <span class="user-detail-label">Cédula de identidad:</span>
             <span class="user-detail-value" id="delCobradorCedula" style="font-family:monospace; font-weight:700; color:#0f172a;">-</span>
+          </div>
+          <div class="user-detail-row">
+            <span class="user-detail-label">Teléfono celular:</span>
+            <span class="user-detail-value" id="delCobradorTelefono" style="font-family:monospace; font-weight:600; color:#2563eb;">-</span>
           </div>
           <div class="user-detail-row">
             <span class="user-detail-label">Correo asignado:</span>
@@ -843,7 +895,11 @@
 
     // Elementos del formulario
     const form = document.getElementById('formRegistroUsuario');
-    const inputNombre = document.getElementById('nombreUsuario');
+    const inputPrimerNombre = document.getElementById('primerNombreUsuario');
+    const inputSegundoNombre = document.getElementById('segundoNombreUsuario');
+    const inputPrimerApellido = document.getElementById('primerApellidoUsuario');
+    const inputSegundoApellido = document.getElementById('segundoApellidoUsuario');
+    const inputTelefono = document.getElementById('telefonoUsuario');
     const inputCorreo = document.getElementById('correoUsuario');
     const inputCedula = document.getElementById('cedulaUsuario');
     const selectRol = document.getElementById('rolUsuario');
@@ -873,6 +929,7 @@
     const btnConfirmarEliminarCobrador = document.getElementById('btnConfirmarEliminarCobrador');
     const delCobradorNombre = document.getElementById('delCobradorNombre');
     const delCobradorCedula = document.getElementById('delCobradorCedula');
+    const delCobradorTelefono = document.getElementById('delCobradorTelefono');
     const delCobradorCorreo = document.getElementById('delCobradorCorreo');
     const delCobradorRol = document.getElementById('delCobradorRol');
     const delCobradorFecha = document.getElementById('delCobradorFecha');
@@ -899,7 +956,7 @@
       if (!sesionActual) {
         e.preventDefault();
         mostrarToastBloqueo('Debes terminar de registrarte o iniciar sesión para acceder a la consulta de clientes y resto de opciones.');
-        inputNombre.focus();
+        if (inputPrimerNombre) inputPrimerNombre.focus();
       }
     }
 
@@ -956,11 +1013,18 @@
 
         if (panelOnboarding) panelOnboarding.style.display = 'none';
 
+        const tituloForm = document.getElementById('tituloTarjetaFormulario');
+        const subTituloForm = document.getElementById('subtituloTarjetaFormulario');
+        const btnReg = document.getElementById('btnRegistrarUsuario');
+        if (tituloForm) tituloForm.textContent = 'Crear Cuenta de Acceso';
+        if (subTituloForm) subTituloForm.textContent = 'Ingresa obligatoriamente tus dos nombres, dos apellidos, teléfono celular y datos de acceso para habilitar el sistema.';
+        if (btnReg) btnReg.textContent = 'Completar registro y acceder';
+
         bannerEstadoRegistro.style.display = 'flex';
         bannerEstadoRegistro.style.background = '#eff6ff';
         bannerEstadoRegistro.style.borderColor = '#bfdbfe';
         bannerEstadoRegistro.style.color = '#1e40af';
-        textoBannerEstado.textContent = ' Puedes registrar nuevos cobradores o borrar de la base de datos a los que ya no laboren en el sistema.';
+        textoBannerEstado.textContent = ' Puedes registrar nuevos usuarios o borrar de la base de datos a los que ya no laboren en el sistema.';
 
         textoLinkSalir.textContent = '← Ir a Iniciar sesión';
         linkSalir.href = 'index.html';
@@ -984,13 +1048,20 @@
 
         if (panelOnboarding) panelOnboarding.style.display = 'none';
 
+        const tituloForm = document.getElementById('tituloTarjetaFormulario');
+        const subTituloForm = document.getElementById('subtituloTarjetaFormulario');
+        const btnReg = document.getElementById('btnRegistrarUsuario');
+        if (tituloForm) tituloForm.textContent = 'Registrar Nuevo Usuario / Personal';
+        if (subTituloForm) subTituloForm.textContent = 'Como administrador, ingresa obligatoriamente los dos nombres, los dos apellidos, el teléfono y credenciales del nuevo usuario.';
+        if (btnReg) btnReg.textContent = 'Registrar nuevo usuario';
+
         bannerEstadoRegistro.style.display = 'flex';
         bannerEstadoRegistro.style.background = '#ecfdf5';
         bannerEstadoRegistro.style.borderColor = '#a7f3d0';
         bannerEstadoRegistro.style.color = '#065f46';
         bannerEstadoRegistro.innerHTML = `
           <div>
-            <strong>👤 Sesión administrativa activa:</strong> Conectado como <strong>${sesion.nombre}</strong> (${sesion.rol}). Tienes permisos completos para registrar personal y borrar cobradores de la base de datos.
+            <strong>👤 Sesión administrativa activa:</strong> Conectado como <strong>${sesion.nombre}</strong> (${sesion.rol}). Tienes permisos para registrar nuevo personal (los dos nombres, los dos apellidos y teléfono son obligatorios) y gestionar el directorio.
           </div>
           <a href="menu2.html" style="font-weight:700; color:#059669; text-decoration:underline; white-space:nowrap;">
             Ir al Panel Principal →
@@ -1052,6 +1123,82 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const primerNombreVal = inputPrimerNombre.value.trim();
+      const segundoNombreVal = inputSegundoNombre.value.trim();
+      const primerApellidoVal = inputPrimerApellido.value.trim();
+      const segundoApellidoVal = inputSegundoApellido.value.trim();
+      const telefonoVal = inputTelefono.value.trim();
+      const correoVal = inputCorreo.value.trim();
+      const cedulaVal = inputCedula.value.trim();
+      const rolVal = selectRol.value;
+
+      // Validación estricta: Los dos nombres son obligatorios
+      if (!primerNombreVal) {
+        mostrarMensaje('El primer nombre es obligatorio.', true);
+        inputPrimerNombre.focus();
+        return;
+      }
+      if (primerNombreVal.length < 2) {
+        mostrarMensaje('El primer nombre debe contener al menos 2 letras.', true);
+        inputPrimerNombre.focus();
+        return;
+      }
+
+      if (!segundoNombreVal) {
+        mostrarMensaje('El segundo nombre es obligatorio. Debes ingresar ambos nombres.', true);
+        inputSegundoNombre.focus();
+        return;
+      }
+      if (segundoNombreVal.length < 2) {
+        mostrarMensaje('El segundo nombre debe contener al menos 2 letras.', true);
+        inputSegundoNombre.focus();
+        return;
+      }
+
+      // Validación estricta: Los dos apellidos son obligatorios
+      if (!primerApellidoVal) {
+        mostrarMensaje('El primer apellido es obligatorio.', true);
+        inputPrimerApellido.focus();
+        return;
+      }
+      if (primerApellidoVal.length < 2) {
+        mostrarMensaje('El primer apellido debe contener al menos 2 letras.', true);
+        inputPrimerApellido.focus();
+        return;
+      }
+
+      if (!segundoApellidoVal) {
+        mostrarMensaje('El segundo apellido es obligatorio. Debes ingresar ambos apellidos.', true);
+        inputSegundoApellido.focus();
+        return;
+      }
+      if (segundoApellidoVal.length < 2) {
+        mostrarMensaje('El segundo apellido debe contener al menos 2 letras.', true);
+        inputSegundoApellido.focus();
+        return;
+      }
+
+      // Validación estricta: El número de teléfono es obligatorio
+      const digitosTel = telefonoVal.replace(/\D/g, '');
+      if (!telefonoVal || digitosTel.length < 7) {
+        mostrarMensaje('El número de teléfono celular es obligatorio y debe contener al menos 7 dígitos.', true);
+        inputTelefono.focus();
+        return;
+      }
+
+      // Validación de correo y cédula
+      if (!correoVal) {
+        mostrarMensaje('El correo electrónico es obligatorio.', true);
+        inputCorreo.focus();
+        return;
+      }
+
+      if (!cedulaVal) {
+        mostrarMensaje('La cédula de identidad es obligatoria.', true);
+        inputCedula.focus();
+        return;
+      }
+
       if (inputPwd.value !== inputConfirmPwd.value) {
         mostrarMensaje('Las contraseñas ingresadas no coinciden.', true);
         return;
@@ -1062,18 +1209,20 @@
         return;
       }
 
+      const nombreVal = `${primerNombreVal} ${segundoNombreVal} ${primerApellidoVal} ${segundoApellidoVal}`;
+
       btnRegistrar.disabled = true;
       btnRegistrar.textContent = 'Registrando en base de datos...';
       mensajeNotificacion.style.display = 'none';
 
       try {
-        const nombreVal = inputNombre.value.trim();
-        const correoVal = inputCorreo.value.trim();
-        const cedulaVal = inputCedula.value.trim();
-        const rolVal = selectRol.value;
-
         const resultado = await registrarUsuario({
           nombre: nombreVal,
+          primer_nombre: primerNombreVal,
+          segundo_nombre: segundoNombreVal,
+          primer_apellido: primerApellidoVal,
+          segundo_apellido: segundoApellidoVal,
+          telefono: telefonoVal,
           correo: correoVal,
           cedula: cedulaVal,
           password: inputPwd.value,
@@ -1087,6 +1236,11 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               nombre: nombreVal,
+              primer_nombre: primerNombreVal,
+              segundo_nombre: segundoNombreVal,
+              primer_apellido: primerApellidoVal,
+              segundo_apellido: segundoApellidoVal,
+              telefono: telefonoVal,
               correo: correoVal,
               cedula: cedulaVal,
               rol: rolVal
@@ -1102,6 +1256,11 @@
           const sesionNueva = {
             id: resultado.user?.id || `usr-${Date.now()}`,
             nombre: nombreVal,
+            primer_nombre: primerNombreVal,
+            segundo_nombre: segundoNombreVal,
+            primer_apellido: primerApellidoVal,
+            segundo_apellido: segundoApellidoVal,
+            telefono: telefonoVal,
             correo: correoVal,
             cedula: cedulaVal,
             rol: rolVal
@@ -1194,6 +1353,7 @@
           (u.nombre && u.nombre.toLowerCase().includes(q)) ||
           (u.correo && u.correo.toLowerCase().includes(q)) ||
           (u.cedula && String(u.cedula).includes(q)) ||
+          (u.telefono && String(u.telefono).toLowerCase().includes(q)) ||
           (u.rol && u.rol.toLowerCase().includes(q))
         );
       }
@@ -1228,7 +1388,7 @@
       if (lista.length === 0) {
         tablaCuerpo.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; padding: 28px; color: #64748b;">
+            <td colspan="7" style="text-align: center; padding: 28px; color: #64748b;">
               <span style="font-size:2rem; display:block; margin-bottom:8px;">🔍</span>
               No se encontraron usuarios o cobradores con el filtro actual.<br>
               <small>Usa el formulario de la izquierda para registrar un nuevo cobrador.</small>
@@ -1244,6 +1404,7 @@
         const rol = u.rol || 'Cobrador';
         const isCobrador = rol.toLowerCase().includes('cobrador');
         const cedula = u.cedula || u.documento || 'No registrada';
+        const telefono = u.telefono || 'No registrado';
         const fecha = formatFechaRegistro(u.created_at);
 
         let badgeClass = 'role-cobrador';
@@ -1279,6 +1440,11 @@
             <td>
               <span style="font-family:monospace; font-weight:700; color:#334155; font-size:0.88rem; background:#f1f5f9; padding:3px 7px; border-radius:6px;">
                 ${cedula}
+              </span>
+            </td>
+            <td>
+              <span style="font-family:monospace; font-weight:600; color:#1d4ed8; font-size:0.85rem; background:#eff6ff; border:1px solid #bfdbfe; padding:3px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap;">
+                📞 ${telefono}
               </span>
             </td>
             <td>
@@ -1319,11 +1485,13 @@
 
       const nombre = usuario.nombre || usuario.correo.split('@')[0];
       const cedula = usuario.cedula || usuario.documento || 'No registrada';
+      const telefono = usuario.telefono || 'No registrado';
       const rol = usuario.rol || 'Cobrador';
       const fecha = formatFechaRegistro(usuario.created_at);
 
       delCobradorNombre.textContent = nombre;
       delCobradorCedula.textContent = cedula;
+      if (delCobradorTelefono) delCobradorTelefono.textContent = telefono;
       delCobradorCorreo.textContent = usuario.correo;
       delCobradorRol.textContent = rol;
       delCobradorFecha.textContent = fecha;

@@ -21,85 +21,69 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const inMemoryClientes = new Map();
 const inMemoryPagos = [];
 const inMemoryUsuarios = new Map();
+const inMemoryFacturas = new Map();
+const setCodigosFacturas = new Set();
+
+// Generador de código único de factura (8 letras con mayúsculas y minúsculas + 5 números)
+function generarCodigoFactura(existentes = setCodigosFacturas) {
+  const mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const minusculas = 'abcdefghijkmnopqrstuvwxyz';
+  const digitos = '0123456789';
+
+  let codigo = '';
+  let intentos = 0;
+
+  while (intentos < 5000) {
+    intentos++;
+    const letras = [];
+    for (let i = 0; i < 4; i++) {
+      letras.push(mayusculas[Math.floor(Math.random() * mayusculas.length)]);
+      letras.push(minusculas[Math.floor(Math.random() * minusculas.length)]);
+    }
+    for (let i = letras.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [letras[i], letras[j]] = [letras[j], letras[i]];
+    }
+
+    const nums = [];
+    for (let i = 0; i < 5; i++) {
+      nums.push(digitos[Math.floor(Math.random() * digitos.length)]);
+    }
+
+    codigo = letras.join('') + nums.join('');
+
+    if (!existentes.has(codigo)) {
+      existentes.add(codigo);
+      return codigo;
+    }
+  }
+
+  return codigo;
+}
 
 // Seed in-memory store with demo data if empty
 function initInMemoryStore() {
-  if (inMemoryClientes.size === 0) {
-    const demoClientes = [
-      {
-        id: 'cli-1',
-        nombre: 'Carlos Mendoza',
-        correo: 'carlos.mendoza@ejemplo.com',
-        telefono: '+57 311 456 7890',
-        documento: '1090421332',
-        estado: 'Activo',
-        direccion: 'Calle 45 # 12-30',
-        observaciones: 'Pago puntual, historial excelente',
-        monto_deuda: 350000,
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'cli-2',
-        nombre: 'Andrea Gómez',
-        correo: 'andrea.gomez@ejemplo.com',
-        telefono: '+57 320 890 1234',
-        documento: '1110500088',
-        estado: 'Activo',
-        direccion: 'Carrera 7 # 85-14',
-        observaciones: 'Cuota quincenal',
-        monto_deuda: 520000,
-        created_at: new Date().toISOString()
-      }
-    ];
-    for (const c of demoClientes) {
-      inMemoryClientes.set(c.documento, c);
-    }
-  }
-
-  if (inMemoryPagos.length === 0) {
-    inMemoryPagos.push({
-      id: 'pg-1',
-      cliente_nombre: 'Carlos Mendoza',
-      documento: '1090421332',
-      monto: 50000,
-      fecha: new Date().toISOString().split('T')[0],
-      metodo_pago: 'Efectivo',
-      referencia: 'TRX-1001',
-      observaciones: 'Abono cuota mensual',
-      estado: 'Pagado',
-      created_at: new Date().toISOString()
-    });
-  }
-
-  if (inMemoryUsuarios.size === 0) {
-    const demoUsuarios = [
-      {
-        id: 'usr-admin-1',
-        nombre: 'Administrador General',
-        correo: 'admin@cobros.com',
-        rol: 'Administrador',
-        cedula: '1090421332',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'usr-cob-1',
-        nombre: 'Santiago Gómez',
-        correo: 'santiago.cobrador@cobros.com',
-        rol: 'Cobrador',
-        cedula: '1110500088',
-        created_at: new Date().toISOString()
-      }
-    ];
-    for (const u of demoUsuarios) {
-      inMemoryUsuarios.set(u.correo.toLowerCase(), u);
-    }
-  }
+  // Inicialización limpia sin registros conflictivos
 }
 initInMemoryStore();
 
-// Constantes para excluir datos predeterminados/demo
-const DOCS_PREDETERMINADOS = ['1020304050', '1030405060', '1040506070'];
-const NOMBRES_PREDETERMINADOS = ['maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez'];
+// Constantes para excluir datos predeterminados/demo o eliminados
+const DOCS_PREDETERMINADOS = ['1020304050', '1030405060', '1040506070', '0000000000'];
+const NOMBRES_PREDETERMINADOS = [
+  'maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez',
+  'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado'
+];
+
+function esRegistroExcluido(nombre = '', doc = '', estado = '') {
+  const n = String(nombre || '').trim().toLowerCase();
+  const d = String(doc || '').trim();
+  const e = String(estado || '').trim().toLowerCase();
+  if (e === 'eliminado') return true;
+  if (DOCS_PREDETERMINADOS.includes(d)) return true;
+  if (n.includes('moncada') || n.includes('james') || n.includes('[eliminado]')) return true;
+  if (NOMBRES_PREDETERMINADOS.includes(n)) return true;
+  return false;
+}
 
 // ---------------------------------------------------------
 // RUTAS DE API PARA CLIENTES CONECTADAS CON SUPABASE (CON FALLBACK)
@@ -120,13 +104,41 @@ app.get('/api/clientes', async (req, res) => {
       if (!error && Array.isArray(data)) {
         fromDb = true;
         clientes = data.filter(c => 
-          c && c.documento &&
-          !DOCS_PREDETERMINADOS.includes(String(c.documento).trim()) &&
-          !NOMBRES_PREDETERMINADOS.includes(String(c.nombre || '').trim().toLowerCase())
+          c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
         );
-        // Sincronizar en memoria
+        // Sincronizar en memoria y garantizar que cada cliente tenga su factura única
         for (const c of clientes) {
-          inMemoryClientes.set(String(c.documento).trim(), c);
+          const doc = String(c.documento).trim();
+          const enMemoria = inMemoryClientes.get(doc);
+          if (!c.numero_factura) {
+            const match = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
+            if (match) {
+              c.numero_factura = match[1];
+              setCodigosFacturas.add(c.numero_factura);
+            } else if (enMemoria?.numero_factura) {
+              c.numero_factura = enMemoria.numero_factura;
+            } else {
+              c.numero_factura = generarCodigoFactura();
+            }
+          }
+          if (c.numero_factura) {
+            setCodigosFacturas.add(c.numero_factura);
+            if (!inMemoryFacturas.has(c.numero_factura)) {
+              inMemoryFacturas.set(c.numero_factura, {
+                codigo_factura: c.numero_factura,
+                numero_factura: c.numero_factura,
+                cliente_nombre: c.nombre,
+                cliente_documento: c.documento,
+                cliente_telefono: c.telefono,
+                cliente_correo: c.correo,
+                cliente_direccion: c.direccion,
+                monto_deuda: c.monto_deuda,
+                observaciones: c.observaciones,
+                created_at: c.created_at
+              });
+            }
+          }
+          inMemoryClientes.set(doc, { ...(enMemoria || {}), ...c });
         }
       } else if (error) {
         console.warn('Supabase /api/clientes notice:', error.message);
@@ -137,16 +149,38 @@ app.get('/api/clientes', async (req, res) => {
 
     if (!fromDb) {
       clientes = Array.from(inMemoryClientes.values()).filter(c =>
-        c && c.documento &&
-        !DOCS_PREDETERMINADOS.includes(String(c.documento).trim()) &&
-        !NOMBRES_PREDETERMINADOS.includes(String(c.nombre || '').trim().toLowerCase())
+        c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
       );
+    }
+
+    // Asegurar que cada cliente en respuesta tenga numero_factura único
+    clientes.forEach(c => {
+      if (!c.numero_factura) {
+        c.numero_factura = generarCodigoFactura();
+      }
+    });
+
+    // Filtrar por cobrador si se solicita en query param (ej: ?cobrador=email_or_cedula)
+    const filtroCobrador = req.query.cobrador ? String(req.query.cobrador).trim().toLowerCase() : '';
+    if (filtroCobrador) {
+      clientes = clientes.filter(c => {
+        const regCorreo = (c.registrado_por_correo || '').toLowerCase().trim();
+        const regCed = String(c.registrado_por_cedula || '').trim().toLowerCase();
+        const regId = String(c.cobrador_id || '').trim().toLowerCase();
+        const regNom = (c.registrado_por_nombre || '').toLowerCase().trim();
+        const obs = (c.observaciones || '').toLowerCase();
+        return regCorreo === filtroCobrador ||
+               regCed === filtroCobrador ||
+               regId === filtroCobrador ||
+               regNom.includes(filtroCobrador) ||
+               obs.includes(filtroCobrador);
+      });
     }
 
     return res.json({ ok: true, data: clientes, source: fromDb ? 'supabase' : 'in-memory' });
   } catch (err) {
     console.error('Error servidor GET /api/clientes:', err);
-    const fallbackList = Array.from(inMemoryClientes.values());
+    const fallbackList = Array.from(inMemoryClientes.values()).filter(c => !esRegistroExcluido(c.nombre, c.documento, c.estado));
     return res.json({ ok: true, data: fallbackList, source: 'in-memory-fallback' });
   }
 });
@@ -166,9 +200,7 @@ app.get('/api/pagos', async (req, res) => {
       if (!error && Array.isArray(data)) {
         fromDb = true;
         pagos = data.filter(p => 
-          p &&
-          (!p.documento || !DOCS_PREDETERMINADOS.includes(String(p.documento).trim())) &&
-          (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.includes(String(p.cliente_nombre).trim().toLowerCase()))
+          p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
         );
       } else if (error) {
         console.warn('Supabase /api/pagos notice:', error.message);
@@ -179,15 +211,13 @@ app.get('/api/pagos', async (req, res) => {
 
     if (!fromDb) {
       pagos = inMemoryPagos.filter(p =>
-        p &&
-        (!p.documento || !DOCS_PREDETERMINADOS.includes(String(p.documento).trim())) &&
-        (!p.cliente_nombre || !NOMBRES_PREDETERMINADOS.includes(String(p.cliente_nombre).trim().toLowerCase()))
+        p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
       );
     }
 
     return res.json({ ok: true, data: pagos, source: fromDb ? 'supabase' : 'in-memory' });
   } catch (err) {
-    return res.json({ ok: true, data: inMemoryPagos, source: 'in-memory-fallback' });
+    return res.json({ ok: true, data: inMemoryPagos.filter(p => !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)), source: 'in-memory-fallback' });
   }
 });
 
@@ -252,15 +282,39 @@ app.post('/api/pagos', async (req, res) => {
 // Registrar o actualizar un cliente en Supabase (con fallback)
 app.post('/api/clientes', async (req, res) => {
   try {
-    const { nombre, correo, telefono, documento, estado, direccion, observaciones, monto_deuda, situacion_laboral, tasa_interes, monto_capital, monto_interes } = req.body;
+    const {
+      nombre, correo, telefono, documento, estado, direccion, observaciones,
+      monto_deuda, situacion_laboral, tasa_interes, monto_capital, monto_interes,
+      numero_factura, registrado_por_nombre, registrado_por_telefono, registrado_por_correo, registrado_por_rol,
+      registrado_por_cedula, cobrador_id,
+      primer_nombre, segundo_nombre, primer_apellido, segundo_apellido
+    } = req.body;
 
     if (!nombre || !documento) {
       return res.status(400).json({ ok: false, error: 'Nombre y documento son obligatorios.' });
     }
 
+    // Generar código único de factura (8 letras con mayúsculas/minúsculas y 5 números) si no viene provisto
+    const codFactura = (numero_factura && String(numero_factura).trim()) 
+      ? String(numero_factura).trim() 
+      : generarCodigoFactura();
+
+    setCodigosFacturas.add(codFactura);
+
+    // Adjuntar metadatos de factura y emisor en observaciones para respaldo 100% permanente
+    const metaFacturaStr = `[FACTURA: ${codFactura}] [EMISOR: ${String(registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(registrado_por_telefono || '').trim()} | EMAIL: ${String(registrado_por_correo || '').trim()} | CED: ${String(registrado_por_cedula || '').trim()}]`;
+    let obsCompleta = observaciones ? String(observaciones).trim() : '';
+    if (!obsCompleta.includes(codFactura)) {
+      obsCompleta = obsCompleta ? `${obsCompleta}\n\n${metaFacturaStr}` : metaFacturaStr;
+    }
+
     const payload = {
       id: `cli-${Date.now()}`,
       nombre: String(nombre).trim(),
+      primer_nombre: primer_nombre ? String(primer_nombre).trim() : null,
+      segundo_nombre: segundo_nombre ? String(segundo_nombre).trim() : null,
+      primer_apellido: primer_apellido ? String(primer_apellido).trim() : null,
+      segundo_apellido: segundo_apellido ? String(segundo_apellido).trim() : null,
       correo: correo ? String(correo).trim() : null,
       telefono: telefono ? String(telefono).trim() : null,
       documento: String(documento).trim(),
@@ -270,13 +324,27 @@ app.post('/api/clientes', async (req, res) => {
       monto_capital: Number(monto_capital) || 0,
       monto_interes: Number(monto_interes) || 0,
       direccion: direccion ? String(direccion).trim() : null,
-      observaciones: observaciones ? String(observaciones).trim() : null,
+      observaciones: obsCompleta,
       monto_deuda: Number(monto_deuda) || 0,
+      numero_factura: codFactura,
+      registrado_por_nombre: registrado_por_nombre ? String(registrado_por_nombre).trim() : null,
+      registrado_por_telefono: registrado_por_telefono ? String(registrado_por_telefono).trim() : null,
+      registrado_por_correo: registrado_por_correo ? String(registrado_por_correo).trim() : null,
+      registrado_por_rol: registrado_por_rol ? String(registrado_por_rol).trim() : null,
+      registrado_por_cedula: registrado_por_cedula ? String(registrado_por_cedula).trim() : null,
+      cobrador_id: cobrador_id ? String(cobrador_id).trim() : null,
       created_at: new Date().toISOString()
     };
 
     // Actualizar en memoria inmediatamente
     inMemoryClientes.set(payload.documento, payload);
+
+    // Registrar en histórico de facturas permanente (NUNCA se borra ni se repite)
+    inMemoryFacturas.set(codFactura, {
+      ...payload,
+      codigo_factura: codFactura,
+      fecha_emision: payload.created_at
+    });
 
     let savedData = payload;
 
@@ -296,8 +364,8 @@ app.post('/api/clientes', async (req, res) => {
       ]);
 
       if (!error && data?.[0]) {
-        savedData = data[0];
-        inMemoryClientes.set(payload.documento, data[0]);
+        savedData = { ...payload, ...data[0], numero_factura: codFactura };
+        inMemoryClientes.set(payload.documento, savedData);
       } else if (error) {
         console.warn('Nota Supabase al insertar cliente:', error.message);
       }
@@ -309,6 +377,53 @@ app.post('/api/clientes', async (req, res) => {
   } catch (err) {
     console.error('Error servidor POST /api/clientes:', err);
     return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------------------------------------------------------
+// RUTAS DE API PARA FACTURAS (HISTÓRICO ÚNICO E INALTERABLE)
+// ---------------------------------------------------------
+
+// Obtener todas las facturas emitidas históricas
+app.get('/api/facturas', (req, res) => {
+  const lista = Array.from(inMemoryFacturas.values());
+  return res.json({ ok: true, data: lista });
+});
+
+// Obtener una factura específica por su código único
+app.get('/api/facturas/:codigo', (req, res) => {
+  const codigo = String(req.params.codigo).trim();
+  const factura = inMemoryFacturas.get(codigo);
+  if (!factura) {
+    // Buscar en clientes por si acaso
+    for (const c of inMemoryClientes.values()) {
+      if (c.numero_factura === codigo) {
+        return res.json({ ok: true, data: c });
+      }
+    }
+    return res.status(404).json({ ok: false, error: 'Factura no encontrada' });
+  }
+  return res.json({ ok: true, data: factura });
+});
+
+// Registrar o sincronizar una factura en el histórico
+app.post('/api/facturas', (req, res) => {
+  try {
+    const f = req.body;
+    if (!f || !f.codigo_factura && !f.numero_factura) {
+      return res.status(400).json({ ok: false, error: 'Código de factura obligatorio' });
+    }
+    const cod = String(f.codigo_factura || f.numero_factura).trim();
+    setCodigosFacturas.add(cod);
+    inMemoryFacturas.set(cod, {
+      ...f,
+      codigo_factura: cod,
+      numero_factura: cod,
+      created_at: f.created_at || new Date().toISOString()
+    });
+    return res.json({ ok: true, data: inMemoryFacturas.get(cod) });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -358,7 +473,7 @@ app.get('/api/usuarios', async (req, res) => {
 
       if (!error && Array.isArray(data)) {
         fromDb = true;
-        usuarios = data.filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com');
+        usuarios = data.filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
         for (const u of usuarios) {
           if (u.correo) inMemoryUsuarios.set(u.correo.toLowerCase(), u);
         }
@@ -368,7 +483,7 @@ app.get('/api/usuarios', async (req, res) => {
     }
 
     if (!fromDb) {
-      usuarios = Array.from(inMemoryUsuarios.values()).filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com');
+      usuarios = Array.from(inMemoryUsuarios.values()).filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
     }
 
     return res.json({ ok: true, data: usuarios, source: fromDb ? 'supabase' : 'in-memory' });
@@ -381,15 +496,38 @@ app.get('/api/usuarios', async (req, res) => {
 // Registrar o actualizar un usuario en Supabase
 app.post('/api/usuarios', async (req, res) => {
   try {
-    const { nombre, correo, rol, cedula } = req.body;
+    const { 
+      nombre, 
+      correo, 
+      rol, 
+      cedula, 
+      telefono, 
+      primer_nombre, 
+      segundo_nombre, 
+      primer_apellido, 
+      segundo_apellido 
+    } = req.body;
+
     if (!correo) {
       return res.status(400).json({ ok: false, error: 'Correo es obligatorio.' });
     }
 
     const emailClean = String(correo).trim().toLowerCase();
+    const telClean = telefono ? String(telefono).trim() : '';
+    const pNom = primer_nombre ? String(primer_nombre).trim() : '';
+    const sNom = segundo_nombre ? String(segundo_nombre).trim() : '';
+    const pApe = primer_apellido ? String(primer_apellido).trim() : '';
+    const sApe = segundo_apellido ? String(segundo_apellido).trim() : '';
+    const nombreCompleto = String(nombre || `${pNom} ${sNom} ${pApe} ${sApe}`.trim() || emailClean.split('@')[0]).trim();
+
     const payload = {
       id: `usr-${Date.now()}`,
-      nombre: String(nombre || emailClean.split('@')[0]).trim(),
+      nombre: nombreCompleto,
+      primer_nombre: pNom || null,
+      segundo_nombre: sNom || null,
+      primer_apellido: pApe || null,
+      segundo_apellido: sApe || null,
+      telefono: telClean || null,
       correo: emailClean,
       rol: String(rol || 'Cobrador').trim(),
       cedula: cedula ? String(cedula).trim() : '',
@@ -399,11 +537,17 @@ app.post('/api/usuarios', async (req, res) => {
     inMemoryUsuarios.set(emailClean, payload);
 
     try {
+      // Intentar primero con todas las columnas
       const { data, error } = await supabase
         .from('usuarios')
         .upsert([{
           correo: payload.correo,
           nombre: payload.nombre,
+          primer_nombre: payload.primer_nombre,
+          segundo_nombre: payload.segundo_nombre,
+          primer_apellido: payload.primer_apellido,
+          segundo_apellido: payload.segundo_apellido,
+          telefono: payload.telefono,
           rol: payload.rol,
           cedula: payload.cedula
         }], { onConflict: 'correo' })
@@ -411,7 +555,21 @@ app.post('/api/usuarios', async (req, res) => {
 
       if (!error && data?.[0]) {
         payload.id = data[0].id || payload.id;
-        inMemoryUsuarios.set(emailClean, data[0]);
+        inMemoryUsuarios.set(emailClean, { ...payload, ...data[0] });
+      } else if (error) {
+        // Si fallan columnas extras en Supabase, intentar con las columnas básicas
+        const { data: fallbackData } = await supabase
+          .from('usuarios')
+          .upsert([{
+            correo: payload.correo,
+            nombre: payload.nombre,
+            rol: payload.rol,
+            cedula: payload.cedula
+          }], { onConflict: 'correo' })
+          .select();
+        if (fallbackData?.[0]) {
+          payload.id = fallbackData[0].id || payload.id;
+        }
       }
     } catch (e) {
       console.warn('Nota Supabase al registrar usuario:', e.message);

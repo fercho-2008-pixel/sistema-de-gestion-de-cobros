@@ -91,6 +91,16 @@
 
     <!-- Resultado de Búsqueda -->
     <div id="resultado" class="result-container" style="display:none; margin-top:20px;">
+      <div class="result-item" style="background:#0f172a; padding:12px 14px; border-radius:8px; border-left:4px solid #38bdf8; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="result-label" style="color:#94a3b8; font-weight:700; display:block; font-size:0.75rem; text-transform:uppercase;">Nº de Factura Oficial</span>
+          <span id="facturaCliente" class="result-value" style="font-family:monospace; color:#38bdf8; font-weight:800; font-size:1.15rem; letter-spacing:1px;">-</span>
+        </div>
+        <button type="button" id="btnDescargarFacturaConsulta" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">
+          📄 Descargar Factura PDF
+        </button>
+      </div>
+
       <div class="result-item">
         <span class="result-label">Nombre del Cliente</span>
         <span id="nombreCliente" class="result-value">-</span>
@@ -187,8 +197,18 @@
         }
 
         // Renderizar datos del cliente
+        document.getElementById('facturaCliente').textContent = cliente.numero_factura || 'Factura registrada';
         document.getElementById('nombreCliente').textContent = cliente.nombre || 'Sin nombre';
         document.getElementById('documentoCliente').textContent = cliente.documento || doc;
+
+        // Configurar botón de descarga de factura en PDF
+        const btnDescargarFac = document.getElementById('btnDescargarFacturaConsulta');
+        if (btnDescargarFac) {
+          btnDescargarFac.onclick = () => {
+            // Redirigir a clientes con visualización o generar factura
+            window.location.href = `clientes.html?factura=${encodeURIComponent(cliente.numero_factura || cliente.documento)}`;
+          };
+        }
         
         const estadoEl = document.getElementById('estadoCliente');
         estadoEl.innerHTML = `<span class="${cliente.estado === 'Activo' ? 'badge-active' : 'badge-inactive'}">${cliente.estado || 'Activo'}</span>`;
