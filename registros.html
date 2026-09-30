@@ -9,7 +9,9 @@
     <link rel="stylesheet" href="regristros.css">
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- html2pdf.js para descarga instantánea en PDF de 1 sola hoja -->
+    <!-- Librerías de renderizado y generación de PDF en 1 sola hoja -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
@@ -272,6 +274,10 @@
       }
 
       @media print {
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
         body * {
           visibility: hidden !important;
         }
@@ -522,27 +528,77 @@
                     </div>
 
                     <!-- SECCIÓN DE INFORMACIÓN DEL COBRADOR / ASESOR (EMISOR DE LA FACTURA) -->
-                    <div class="campo campo-completo" style="background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #2563eb; border-radius:10px; padding:14px 16px;">
-                        <span style="display:block; font-size:0.8rem; color:#1e40af; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">
-                            👤 Información del Cobrador / Asesor (Emisor responsable de la factura)
-                        </span>
-                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:12px;">
+                    <div class="campo campo-completo" style="background:#eff6ff; border:1.5px solid #93c5fd; border-left:5px solid #2563eb; border-radius:12px; padding:18px 20px; box-shadow:0 2px 6px rgba(37,99,235,0.06);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid #dbeafe; padding-bottom:10px;">
+                            <span style="font-size:0.88rem; color:#1e40af; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:8px;">
+                                👤 Información del Cobrador Responsable (Emisor)
+                            </span>
+                            <span id="badgeCobradorSesion" style="background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; padding:5px 12px; border-radius:20px; font-size:0.75rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
+                                🔒 Autocargado según cobrador en sesión
+                            </span>
+                        </div>
+
+                        <!-- Selector dinámico exclusivo para Administrador -->
+                        <div id="contenedorSelectorAdmin" style="display:none; background:#ffffff; border:1px solid #bfdbfe; border-radius:8px; padding:12px 14px; margin-bottom:14px;">
+                            <label for="selectorCobradorAdmin" style="font-size:0.82rem; font-weight:700; color:#1e3a8a; display:block; margin-bottom:6px;">
+                                🎯 Modo Administrador: Asignar este cliente a la cartera de:
+                            </label>
+                            <select id="selectorCobradorAdmin" style="width:100%; padding:9px 12px; border-radius:8px; border:1.5px solid #3b82f6; background:#f0f7ff; color:#0f172a; font-weight:600; font-size:0.9rem; cursor:pointer;">
+                                <option value="admin">Mi cuenta (Administrador)</option>
+                            </select>
+                            <div style="font-size:0.74rem; color:#64748b; margin-top:5px;">
+                                Como Administrador puedes registrar clientes a tu nombre o asignarlos a cualquier cobrador registrado.
+                            </div>
+                        </div>
+
+                        <!-- Fila informativa de sesión del cobrador -->
+                        <div id="bannerSesionCobrador" style="background:#ffffff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:50%; background:#dbeafe; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
+                                🧑‍💼
+                            </div>
+                            <div style="flex:1;">
+                                <div id="lblCobradorSesionTexto" style="font-size:0.85rem; font-weight:700; color:#1e3a8a;">
+                                    Cobrador en sesión: Cargando...
+                                </div>
+                                <div style="font-size:0.74rem; color:#475569;">
+                                    Los datos se cargan automáticamente desde tu perfil de sesión y vinculan este cliente a tu propia tabla de cobros.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rejilla con los 5 campos visibles del Cobrador -->
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
                             <div>
                                 <label for="cobrador_nombre" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-                                    Nombre del Cobrador *
+                                    👤 Nombre Completo *
                                 </label>
                                 <input
                                     type="text"
                                     id="cobrador_nombre"
                                     name="cobrador_nombre"
-                                    placeholder="Nombre de quien registra"
+                                    placeholder="Nombre del cobrador en sesión"
                                     required
-                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.9rem;"
+                                    readonly
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-weight:700; font-size:0.88rem;"
+                                >
+                            </div>
+                            <div>
+                                <label for="cobrador_cedula" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+                                    🪪 Cédula de Identidad *
+                                </label>
+                                <input
+                                    type="text"
+                                    id="cobrador_cedula"
+                                    name="cobrador_cedula"
+                                    placeholder="Cédula del cobrador"
+                                    required
+                                    readonly
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-weight:700; font-size:0.88rem; font-family:monospace;"
                                 >
                             </div>
                             <div>
                                 <label for="cobrador_telefono" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-                                    Teléfono del Cobrador *
+                                    📞 Teléfono / Celular *
                                 </label>
                                 <input
                                     type="tel"
@@ -550,12 +606,26 @@
                                     name="cobrador_telefono"
                                     placeholder="+57 300 000 0000"
                                     required
-                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; font-size:0.9rem;"
+                                    readonly
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-weight:700; font-size:0.88rem;"
+                                >
+                            </div>
+                            <div>
+                                <label for="cobrador_correo" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
+                                    ✉️ Correo Electrónico
+                                </label>
+                                <input
+                                    type="email"
+                                    id="cobrador_correo"
+                                    name="cobrador_correo"
+                                    placeholder="correo@ejemplo.com"
+                                    readonly
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-weight:600; font-size:0.85rem;"
                                 >
                             </div>
                             <div>
                                 <label for="cobrador_rol" style="font-size:0.8rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">
-                                    Cargo / Rol
+                                    🏷️ Cargo / Rol
                                 </label>
                                 <input
                                     type="text"
@@ -563,9 +633,16 @@
                                     name="cobrador_rol"
                                     value="Cobrador"
                                     readonly
-                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f1f5f9; color:#64748b; font-size:0.9rem;"
+                                    style="width:100%; padding:9px 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f1f5f9; color:#475569; font-weight:600; font-size:0.88rem;"
                                 >
                             </div>
+                        </div>
+
+                        <!-- ID de cobrador oculto para asociación exacta en la base de datos -->
+                        <input type="hidden" id="cobrador_id" name="cobrador_id" value="">
+
+                        <div id="avisoCobradorAutocargado" style="font-size:0.78rem; color:#475569; margin-top:12px; line-height:1.4; padding-top:8px; border-top:1px dashed #bfdbfe;">
+                            ✓ Cargando información de la sesión activa...
                         </div>
                     </div>
 
@@ -664,6 +741,10 @@
                             <span id="facCobradorNombre" class="fac-fila-val">-</span>
                         </div>
                         <div class="fac-fila">
+                            <span class="fac-fila-label">Cédula:</span>
+                            <span id="facCobradorCedula" class="fac-fila-val">-</span>
+                        </div>
+                        <div class="fac-fila">
                             <span class="fac-fila-label">Teléfono:</span>
                             <span id="facCobradorTelefono" class="fac-fila-val">-</span>
                         </div>
@@ -754,7 +835,7 @@
                         <div style="height:36px;"></div>
                         <div class="fac-linea-firma">
                             <strong id="facFirmaCobradorNombre">Firma del Cobrador / Asesor</strong>
-                            <div style="font-size:0.7rem; color:#64748b;">Emisor Autorizado</div>
+                            <div style="font-size:0.7rem; color:#64748b;" id="facFirmaCobradorDoc">Emisor Autorizado</div>
                         </div>
                     </div>
                     <div>
@@ -789,7 +870,15 @@
 
     <!-- Script de integración con Supabase -->
     <script type="module">
-        import { registrarCliente, verificarAutenticacion, esUsuarioAdmin, generarCodigoFacturaUnico } from './supabase.js';
+        import { 
+            registrarCliente, 
+            verificarAutenticacion, 
+            esUsuarioAdmin, 
+            generarCodigoFacturaUnico,
+            obtenerUsuarios,
+            obtenerSesionActiva,
+            guardarSesionActiva
+        } from './supabase.js';
 
         // Verificar si el usuario terminó de registrarse o inició sesión
         const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'registros.html' });
@@ -797,23 +886,173 @@
             document.body.style.display = 'none';
         }
 
-        // Ocultar directorio de clientes si el usuario es Cobrador
+        // Configurar enlace al directorio / tabla de clientes
         const esAdmin = esUsuarioAdmin(auth.usuario);
         const linkDir = document.getElementById('linkDirectorioClientes');
-        if (!esAdmin && linkDir) {
-            linkDir.style.display = 'none';
+        if (linkDir) {
+            const btnDir = linkDir.querySelector('button');
+            if (!esAdmin && btnDir) {
+                btnDir.innerHTML = '📋 Mis clientes asignados';
+            }
         }
 
-        // Prellenar información del cobrador que registra
+        // Elementos de la sección del cobrador
         const inputCobradorNombre = document.getElementById("cobrador_nombre");
+        const inputCobradorCedula = document.getElementById("cobrador_cedula");
         const inputCobradorTelefono = document.getElementById("cobrador_telefono");
+        const inputCobradorCorreo = document.getElementById("cobrador_correo");
         const inputCobradorRol = document.getElementById("cobrador_rol");
+        const inputCobradorId = document.getElementById("cobrador_id");
+        const badgeCobradorSesion = document.getElementById("badgeCobradorSesion");
+        const avisoCobradorSesion = document.getElementById("avisoCobradorAutocargado");
+        const bannerSesionCobrador = document.getElementById("bannerSesionCobrador");
+        const lblCobradorSesionTexto = document.getElementById("lblCobradorSesionTexto");
+        const contenedorSelectorAdmin = document.getElementById("contenedorSelectorAdmin");
+        const selectorCobradorAdmin = document.getElementById("selectorCobradorAdmin");
 
-        if (auth.usuario) {
-            if (inputCobradorNombre) inputCobradorNombre.value = auth.usuario.nombre || '';
-            if (inputCobradorTelefono) inputCobradorTelefono.value = auth.usuario.telefono || '';
-            if (inputCobradorRol) inputCobradorRol.value = auth.usuario.rol || (esAdmin ? 'Administrador' : 'Cobrador');
+        let cobradoresDisponibles = [];
+
+        async function sincronizarDatosCobradorSesion() {
+            let u = auth.usuario || obtenerSesionActiva();
+            if (!u) return;
+
+            // Si teléfono o cédula aún no están en la sesión local, buscar en credenciales / usuarios
+            if (!u.telefono || !u.cedula || !u.primer_nombre) {
+                try {
+                    const usuarios = await obtenerUsuarios();
+                    const encontrado = usuarios.find(usr => 
+                        (usr.correo && usr.correo.toLowerCase() === (u.correo || '').toLowerCase()) ||
+                        (usr.cedula && String(usr.cedula).trim() === String(u.cedula || '').trim())
+                    );
+                    if (encontrado) {
+                        u = { ...u, ...encontrado };
+                        guardarSesionActiva(u);
+                        auth.usuario = u;
+                    }
+                } catch (e) {}
+            }
+
+            const pNom = u.primer_nombre || '';
+            const sNom = u.segundo_nombre || '';
+            const pApe = u.primer_apellido || '';
+            const sApe = u.segundo_apellido || '';
+            const nombreComp = [pNom, sNom, pApe, sApe].filter(Boolean).join(' ').trim();
+
+            const nombreCob = nombreComp || u.nombre || u.correo?.split('@')[0] || (esAdmin ? 'Administrador' : 'Cobrador');
+            const telCob = u.telefono || '';
+            const rolCob = u.rol || (esAdmin ? 'Administrador' : 'Cobrador');
+            const correoCob = u.correo || '';
+            const cedulaCob = u.cedula || '';
+            const idCob = u.id || u.correo || '';
+
+            // Asignar a los campos del formulario
+            if (inputCobradorNombre) inputCobradorNombre.value = nombreCob;
+            if (inputCobradorCedula) inputCobradorCedula.value = cedulaCob;
+            if (inputCobradorTelefono) inputCobradorTelefono.value = telCob;
+            if (inputCobradorCorreo) inputCobradorCorreo.value = correoCob;
+            if (inputCobradorRol) inputCobradorRol.value = rolCob;
+            if (inputCobradorId) inputCobradorId.value = idCob;
+
+            if (esAdmin) {
+                // Modo Administrador: mostrar selector para que pueda asignar a cualquiera de sus cobradores
+                if (contenedorSelectorAdmin) {
+                    contenedorSelectorAdmin.style.display = 'block';
+                }
+                if (badgeCobradorSesion) {
+                    badgeCobradorSesion.innerHTML = '👑 Administrador / Asignación';
+                    badgeCobradorSesion.style.background = '#fef3c7';
+                    badgeCobradorSesion.style.color = '#92400e';
+                    badgeCobradorSesion.style.borderColor = '#fde68a';
+                }
+                if (lblCobradorSesionTexto) {
+                    lblCobradorSesionTexto.innerHTML = `Sesión de Administrador: <strong>${nombreCob}</strong>`;
+                }
+                if (avisoCobradorSesion) {
+                    avisoCobradorSesion.innerHTML = `👑 Estás conectado como <strong>Administrador</strong>. Puedes registrar este cliente a tu nombre o asignarlo a cualquiera de los cobradores registrados abajo.`;
+                }
+
+                // Cargar lista de cobradores en el selector si aún no se ha cargado
+                if (selectorCobradorAdmin && selectorCobradorAdmin.options.length <= 1) {
+                    try {
+                        const usuarios = await obtenerUsuarios();
+                        cobradoresDisponibles = usuarios.filter(usr => 
+                            usr.correo && 
+                            usr.correo.toLowerCase() !== 'admin@cobros.com' &&
+                            String(usr.rol || '').toLowerCase() !== 'administrador'
+                        );
+
+                        selectorCobradorAdmin.innerHTML = `<option value="admin">Mi cuenta de Administrador (${nombreCob})</option>`;
+                        cobradoresDisponibles.forEach(cob => {
+                            const opt = document.createElement('option');
+                            opt.value = cob.correo || cob.id;
+                            const docTxt = cob.cedula ? `CC: ${cob.cedula}` : 'Sin CC';
+                            const telTxt = cob.telefono ? `Tel: ${cob.telefono}` : 'Sin teléfono';
+                            opt.textContent = `${cob.nombre} — ${docTxt} — ${telTxt}`;
+                            selectorCobradorAdmin.appendChild(opt);
+                        });
+                    } catch (e) {
+                        console.warn('Error al cargar cobradores en selector admin:', e);
+                    }
+                }
+            } else {
+                // Modo Cobrador: información fijada e inalterable
+                if (contenedorSelectorAdmin) {
+                    contenedorSelectorAdmin.style.display = 'none';
+                }
+                if (badgeCobradorSesion) {
+                    badgeCobradorSesion.innerHTML = `🔒 Asignado: ${nombreCob}`;
+                    badgeCobradorSesion.style.background = '#dbeafe';
+                    badgeCobradorSesion.style.color = '#1e40af';
+                    badgeCobradorSesion.style.borderColor = '#bfdbfe';
+                }
+                if (lblCobradorSesionTexto) {
+                    lblCobradorSesionTexto.innerHTML = `Cobrador en sesión: <strong>${nombreCob}</strong> (C.C. <strong>${cedulaCob || 'Registrada'}</strong>)`;
+                }
+                if (avisoCobradorSesion) {
+                    avisoCobradorSesion.innerHTML = `✓ Sesión activa de <strong>${nombreCob}</strong> (Cédula: <strong>${cedulaCob || 'Registrada'}</strong> | Tel: <strong>${telCob || 'Registrado'}</strong> | Correo: <strong>${correoCob}</strong>).<br>Este cliente quedará registrado exclusivamente en tu propia tabla y cartera personal de cobros.`;
+                }
+            }
         }
+
+        // Listener para cambio en el selector de cobrador del Administrador
+        selectorCobradorAdmin?.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'admin') {
+                const u = auth.usuario || obtenerSesionActiva();
+                const nom = u.nombre || 'Administrador';
+                inputCobradorNombre.value = nom;
+                inputCobradorCedula.value = u.cedula || '';
+                inputCobradorTelefono.value = u.telefono || '';
+                inputCobradorCorreo.value = u.correo || '';
+                inputCobradorRol.value = 'Administrador';
+                inputCobradorId.value = u.id || u.correo || '';
+                if (lblCobradorSesionTexto) {
+                    lblCobradorSesionTexto.innerHTML = `Sesión de Administrador: <strong>${nom}</strong>`;
+                }
+                if (avisoCobradorSesion) {
+                    avisoCobradorSesion.innerHTML = `👑 Cliente asignado a tu cuenta de <strong>Administrador</strong>.`;
+                }
+            } else {
+                const cob = cobradoresDisponibles.find(c => (c.correo === val || c.id === val));
+                if (cob) {
+                    inputCobradorNombre.value = cob.nombre || '';
+                    inputCobradorCedula.value = cob.cedula || '';
+                    inputCobradorTelefono.value = cob.telefono || '';
+                    inputCobradorCorreo.value = cob.correo || '';
+                    inputCobradorRol.value = 'Cobrador';
+                    inputCobradorId.value = cob.id || cob.correo || '';
+
+                    if (lblCobradorSesionTexto) {
+                        lblCobradorSesionTexto.innerHTML = `🎯 Cliente asignado a la cartera de: <strong>${cob.nombre}</strong> (C.C. <strong>${cob.cedula || 'N/A'}</strong>)`;
+                    }
+                    if (avisoCobradorSesion) {
+                        avisoCobradorSesion.innerHTML = `✓ El cliente quedará vinculado a la tabla y cartera exclusiva del cobrador <strong>${cob.nombre}</strong> (Tel: <strong>${cob.telefono || 'N/A'}</strong>).`;
+                    }
+                }
+            }
+        });
+
+        sincronizarDatosCobradorSesion();
 
         const formulario = document.getElementById("formularioRegistroCliente");
         const mensaje = document.getElementById("mensajeGuardado");
@@ -844,13 +1083,16 @@
         btnNuevoRegistroModal?.addEventListener('click', () => {
             cerrarModalFactura();
             formulario.reset();
-            if (auth.usuario) {
-                if (inputCobradorNombre) inputCobradorNombre.value = auth.usuario.nombre || '';
-                if (inputCobradorTelefono) inputCobradorTelefono.value = auth.usuario.telefono || '';
-                if (inputCobradorRol) inputCobradorRol.value = auth.usuario.rol || (esAdmin ? 'Administrador' : 'Cobrador');
-            }
+            sincronizarDatosCobradorSesion();
             recalcularMontosEIntereses();
             document.getElementById("primer_nombre")?.focus();
+        });
+
+        formulario?.addEventListener('reset', () => {
+            setTimeout(() => {
+                sincronizarDatosCobradorSesion();
+                recalcularMontosEIntereses();
+            }, 50);
         });
 
         // Impresión directa
@@ -858,34 +1100,132 @@
             window.print();
         });
 
-        // Descarga directa en PDF en 1 sola hoja
+        // Descarga directa en PDF en 1 sola hoja de alta fidelidad (sin hoja en blanco)
         btnDescargarPDF?.addEventListener('click', async () => {
             const facturaEl = document.getElementById('facturaImprimible');
             if (!facturaEl) return;
 
             const cod = facturaActualParaDescarga?.numero_factura || 'Factura';
             const doc = facturaActualParaDescarga?.documento || 'Cliente';
+            const nombreArchivo = `Factura_${cod}_${doc}.pdf`;
 
             btnDescargarPDF.disabled = true;
-            btnDescargarPDF.textContent = 'Generando PDF...';
+            btnDescargarPDF.textContent = '⏳ Generando PDF oficial...';
+
+            // 1. Clonar el elemento de factura para renderizarlo aislado sin interferencia de scroll ni modal
+            const clon = facturaEl.cloneNode(true);
+
+            // Contenedor temporal aislado montado en el viewport en top 0, left 0
+            const wrapper = document.createElement('div');
+            wrapper.id = 'temp-pdf-render-box';
+            wrapper.style.position = 'fixed';
+            wrapper.style.top = '0';
+            wrapper.style.left = '0';
+            wrapper.style.width = '794px';
+            wrapper.style.zIndex = '-99999';
+            wrapper.style.background = '#ffffff';
+            wrapper.style.color = '#0f172a';
+            wrapper.style.margin = '0';
+            wrapper.style.padding = '0';
+            wrapper.style.boxSizing = 'border-box';
+            wrapper.style.overflow = 'visible';
+            wrapper.style.pointerEvents = 'none';
+
+            clon.style.width = '794px';
+            clon.style.maxWidth = '794px';
+            clon.style.minWidth = '794px';
+            clon.style.background = '#ffffff';
+            clon.style.color = '#0f172a';
+            clon.style.padding = '22px 26px';
+            clon.style.boxSizing = 'border-box';
+            clon.style.margin = '0';
+            clon.style.boxShadow = 'none';
+            clon.style.border = 'none';
+
+            // Remover elementos que no deben ir en el documento impreso
+            clon.querySelectorAll('.no-print').forEach(el => el.remove());
+
+            wrapper.appendChild(clon);
+            document.body.appendChild(wrapper);
 
             try {
-                if (typeof window.html2pdf !== 'undefined') {
+                if (document.fonts && document.fonts.ready) {
+                    try { await document.fonts.ready; } catch (e) {}
+                }
+                await new Promise(resolve => setTimeout(resolve, 120));
+
+                const h2c = window.html2canvas;
+                const jsPdfLib = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+
+                if (h2c && jsPdfLib) {
+                    // Renderizar con html2canvas forzando scrollY: 0 para evitar captura en blanco
+                    const canvas = await h2c(clon, {
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        scrollY: 0,
+                        scrollX: 0,
+                        windowWidth: 800,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+                        throw new Error('Canvas render retornó dimensiones inválidas');
+                    }
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const pdf = new jsPdfLib({
+                        orientation: 'portrait',
+                        unit: 'mm',
+                        format: 'letter'
+                    });
+
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    const margin = 5;
+                    const maxW = pageWidth - (margin * 2);
+                    const maxH = pageHeight - (margin * 2);
+
+                    let renderW = maxW;
+                    let renderH = (canvas.height * renderW) / canvas.width;
+
+                    // Ajustar para que quepa exactamente en 1 sola hoja
+                    if (renderH > maxH) {
+                        renderH = maxH;
+                        renderW = (canvas.width * renderH) / canvas.height;
+                    }
+
+                    const posX = margin + ((maxW - renderW) / 2);
+                    const posY = margin;
+
+                    pdf.addImage(imgData, 'JPEG', posX, posY, renderW, renderH);
+                    pdf.save(nombreArchivo);
+                } else if (typeof window.html2pdf !== 'undefined') {
                     const opt = {
-                        margin: [6, 6, 6, 6],
-                        filename: `Factura_${cod}_${doc}.pdf`,
+                        margin: [5, 5, 5, 5],
+                        filename: nombreArchivo,
                         image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            scrollY: 0,
+                            scrollX: 0,
+                            backgroundColor: '#ffffff'
+                        },
                         jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
                     };
-                    await window.html2pdf().set(opt).from(facturaEl).save();
+                    await window.html2pdf().set(opt).from(clon).save();
                 } else {
                     window.print();
                 }
             } catch (err) {
-                console.error('Error al generar PDF:', err);
+                console.error('Error al generar PDF de la factura:', err);
                 window.print();
             } finally {
+                if (wrapper && wrapper.parentNode) {
+                    wrapper.parentNode.removeChild(wrapper);
+                }
                 btnDescargarPDF.disabled = false;
                 btnDescargarPDF.textContent = '📥 Descargar Factura (PDF)';
             }
@@ -981,8 +1321,11 @@
             const situacion = selectSituacion.value;
 
             const cobNombre = (inputCobradorNombre?.value || auth.usuario?.nombre || 'Cobrador').trim();
+            const cobCedula = (inputCobradorCedula?.value || auth.usuario?.cedula || '').trim();
             const cobTel = (inputCobradorTelefono?.value || auth.usuario?.telefono || '').trim();
+            const cobCorreo = (inputCobradorCorreo?.value || auth.usuario?.correo || '').trim();
             const cobRol = (inputCobradorRol?.value || auth.usuario?.rol || 'Cobrador').trim();
+            const cobId = (inputCobradorId?.value || auth.usuario?.id || auth.usuario?.correo || '').trim();
 
             if (!pNombre || !sNombre || !pApellido || !sApellido) {
                 mostrarMensaje("Los dos nombres y los dos apellidos son campos obligatorios.", true);
@@ -995,7 +1338,7 @@
             }
 
             if (!cobNombre || !cobTel) {
-                mostrarMensaje("Por favor ingresa el nombre y teléfono del cobrador responsable de la factura.", true);
+                mostrarMensaje("Por favor verifica el nombre y teléfono del cobrador responsable de la factura.", true);
                 return;
             }
 
@@ -1029,8 +1372,10 @@
                 numero_factura: codigoFacturaUnico,
                 registrado_por_nombre: cobNombre,
                 registrado_por_telefono: cobTel,
-                registrado_por_correo: auth.usuario?.correo || '',
-                registrado_por_rol: cobRol
+                registrado_por_correo: cobCorreo,
+                registrado_por_rol: cobRol,
+                registrado_por_cedula: cobCedula,
+                cobrador_id: cobId
             };
 
             btnGuardar.disabled = true;
@@ -1050,10 +1395,16 @@
 
                 // Cobrador
                 document.getElementById('facCobradorNombre').textContent = cobNombre;
+                if (document.getElementById('facCobradorCedula')) {
+                    document.getElementById('facCobradorCedula').textContent = cobCedula ? `C.C. ${cobCedula}` : 'N/A';
+                }
                 document.getElementById('facCobradorTelefono').textContent = cobTel;
                 document.getElementById('facCobradorRol').textContent = cobRol;
-                document.getElementById('facCobradorCorreo').textContent = auth.usuario?.correo || 'N/A';
+                document.getElementById('facCobradorCorreo').textContent = cobCorreo || 'N/A';
                 document.getElementById('facFirmaCobradorNombre').textContent = `Firma: ${cobNombre}`;
+                if (document.getElementById('facFirmaCobradorDoc')) {
+                    document.getElementById('facFirmaCobradorDoc').textContent = cobCedula ? `C.C. ${cobCedula} (${cobRol})` : `Emisor: ${cobRol}`;
+                }
 
                 // Cliente
                 document.getElementById('facClienteNombre').textContent = clienteGuardado.nombre;

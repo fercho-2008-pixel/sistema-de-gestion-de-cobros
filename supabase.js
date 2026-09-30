@@ -84,7 +84,30 @@ export function obtenerSesionActiva() {
       window.localStorage.removeItem(SESSION_KEY);
       return null;
     }
-    if (data && (data.correo || data.email)) return data;
+    if (data && (data.correo || data.email)) {
+      // Auto-hidratar teléfono y cédula si no estuvieran presentes en el objeto de sesión guardado
+      if (!data.telefono || !data.cedula) {
+        try {
+          const creds = JSON.parse(window.localStorage.getItem('sistema_usuarios_credenciales') || '{}');
+          const c = creds[correo];
+          if (c) {
+            if (!data.telefono && c.telefono) data.telefono = c.telefono;
+            if (!data.cedula && c.cedula) data.cedula = c.cedula;
+            if (!data.primer_nombre && c.primer_nombre) data.primer_nombre = c.primer_nombre;
+            if (!data.segundo_nombre && c.segundo_nombre) data.segundo_nombre = c.segundo_nombre;
+            if (!data.primer_apellido && c.primer_apellido) data.primer_apellido = c.primer_apellido;
+            if (!data.segundo_apellido && c.segundo_apellido) data.segundo_apellido = c.segundo_apellido;
+          }
+          const regUsers = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
+          const u = regUsers.find(ru => (ru.correo || '').toLowerCase() === correo);
+          if (u) {
+            if (!data.telefono && u.telefono) data.telefono = u.telefono;
+            if (!data.cedula && u.cedula) data.cedula = u.cedula;
+          }
+        } catch (e) {}
+      }
+      return data;
+    }
     return null;
   } catch (e) {
     return null;
@@ -98,13 +121,19 @@ export function guardarSesionActiva(usuario) {
   if (typeof window === 'undefined' || !window.localStorage || !usuario) return null;
   try {
     window.localStorage.removeItem(MANUAL_LOGOUT_KEY);
+    const pNom = usuario.primer_nombre || usuario.user_metadata?.primer_nombre || '';
+    const sNom = usuario.segundo_nombre || usuario.user_metadata?.segundo_nombre || '';
+    const pApe = usuario.primer_apellido || usuario.user_metadata?.primer_apellido || '';
+    const sApe = usuario.segundo_apellido || usuario.user_metadata?.segundo_apellido || '';
+    const nombreCompuesto = [pNom, sNom, pApe, sApe].filter(Boolean).join(' ').trim();
+
     const sesion = {
       id: usuario.id || `usr-${Date.now()}`,
-      nombre: usuario.nombre || usuario.user_metadata?.nombre || (usuario.correo || usuario.email || '').split('@')[0] || 'Usuario',
-      primer_nombre: usuario.primer_nombre || usuario.user_metadata?.primer_nombre || '',
-      segundo_nombre: usuario.segundo_nombre || usuario.user_metadata?.segundo_nombre || '',
-      primer_apellido: usuario.primer_apellido || usuario.user_metadata?.primer_apellido || '',
-      segundo_apellido: usuario.segundo_apellido || usuario.user_metadata?.segundo_apellido || '',
+      nombre: nombreCompuesto || usuario.nombre || usuario.user_metadata?.nombre || (usuario.correo || usuario.email || '').split('@')[0] || 'Usuario',
+      primer_nombre: pNom,
+      segundo_nombre: sNom,
+      primer_apellido: pApe,
+      segundo_apellido: sApe,
       correo: usuario.correo || usuario.email,
       telefono: usuario.telefono || usuario.user_metadata?.telefono || '',
       cedula: usuario.cedula || usuario.user_metadata?.cedula || '',
@@ -591,14 +620,71 @@ export async function registrarCliente(cliente) {
 }
 
 /**
- * Obtiene la lista completa de clientes registrados directamente desde la base de datos en Supabase.
+ * Determina con precisión si un cliente pertenece a un cobrador determinado.
+ * Los administradores tienen acceso a todos los clientes.
  */
-export async function obtenerClientes() {
+export function clientePerteneceACobrador(cliente, usuario) {
+  if (!cliente || !usuario) return false;
+  if (esUsuarioAdmin(usuario)) return true;
+
+  const userEmail = (usuario.correo || usuario.email || '').toLowerCase().trim();
+  const userCedula = String(usuario.cedula || usuario.documento || '').trim();
+  const userId = String(usuario.id || '').trim();
+  const userNombre = (usuario.nombre || '').toLowerCase().trim();
+
+  const regCorreo = (cliente.registrado_por_correo || '').toLowerCase().trim();
+  const regCedula = String(cliente.registrado_por_cedula || '').trim();
+  const regId = String(cliente.cobrador_id || '').trim();
+  const regNombre = (cliente.registrado_por_nombre || '').toLowerCase().trim();
+  const obs = (cliente.observaciones || '').toLowerCase();
+
+  // 1. Coincidencia por correo del cobrador
+  if (userEmail && regCorreo && userEmail === regCorreo) return true;
+
+  // 2. Coincidencia por cédula del cobrador
+  if (userCedula && regCedula && userCedula === regCedula) return true;
+
+  // 3. Coincidencia por ID único del cobrador
+  if (userId && regId && userId === regId) return true;
+
+  // 4. Coincidencia por nombre completo o parcial del cobrador
+  if (userNombre && regNombre) {
+    if (userNombre === regNombre || regNombre.includes(userNombre) || userNombre.includes(regNombre)) return true;
+  }
+
+  // 5. Coincidencia en observaciones de factura (respaldo inalterable de auditoría)
+  if (userEmail && obs.includes(userEmail)) return true;
+  if (userCedula && obs.includes(`ced: ${userCedula.toLowerCase()}`)) return true;
+  if (userNombre && obs.includes(`emisor: ${userNombre}`)) return true;
+
+  return false;
+}
+
+/**
+ * Filtra una lista de clientes para que contenga únicamente los clientes del cobrador actual.
+ */
+export function filtrarClientesPorCobrador(clientes, usuario) {
+  if (!Array.isArray(clientes)) return [];
+  if (!usuario || esUsuarioAdmin(usuario)) return clientes;
+  return clientes.filter(c => clientePerteneceACobrador(c, usuario));
+}
+
+/**
+ * Obtiene la lista de clientes registrados directamente desde la base de datos en Supabase.
+ * Para cobradores, filtra automáticamente para que CADA COBRADOR TENGA SU PROPIA TABLA
+ * sin que aparezcan los clientes de otros cobradores.
+ */
+export async function obtenerClientes(opciones = {}) {
+  const sesionActual = obtenerSesionActiva();
+  const esAdmin = esUsuarioAdmin(sesionActual);
+  const filtroCobradorParam = opciones.cobrador || (!esAdmin && sesionActual ? (sesionActual.correo || sesionActual.cedula) : '');
+
   let clientesRemotos = null;
 
   // 1. Consultar a través de la API del servidor (acceso directo y ultra rápido a Supabase)
   try {
-    const res = await fetch('/api/clientes');
+    const url = filtroCobradorParam ? `/api/clientes?cobrador=${encodeURIComponent(filtroCobradorParam)}` : '/api/clientes';
+    const res = await fetch(url);
     if (res.ok) {
       const json = await res.json();
       if (json && json.ok && Array.isArray(json.data)) {
@@ -658,7 +744,7 @@ export async function obtenerClientes() {
       }
     });
 
-    const listaCompleta = Array.from(mapa.values()).filter(c => 
+    let listaCompleta = Array.from(mapa.values()).filter(c => 
       c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
 
@@ -674,18 +760,48 @@ export async function obtenerClientes() {
       }
     });
 
+    // Guardar copia local general
     setLocalClientes(listaCompleta);
+
+    // APLICAR AISLAMIENTO ESTRICTO POR COBRADOR:
+    // Si la sesión activa es de Cobrador, retornar ÚNICAMENTE su propia tabla de clientes
+    if (!esAdmin && sesionActual) {
+      listaCompleta = filtrarClientesPorCobrador(listaCompleta, sesionActual);
+    } else if (opciones.cobrador && opciones.cobrador !== 'todos') {
+      // Si el administrador eligió filtrar por un cobrador específico
+      const targetCobrador = String(opciones.cobrador).toLowerCase().trim();
+      listaCompleta = listaCompleta.filter(c => {
+        const regC = (c.registrado_por_correo || '').toLowerCase().trim();
+        const regCed = String(c.registrado_por_cedula || '').trim();
+        const regNom = (c.registrado_por_nombre || '').toLowerCase().trim();
+        return regC === targetCobrador || regCed === targetCobrador || regNom.includes(targetCobrador);
+      });
+    }
+
     return listaCompleta;
   }
 
-  // 4. Si todo lo anterior falló o está sin conexión, devolver copia local
-  const locales = getLocalClientes();
+  // 4. Si todo lo anterior falló o está sin conexión, devolver copia local filtrada
+  let locales = getLocalClientes();
   locales.forEach(c => {
     if (!c.numero_factura) {
       const m = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
       c.numero_factura = m ? m[1] : generarCodigoFacturaUnico();
     }
   });
+
+  if (!esAdmin && sesionActual) {
+    locales = filtrarClientesPorCobrador(locales, sesionActual);
+  } else if (opciones.cobrador && opciones.cobrador !== 'todos') {
+    const targetCobrador = String(opciones.cobrador).toLowerCase().trim();
+    locales = locales.filter(c => {
+      const regC = (c.registrado_por_correo || '').toLowerCase().trim();
+      const regCed = String(c.registrado_por_cedula || '').trim();
+      const regNom = (c.registrado_por_nombre || '').toLowerCase().trim();
+      return regC === targetCobrador || regCed === targetCobrador || regNom.includes(targetCobrador);
+    });
+  }
+
   return locales;
 }
 
@@ -723,6 +839,14 @@ export async function buscarClientePorDocumento(documento) {
   }
 
   if (!cliente || esRegistroExcluido(cliente.nombre, cliente.documento, cliente.estado)) return null;
+
+  // Validación de cartera para cobradores (no pueden ver clientes de otros cobradores):
+  const sesion = obtenerSesionActiva();
+  if (sesion && !esUsuarioAdmin(sesion)) {
+    if (!clientePerteneceACobrador(cliente, sesion)) {
+      return null;
+    }
+  }
 
   // Garantizar número de factura
   if (!cliente.numero_factura) {
@@ -837,6 +961,9 @@ export async function registrarPago(pago) {
  */
 export async function obtenerResumenDashboard() {
   const hoyStr = new Date().toISOString().split('T')[0];
+  const sesion = obtenerSesionActiva();
+  const esAdmin = esUsuarioAdmin(sesion);
+
   let totalClientes = 0;
   let prestamosActivos = 0;
   let pagosDelDia = 0;
@@ -850,8 +977,12 @@ export async function obtenerResumenDashboard() {
 
   // 1. Intentar primero a través de las rutas API del servidor
   try {
+    const urlCli = (!esAdmin && sesion) 
+      ? `/api/clientes?cobrador=${encodeURIComponent(sesion.correo || sesion.cedula || '')}`
+      : '/api/clientes';
+
     const [resCli, resPagos] = await Promise.all([
-      fetch('/api/clientes'),
+      fetch(urlCli),
       fetch('/api/pagos')
     ]);
 
@@ -902,18 +1033,31 @@ export async function obtenerResumenDashboard() {
   // 3. Procesar datos (excluyendo cualquier dato demo o predeterminado o eliminado)
   if (clientes && Array.isArray(clientes)) {
     exitoRemoto = true;
-    const clientesReales = clientes.filter(c => 
+    let clientesReales = clientes.filter(c => 
       c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
+
+    // AISLAMIENTO DE DASHBOARD PARA CADA COBRADOR:
+    if (!esAdmin && sesion) {
+      clientesReales = filtrarClientesPorCobrador(clientesReales, sesion);
+    }
+
     totalClientes = clientesReales.length;
     saldoPendiente = clientesReales.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
     prestamosActivos = clientesReales.filter(c => Number(c.monto_deuda) > 0 || c.estado === 'Activo').length;
   }
 
   if (pagos && Array.isArray(pagos)) {
-    const pagosReales = pagos.filter(p => 
+    let pagosReales = pagos.filter(p => 
       p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
     );
+
+    // Si es cobrador, mostrar únicamente pagos de sus propios clientes
+    if (!esAdmin && sesion) {
+      const clientesDelCobrador = clientes ? filtrarClientesPorCobrador(clientes, sesion) : [];
+      const docsCobrador = new Set(clientesDelCobrador.map(c => String(c.documento || '').trim()));
+      pagosReales = pagosReales.filter(p => docsCobrador.has(String(p.documento || '').trim()));
+    }
 
     const pagosHoy = pagosReales.filter(p => p.fecha === hoyStr);
     pagosDelDia = pagosHoy.length;
@@ -930,12 +1074,20 @@ export async function obtenerResumenDashboard() {
 
   // 4. Si no se pudo conectar con la base de datos, recurrir al almacenamiento local limpio
   if (!exitoRemoto) {
-    const clientesLocales = getLocalClientes();
+    let clientesLocales = getLocalClientes();
+    if (!esAdmin && sesion) {
+      clientesLocales = filtrarClientesPorCobrador(clientesLocales, sesion);
+    }
     totalClientes = clientesLocales.length;
     saldoPendiente = clientesLocales.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
     prestamosActivos = clientesLocales.filter(c => Number(c.monto_deuda) > 0 || c.estado === 'Activo').length;
 
-    const pagosLocales = getLocalPagos();
+    let pagosLocales = getLocalPagos();
+    if (!esAdmin && sesion) {
+      const docsCobrador = new Set(clientesLocales.map(c => String(c.documento || '').trim()));
+      pagosLocales = pagosLocales.filter(p => docsCobrador.has(String(p.documento || '').trim()));
+    }
+
     const pagosHoy = pagosLocales.filter(p => p.fecha === hoyStr);
     pagosDelDia = pagosHoy.length;
     montoPagosHoy = pagosHoy.reduce((acc, p) => acc + (Number(p.monto) || 0), 0);
@@ -949,13 +1101,47 @@ export async function obtenerResumenDashboard() {
     }));
   }
 
+  // 5. Clientes agregados recientemente (ordenados del más reciente al más antiguo)
+  const listaParaRecientes = (exitoRemoto && clientes && Array.isArray(clientes))
+    ? (esAdmin ? clientes : filtrarClientesPorCobrador(clientes, sesion))
+    : (esAdmin ? getLocalClientes() : filtrarClientesPorCobrador(getLocalClientes(), sesion));
+
+  const clientesRecientes = (listaParaRecientes || [])
+    .filter(c => c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado))
+    .slice()
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    .slice(0, 10)
+    .map(c => ({
+      id: c.id,
+      nombre: c.nombre || 'Cliente sin nombre',
+      primer_nombre: c.primer_nombre,
+      primer_apellido: c.primer_apellido,
+      documento: c.documento,
+      telefono: c.telefono || 'Sin teléfono',
+      correo: c.correo || 'Sin correo',
+      registrado_por: c.registrado_por_nombre || 'Asesor responsable',
+      cobrador_id: c.cobrador_id,
+      monto_capital: Number(c.monto_capital) || Number(c.monto_deuda) || 0,
+      monto_deuda: Number(c.monto_deuda) || 0,
+      tasa_interes: Number(c.tasa_interes) || 0,
+      situacion_laboral: c.situacion_laboral || 'Laburando',
+      estado: c.estado || 'Activo',
+      numero_factura: c.numero_factura || 'Factura emitida',
+      created_at: c.created_at || new Date().toISOString()
+    }));
+
+  // 6. Obtener lista de registros eliminados de la base de datos (auditoría en tiempo real)
+  const registrosEliminados = await obtenerRegistrosEliminados();
+
   return {
     totalClientes,
     prestamosActivos,
     pagosDelDia,
     montoPagosHoy,
     saldoPendiente,
-    ultimosMovimientos
+    ultimosMovimientos,
+    clientesRecientes,
+    registrosEliminados
   };
 }
 
@@ -1431,6 +1617,89 @@ export async function obtenerUsuarios() {
   );
 }
 
+// ----------------------------------------------------------
+// AUDITORÍA DE REGISTROS ELIMINADOS DE LA BASE DE DATOS
+// ----------------------------------------------------------
+export const AUDITORIA_ELIMINADOS_KEY = 'sistema_auditoria_eliminados';
+
+export function getAuditoriaEliminados() {
+  if (typeof window === 'undefined' || !window.localStorage) return [];
+  try {
+    const raw = window.localStorage.getItem(AUDITORIA_ELIMINADOS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function setAuditoriaEliminados(lista) {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    window.localStorage.setItem(AUDITORIA_ELIMINADOS_KEY, JSON.stringify(lista));
+  } catch (e) {}
+}
+
+export function registrarEliminacion({ tipo, nombre, documento, detalle, cobrador, eliminado_por, fecha }) {
+  const registro = {
+    id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    tipo: tipo || 'Cliente',
+    nombre: String(nombre || 'Sin nombre').trim(),
+    documento: String(documento || '-').trim(),
+    detalle: String(detalle || '').trim(),
+    cobrador: String(cobrador || '').trim(),
+    eliminado_por: String(eliminado_por || 'Administrador').trim(),
+    fecha: fecha || new Date().toISOString(),
+    estado: 'Eliminado'
+  };
+
+  const lista = getAuditoriaEliminados();
+  lista.unshift(registro);
+  setAuditoriaEliminados(lista.slice(0, 50));
+
+  // Notificar al backend
+  fetch('/api/eliminados', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(registro)
+  }).catch(() => {});
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('registro_eliminado', { detail: registro }));
+  }
+
+  return registro;
+}
+
+export async function obtenerRegistrosEliminados() {
+  let remotos = [];
+  try {
+    const res = await fetch('/api/eliminados');
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.ok && Array.isArray(json.data)) {
+        remotos = json.data;
+      }
+    }
+  } catch (e) {}
+
+  const locales = getAuditoriaEliminados();
+  const mapa = new Map();
+  locales.forEach(item => {
+    if (item && (item.documento || item.id)) {
+      mapa.set(item.id || `${item.documento}-${item.fecha}`, item);
+    }
+  });
+  remotos.forEach(item => {
+    if (item && (item.documento || item.id)) {
+      mapa.set(item.id || `${item.documento}-${item.fecha}`, item);
+    }
+  });
+
+  const combinados = Array.from(mapa.values());
+  combinados.sort((a, b) => new Date(b.fecha || 0).getTime() - new Date(a.fecha || 0).getTime());
+  return combinados;
+}
+
 /**
  * Elimina un cobrador o usuario de forma definitiva de la base de datos (Supabase y servidor)
  * y del almacenamiento local y credenciales.
@@ -1521,6 +1790,20 @@ export async function eliminarUsuario(param) {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('usuarios_actualizados', { detail: { correo: emailClean, id, cedula } }));
   }
+
+  // 5. Registrar en auditoría de bajas
+  const sesionActiva = obtenerSesionActiva();
+  const ejecutor = sesionActiva?.nombre ? `${sesionActiva.nombre} (${sesionActiva.rol || 'Administrador'})` : 'Administrador';
+
+  registrarEliminacion({
+    tipo: 'Cobrador / Usuario',
+    nombre: correo || cedula || id,
+    documento: cedula || correo || id,
+    detalle: 'Usuario / Cobrador dado de baja de la base de datos',
+    cobrador: correo || cedula,
+    eliminado_por: ejecutor,
+    fecha: new Date().toISOString()
+  });
 
   return { ok: true, mensaje: 'Usuario/cobrador eliminado de la base de datos.' };
 }
@@ -1621,6 +1904,24 @@ export async function eliminarClientePorDocumento({ documento, password }) {
       console.warn('Aviso eliminación remota Supabase:', err.message);
     }
   }
+
+  // 5. Registrar en la auditoría de bajas de la base de datos
+  const sesionActiva = obtenerSesionActiva();
+  const ejecutor = sesionActiva?.nombre ? `${sesionActiva.nombre} (${sesionActiva.rol || 'Administrador'})` : 'Administrador';
+
+  const nomCli = clienteAEliminar?.nombre || (typeof cliente === 'object' && cliente?.nombre) || `Cliente C.C. ${docClean}`;
+  const deudaCli = (clienteAEliminar?.monto_deuda || cliente?.monto_deuda);
+  const cobCli = clienteAEliminar?.registrado_por_nombre || cliente?.registrado_por_nombre || 'Asesor responsable';
+
+  registrarEliminacion({
+    tipo: 'Cliente',
+    nombre: nomCli,
+    documento: docClean,
+    detalle: deudaCli ? `Deuda pendiente: $${Number(deudaCli).toLocaleString('es-CO')} COP` : 'Al día / Crédito cancelado',
+    cobrador: cobCli,
+    eliminado_por: ejecutor,
+    fecha: new Date().toISOString()
+  });
 
   return {
     ok: true,
@@ -1842,8 +2143,13 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
     const sessionData = {
       id: usuarioAutenticado?.id || adminEncontrado?.id || `usr-${Date.now()}`,
       nombre: usuarioAutenticado?.nombre || adminEncontrado?.nombre || correoAdmin.split('@')[0],
+      primer_nombre: usuarioAutenticado?.primer_nombre || adminEncontrado?.primer_nombre || credsAdmin?.primer_nombre || '',
+      segundo_nombre: usuarioAutenticado?.segundo_nombre || adminEncontrado?.segundo_nombre || credsAdmin?.segundo_nombre || '',
+      primer_apellido: usuarioAutenticado?.primer_apellido || adminEncontrado?.primer_apellido || credsAdmin?.primer_apellido || '',
+      segundo_apellido: usuarioAutenticado?.segundo_apellido || adminEncontrado?.segundo_apellido || credsAdmin?.segundo_apellido || '',
       correo: correoAdmin,
       cedula: cedulaAdmin,
+      telefono: usuarioAutenticado?.telefono || adminEncontrado?.telefono || credsAdmin?.telefono || '',
       rol: 'Administrador'
     };
 
@@ -1880,10 +2186,17 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
         });
         if (!error && data?.user) {
           contrasenaValida = true;
+          const meta = data.user.user_metadata || {};
           cobradorEncontrado = {
             id: data.user.id,
-            nombre: data.user.user_metadata?.nombre || emailClean.split('@')[0],
+            nombre: meta.nombre || emailClean.split('@')[0],
+            primer_nombre: meta.primer_nombre || '',
+            segundo_nombre: meta.segundo_nombre || '',
+            primer_apellido: meta.primer_apellido || '',
+            segundo_apellido: meta.segundo_apellido || '',
             correo: emailClean,
+            cedula: meta.cedula || '',
+            telefono: meta.telefono || '',
             rol: 'Cobrador'
           };
         }
@@ -1900,7 +2213,7 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
         const creds = obtenerCredencialesUsuario(u.correo);
         if (creds && creds.password === pwdTrim) {
           contrasenaValida = true;
-          cobradorEncontrado = { ...u, rol: 'Cobrador' };
+          cobradorEncontrado = { ...u, ...creds, rol: 'Cobrador' };
         }
       }
     }
@@ -1912,11 +2225,31 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
       };
     }
 
+    // Enriquecer con datos del directorio de usuarios
+    const uMatch = usuarios.find(usr =>
+      (usr.correo && usr.correo.toLowerCase() === (cobradorEncontrado?.correo || emailClean).toLowerCase()) ||
+      (usr.cedula && String(usr.cedula).trim() === String(cobradorEncontrado?.cedula || idClean).trim())
+    );
+    if (uMatch) {
+      cobradorEncontrado = { ...uMatch, ...cobradorEncontrado };
+    }
+
+    const pNom = cobradorEncontrado?.primer_nombre || '';
+    const sNom = cobradorEncontrado?.segundo_nombre || '';
+    const pApe = cobradorEncontrado?.primer_apellido || '';
+    const sApe = cobradorEncontrado?.segundo_apellido || '';
+    const nomComp = [pNom, sNom, pApe, sApe].filter(Boolean).join(' ').trim();
+
     const sessionData = {
       id: cobradorEncontrado?.id || `usr-${Date.now()}`,
-      nombre: cobradorEncontrado?.nombre || emailClean.split('@')[0],
+      nombre: nomComp || cobradorEncontrado?.nombre || emailClean.split('@')[0],
+      primer_nombre: pNom,
+      segundo_nombre: sNom,
+      primer_apellido: pApe,
+      segundo_apellido: sApe,
       correo: cobradorEncontrado?.correo || (emailClean.includes('@') ? emailClean : `${emailClean}@cobros.com`),
       cedula: cobradorEncontrado?.cedula || (!emailClean.includes('@') ? emailClean : ''),
+      telefono: cobradorEncontrado?.telefono || '',
       rol: 'Cobrador'
     };
 
@@ -1933,4 +2266,6 @@ if (typeof window !== 'undefined') {
   window.guardarFacturaEnHistorico = guardarFacturaEnHistorico;
   window.obtenerHistoricoFacturas = obtenerHistoricoFacturas;
   window.obtenerFacturaPorIdentificador = obtenerFacturaPorIdentificador;
+  window.clientePerteneceACobrador = clientePerteneceACobrador;
+  window.filtrarClientesPorCobrador = filtrarClientesPorCobrador;
 }

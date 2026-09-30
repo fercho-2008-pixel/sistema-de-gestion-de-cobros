@@ -22,6 +22,7 @@ const inMemoryClientes = new Map();
 const inMemoryPagos = [];
 const inMemoryUsuarios = new Map();
 const inMemoryFacturas = new Map();
+const inMemoryEliminados = [];
 const setCodigosFacturas = new Set();
 
 // Generador de código único de factura (8 letras con mayúsculas y minúsculas + 5 números)
@@ -435,6 +436,24 @@ app.delete('/api/clientes/:documento', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Documento no especificado.' });
     }
 
+    const clientePrevio = inMemoryClientes.get(doc) || req.body?.cliente;
+    const eliminadoPor = req.body?.eliminado_por || req.query?.eliminado_por || 'Administrador';
+
+    // Registrar en historial de eliminaciones (auditoría)
+    const entradaEliminado = {
+      id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      tipo: 'Cliente',
+      nombre: clientePrevio?.nombre || `Cliente C.C. ${doc}`,
+      documento: doc,
+      detalle: clientePrevio?.monto_deuda ? `Deuda pendiente: $${Number(clientePrevio.monto_deuda).toLocaleString('es-CO')} COP` : 'Al día',
+      cobrador: clientePrevio?.registrado_por_nombre || 'Asesor responsable',
+      eliminado_por: eliminadoPor,
+      fecha: new Date().toISOString(),
+      estado: 'Eliminado'
+    };
+    inMemoryEliminados.unshift(entradaEliminado);
+    if (inMemoryEliminados.length > 100) inMemoryEliminados.pop();
+
     // Eliminar de memoria
     inMemoryClientes.delete(doc);
     const pagosIdx = inMemoryPagos.findIndex(p => String(p.documento).trim() === doc);
@@ -448,10 +467,45 @@ app.delete('/api/clientes/:documento', async (req, res) => {
       console.warn('Nota al eliminar de Supabase:', e.message);
     }
 
-    return res.json({ ok: true, mensaje: 'Cliente eliminado correctamente.' });
+    return res.json({ ok: true, mensaje: 'Cliente eliminado correctamente.', eliminado: entradaEliminado });
   } catch (err) {
     console.error('Error servidor DELETE /api/clientes:', err);
     return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// ---------------------------------------------------------
+// RUTAS DE AUDITORÍA: REGISTRO DE ELIMINADOS DE LA BASE DE DATOS
+// ---------------------------------------------------------
+app.get('/api/eliminados', (req, res) => {
+  return res.json({ ok: true, data: inMemoryEliminados });
+});
+
+app.post('/api/eliminados', (req, res) => {
+  try {
+    const registro = req.body;
+    if (!registro) return res.status(400).json({ ok: false, error: 'Datos no proporcionados' });
+
+    const entrada = {
+      id: registro.id || `del-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      tipo: registro.tipo || 'Cliente',
+      nombre: String(registro.nombre || 'Sin nombre').trim(),
+      documento: String(registro.documento || '').trim(),
+      detalle: String(registro.detalle || '').trim(),
+      cobrador: String(registro.cobrador || '').trim(),
+      eliminado_por: String(registro.eliminado_por || 'Administrador').trim(),
+      fecha: registro.fecha || new Date().toISOString(),
+      estado: 'Eliminado'
+    };
+
+    const idx = inMemoryEliminados.findIndex(e => e.id === entrada.id || (e.documento === entrada.documento && e.fecha === entrada.fecha));
+    if (idx === -1) {
+      inMemoryEliminados.unshift(entrada);
+      if (inMemoryEliminados.length > 100) inMemoryEliminados.pop();
+    }
+    return res.json({ ok: true, data: entrada });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
   }
 });
 
@@ -591,6 +645,31 @@ app.delete('/api/usuarios/:identificador', async (req, res) => {
     }
 
     const identLower = ident.toLowerCase();
+
+    // Registrar en auditoría de bajas
+    let usuarioPrevio = inMemoryUsuarios.get(identLower) || req.body?.usuario;
+    if (!usuarioPrevio) {
+      for (const u of inMemoryUsuarios.values()) {
+        if (u.id === ident || String(u.cedula || '').trim() === ident || String(u.correo || '').toLowerCase() === identLower) {
+          usuarioPrevio = u;
+          break;
+        }
+      }
+    }
+
+    const entradaUsuarioEliminado = {
+      id: `del-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      tipo: 'Cobrador / Usuario',
+      nombre: usuarioPrevio?.nombre || ident,
+      documento: usuarioPrevio?.cedula || usuarioPrevio?.correo || ident,
+      detalle: `Cargo: ${usuarioPrevio?.rol || 'Cobrador'}`,
+      cobrador: usuarioPrevio?.nombre || '',
+      eliminado_por: req.body?.eliminado_por || req.query?.eliminado_por || 'Administrador Principal',
+      fecha: new Date().toISOString(),
+      estado: 'Eliminado'
+    };
+    inMemoryEliminados.unshift(entradaUsuarioEliminado);
+    if (inMemoryEliminados.length > 100) inMemoryEliminados.pop();
 
     // 1. Eliminar del almacenamiento en memoria
     if (inMemoryUsuarios.has(identLower)) {

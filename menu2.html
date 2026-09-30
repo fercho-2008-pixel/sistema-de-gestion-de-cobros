@@ -250,7 +250,7 @@
         statPagos.textContent = `${data.pagosDelDia} ($${data.montoPagosHoy.toLocaleString('es-CO')})`;
         statSaldo.textContent = `$${data.saldoPendiente.toLocaleString('es-CO')}`;
 
-        // Renderizar tabla
+        // Renderizar tabla de movimientos recientes (pagos)
         if (data.ultimosMovimientos && data.ultimosMovimientos.length > 0) {
           tablaMovimientos.innerHTML = data.ultimosMovimientos.map(m => `
             <tr>

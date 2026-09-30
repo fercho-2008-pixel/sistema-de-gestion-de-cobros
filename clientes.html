@@ -10,12 +10,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- html2pdf CDN para descarga de facturas en 1 sola hoja -->
+  <!-- Librerías de renderizado y generación de PDF en 1 sola hoja -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
   <style>
     /* Estilos para impresión de factura de 1 hoja en Directorio */
     @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
       body * {
         visibility: hidden !important;
       }
@@ -610,13 +616,13 @@
       <div class="topbar">
         <div>
           <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
-            <h2 style="margin:0;">Directorio y Gestión General</h2>
+            <h2 id="tituloPrincipalClientes" style="margin:0;">Directorio y Gestión General</h2>
             <span id="badgeSupabaseSync" style="display:inline-flex; align-items:center; gap:6px; background:#ecfdf5; border:1px solid #a7f3d0; color:#065f46; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:700;">
               <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
               <span id="lblSupabaseStatus">Supabase: Conectado</span>
             </span>
           </div>
-          <p style="margin-top:4px;">Todos los clientes registrados en la base de datos de Supabase organizados en tiempo real</p>
+          <p id="subtituloPrincipalClientes" style="margin-top:4px;">Todos los clientes registrados en la base de datos de Supabase organizados en tiempo real</p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
           <button class="btn" id="btnRecargarDatos" style="background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; box-shadow:none;">
@@ -706,6 +712,10 @@
               <option value="con_deuda">Solo con deuda</option>
               <option value="al_dia">Solo al día ($0)</option>
             </select>
+
+            <select id="selectFiltroCobrador" class="select-orden" style="display:none; font-weight:600; color:#1d4ed8; background:#eff6ff; border-color:#bfdbfe;">
+              <option value="todos">👤 Todos los cobradores</option>
+            </select>
           </div>
         </div>
 
@@ -734,7 +744,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #f1f5f9;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="width:8px; height:8px; border-radius:50%; background:#2563eb; display:inline-block;"></span>
-              <h3 style="margin:0; font-size:1.02rem; color:#0f172a; font-weight:700;">Listado General de Clientes</h3>
+              <h3 id="tituloListadoClientes" style="margin:0; font-size:1.02rem; color:#0f172a; font-weight:700;">Listado General de Clientes</h3>
             </div>
             <span id="lblConteoResultados" style="font-size:0.8rem; font-weight:600; color:#1e40af; background:#eff6ff; padding:3px 10px; border-radius:999px; border:1px solid #bfdbfe;">Mostrando 0 clientes</span>
           </div>
@@ -1306,33 +1316,33 @@
     const sesion = obtenerSesionActiva();
     const esAdmin = esUsuarioAdmin(sesion);
 
-    // RESTRICCIÓN DE SEGURIDAD: Solo el Administrador puede ver el Directorio de Clientes
-    if (!esAdmin) {
-      document.body.innerHTML = `
-        <div style="display:flex; justify-content:center; align-items:center; min-height:100vh; font-family:'Manrope', -apple-system, BlinkMacSystemFont, sans-serif; background:#0b192c; color:#fff; padding:24px;">
-          <div style="background:#0F2749; border:1px solid #1e3a8a; border-radius:16px; padding:36px; max-width:480px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
-            <div style="font-size:3.5rem; margin-bottom:12px;">🔒</div>
-            <h2 style="margin:0 0 12px 0; font-size:1.4rem; color:#f8fafc;">Acceso Exclusivo para Administrador</h2>
-            <p style="color:#94a3b8; font-size:0.95rem; line-height:1.6; margin-bottom:24px;">
-              El <strong>Directorio de Clientes</strong> es una función restringida a Administradores. Tu cuenta actual tiene el rol de <strong>Cobrador</strong>.
-            </p>
-            <a href="menu2.html" style="display:inline-block; background:#2563eb; color:#ffffff; font-weight:700; padding:12px 28px; border-radius:8px; text-decoration:none; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
-              ← Regresar al Panel Principal
-            </a>
-          </div>
-        </div>
-      `;
-      setTimeout(() => {
-        window.location.replace('menu2.html');
-      }, 2500);
-      throw new Error('Acceso no autorizado: Rol Cobrador no tiene permisos para el directorio de clientes.');
+    // Configuración según el Rol: Cobrador vs Administrador
+    const tabTrabajadores = document.getElementById('tabBtnTrabajadores');
+    const menuUsuariosLink = document.getElementById('menuLinkUsuarios');
+    const tituloPrincipal = document.getElementById('tituloPrincipalClientes');
+    const subtituloPrincipal = document.getElementById('subtituloPrincipalClientes');
+    const tituloListado = document.getElementById('tituloListadoClientes');
+    const selectFiltroCobrador = document.getElementById('selectFiltroCobrador');
+
+    if (!esAdmin && sesion) {
+      // Para Cobrador: Mostrar solo sus propios clientes y ocultar pestañas de gestión interna
+      if (tabTrabajadores) tabTrabajadores.style.display = 'none';
+      if (menuUsuariosLink) menuUsuariosLink.style.display = 'none';
+      if (tituloPrincipal) tituloPrincipal.textContent = 'Mis Clientes Asignados';
+      if (subtituloPrincipal) subtituloPrincipal.textContent = `Cartera privada de cobranza para ${sesion.nombre || 'el cobrador'}. Solo puedes ver y gestionar tus propios clientes.`;
+      if (tituloListado) tituloListado.textContent = `Tabla de Clientes de ${sesion.nombre || 'mi cartera'}`;
+    } else {
+      // Para Administrador: Permite ver todos los clientes y además filtrar por cartera de cobrador
+      if (tituloPrincipal) tituloPrincipal.textContent = 'Directorio General de Clientes';
+      if (subtituloPrincipal) subtituloPrincipal.textContent = 'Consulta, búsqueda y administración de todas las carteras de clientes y cobradores.';
+      if (selectFiltroCobrador) selectFiltroCobrador.style.display = 'inline-block';
     }
 
     if (sesion) {
       const lblNombre = document.getElementById('lblUsuarioNombre');
       const lblRol = document.getElementById('lblUsuarioRol');
       if (lblNombre) lblNombre.textContent = sesion.nombre || sesion.correo.split('@')[0];
-      if (lblRol) lblRol.textContent = sesion.rol || 'Administrador';
+      if (lblRol) lblRol.textContent = sesion.rol || (esAdmin ? 'Administrador' : 'Cobrador');
     }
 
     // Cerrar sesión
@@ -1461,21 +1471,118 @@
       window.print();
     });
 
+    // Descarga directa en PDF en 1 sola hoja de alta fidelidad (sin hoja en blanco)
     btnDescargarPDFDir?.addEventListener('click', async () => {
       const el = document.getElementById('facturaImprimibleDir');
       if (!el || !clienteSeleccionadoFactura) return;
+
+      const numFac = clienteSeleccionadoFactura.numero_factura || 'Factura';
+      const docCli = clienteSeleccionadoFactura.documento || 'Cliente';
+      const nombreArchivo = `Factura_${numFac}_${docCli}.pdf`;
+
       btnDescargarPDFDir.disabled = true;
-      btnDescargarPDFDir.textContent = 'Generando PDF...';
+      btnDescargarPDFDir.textContent = '⏳ Generando PDF oficial...';
+
+      // 1. Clonar el elemento de factura para renderizarlo aislado sin interferencia de scroll ni modal
+      const clon = el.cloneNode(true);
+
+      const wrapper = document.createElement('div');
+      wrapper.id = 'temp-pdf-render-box-dir';
+      wrapper.style.position = 'fixed';
+      wrapper.style.top = '0';
+      wrapper.style.left = '0';
+      wrapper.style.width = '794px';
+      wrapper.style.zIndex = '-99999';
+      wrapper.style.background = '#ffffff';
+      wrapper.style.color = '#0f172a';
+      wrapper.style.margin = '0';
+      wrapper.style.padding = '0';
+      wrapper.style.boxSizing = 'border-box';
+      wrapper.style.overflow = 'visible';
+      wrapper.style.pointerEvents = 'none';
+
+      clon.style.width = '794px';
+      clon.style.maxWidth = '794px';
+      clon.style.minWidth = '794px';
+      clon.style.background = '#ffffff';
+      clon.style.color = '#0f172a';
+      clon.style.padding = '22px 26px';
+      clon.style.boxSizing = 'border-box';
+      clon.style.margin = '0';
+      clon.style.boxShadow = 'none';
+      clon.style.border = 'none';
+
+      clon.querySelectorAll('.no-print').forEach(nodo => nodo.remove());
+
+      wrapper.appendChild(clon);
+      document.body.appendChild(wrapper);
+
       try {
-        if (typeof window.html2pdf !== 'undefined') {
+        if (document.fonts && document.fonts.ready) {
+          try { await document.fonts.ready; } catch (e) {}
+        }
+        await new Promise(resolve => setTimeout(resolve, 120));
+
+        const h2c = window.html2canvas;
+        const jsPdfLib = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : window.jsPDF;
+
+        if (h2c && jsPdfLib) {
+          const canvas = await h2c(clon, {
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            scrollY: 0,
+            scrollX: 0,
+            windowWidth: 800,
+            backgroundColor: '#ffffff'
+          });
+
+          if (!canvas || canvas.width === 0 || canvas.height === 0) {
+            throw new Error('Canvas render retornó dimensiones inválidas');
+          }
+
+          const imgData = canvas.toDataURL('image/jpeg', 0.98);
+          const pdf = new jsPdfLib({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'letter'
+          });
+
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          const margin = 5;
+          const maxW = pageWidth - (margin * 2);
+          const maxH = pageHeight - (margin * 2);
+
+          let renderW = maxW;
+          let renderH = (canvas.height * renderW) / canvas.width;
+
+          if (renderH > maxH) {
+            renderH = maxH;
+            renderW = (canvas.width * renderH) / canvas.height;
+          }
+
+          const posX = margin + ((maxW - renderW) / 2);
+          const posY = margin;
+
+          pdf.addImage(imgData, 'JPEG', posX, posY, renderW, renderH);
+          pdf.save(nombreArchivo);
+        } else if (typeof window.html2pdf !== 'undefined') {
           const opt = {
-            margin: [6, 6, 6, 6],
-            filename: `Factura_${clienteSeleccionadoFactura.numero_factura || 'Factura'}_${clienteSeleccionadoFactura.documento}.pdf`,
+            margin: [5, 5, 5, 5],
+            filename: nombreArchivo,
             image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              scrollY: 0,
+              scrollX: 0,
+              backgroundColor: '#ffffff'
+            },
             jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
           };
-          await window.html2pdf().set(opt).from(el).save();
+          await window.html2pdf().set(opt).from(clon).save();
         } else {
           window.print();
         }
@@ -1483,6 +1590,9 @@
         console.error('Error generando PDF en directorio:', e);
         window.print();
       } finally {
+        if (wrapper && wrapper.parentNode) {
+          wrapper.parentNode.removeChild(wrapper);
+        }
         btnDescargarPDFDir.disabled = false;
         btnDescargarPDFDir.textContent = '📥 Descargar Factura (PDF)';
       }
@@ -1613,6 +1723,40 @@
           }
         });
 
+        // Si es Administrador, poblar selector de cobradores para filtrar carteras individuales
+        if (esAdmin && selectFiltroCobrador) {
+          const cobradoresMapa = new Map();
+          listaClientesOriginal.forEach(c => {
+            const nom = (c.registrado_por_nombre || '').trim();
+            const cor = (c.registrado_por_correo || '').toLowerCase().trim();
+            if (cor || nom) {
+              const key = cor || nom;
+              const label = nom ? `${nom} (${cor || 'Cobrador'})` : cor;
+              cobradoresMapa.set(key, label);
+            }
+          });
+
+          try {
+            const usuarios = await obtenerUsuarios();
+            usuarios.forEach(u => {
+              if (u.correo && (u.rol || '').toLowerCase().includes('cobrador')) {
+                cobradoresMapa.set(u.correo.toLowerCase().trim(), `${u.nombre || 'Cobrador'} (${u.correo})`);
+              }
+            });
+          } catch (e) {}
+
+          const valorPrevio = selectFiltroCobrador.value;
+          selectFiltroCobrador.innerHTML = '<option value="todos">👤 Todos los cobradores (Ver cartera completa)</option>';
+          cobradoresMapa.forEach((label, key) => {
+            const opt = document.createElement('option');
+            opt.value = key;
+            opt.textContent = `👤 Cartera: ${label}`;
+            selectFiltroCobrador.appendChild(opt);
+          });
+          selectFiltroCobrador.value = valorPrevio || 'todos';
+          selectFiltroCobrador.onchange = aplicarFiltrosYOrden;
+        }
+
         actualizarMetricasClientes(listaClientesOriginal);
         aplicarFiltrosYOrden();
       } catch (err) {
@@ -1640,7 +1784,7 @@
 
       const lblStatus = document.getElementById('lblSupabaseStatus');
       if (lblStatus) {
-        lblStatus.textContent = `Supabase: ${total} clientes en BD`;
+        lblStatus.textContent = esAdmin ? `Supabase: ${total} clientes en BD` : `Cartera activa: ${total} clientes`;
       }
     }
 
@@ -1648,8 +1792,9 @@
       const termino = inputBuscar.value.toLowerCase().trim();
       const criterioOrden = selectOrden.value;
       const filtroEstado = selectFiltro.value;
+      const filtroCobradorVal = selectFiltroCobrador ? selectFiltroCobrador.value : 'todos';
 
-      // 1. Filtrado por texto
+      // 1. Filtrado por texto, estado y cobrador
       let filtrados = listaClientesOriginal.filter(c => {
         const nombre = (c.nombre || '').toLowerCase();
         const doc = String(c.documento || '').toLowerCase();
@@ -1667,7 +1812,17 @@
           matchEstado = deuda === 0;
         }
 
-        return matchTexto && matchEstado;
+        // Filtro por cobrador (solo aplica cuando el Administrador elige una cartera específica)
+        let matchCobrador = true;
+        if (esAdmin && filtroCobradorVal && filtroCobradorVal !== 'todos') {
+          const regC = (c.registrado_por_correo || '').toLowerCase().trim();
+          const regCed = String(c.registrado_por_cedula || '').trim();
+          const regNom = (c.registrado_por_nombre || '').toLowerCase().trim();
+          const obs = (c.observaciones || '').toLowerCase();
+          matchCobrador = regC === filtroCobradorVal || regCed === filtroCobradorVal || regNom.includes(filtroCobradorVal) || obs.includes(filtroCobradorVal);
+        }
+
+        return matchTexto && matchEstado && matchCobrador;
       });
 
       // 2. Ordenamiento
@@ -2030,7 +2185,8 @@
       try {
         const resultado = await eliminarClientePorDocumento({
           documento: clienteSeleccionadoParaEliminar.documento,
-          password: password
+          password: password,
+          cliente: clienteSeleccionadoParaEliminar
         });
 
         if (resultado.ok) {

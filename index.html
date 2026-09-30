@@ -150,7 +150,29 @@
 
           <div class="field">
             <label for="password" id="lblPassword">Contraseña del Administrador *</label>
-            <input id="password" class="input filled" type="password" placeholder="**********" required autocomplete="current-password" />
+            <div style="position:relative; width:100%; display:flex; align-items:center;">
+              <input id="password" class="input filled" type="password" placeholder="**********" required autocomplete="current-password" style="padding-right:44px;" />
+              <button
+                type="button"
+                id="btnTogglePassword"
+                title="Mostrar contraseña"
+                aria-label="Mostrar contraseña"
+                style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; color:#64748b; border-radius:6px; transition:color 0.15s, background-color 0.15s;"
+                onmouseover="this.style.color='#0f2749'; this.style.backgroundColor='#f1f5f9';"
+                onmouseout="this.style.color='#64748b'; this.style.backgroundColor='transparent';"
+              >
+                <!-- Icono Ojo (Visible cuando type='password') -->
+                <svg id="svgEyeOpen" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <!-- Icono Ojo Tachado (Visible cuando type='text') -->
+                <svg id="svgEyeClosed" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div class="row-between">
@@ -372,6 +394,26 @@
   const btnIniciar = document.getElementById('btnIniciarSesion');
   const loginMsg = document.getElementById('loginMsg');
   const inputLoginPassword = document.getElementById('password');
+  const btnTogglePassword = document.getElementById('btnTogglePassword');
+  const svgEyeOpen = document.getElementById('svgEyeOpen');
+  const svgEyeClosed = document.getElementById('svgEyeClosed');
+
+  // Alternar visibilidad de contraseña entre 'password' y 'text'
+  if (btnTogglePassword && inputLoginPassword) {
+    btnTogglePassword.addEventListener('click', (e) => {
+      e.preventDefault();
+      const esPassword = inputLoginPassword.type === 'password';
+      inputLoginPassword.type = esPassword ? 'text' : 'password';
+
+      if (svgEyeOpen && svgEyeClosed) {
+        svgEyeOpen.style.display = esPassword ? 'none' : 'block';
+        svgEyeClosed.style.display = esPassword ? 'block' : 'none';
+      }
+      btnTogglePassword.setAttribute('aria-label', esPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+      btnTogglePassword.setAttribute('title', esPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+      inputLoginPassword.focus();
+    });
+  }
 
   // Función para seleccionar modo y mostrar el formulario correspondiente
   function seleccionarModo(modo) {
@@ -431,6 +473,15 @@
     seccionElegirRol.style.display = 'block';
     loginMsg.style.display = 'none';
     inputLoginPassword.value = '';
+    inputLoginPassword.type = 'password';
+    if (svgEyeOpen && svgEyeClosed) {
+      svgEyeOpen.style.display = 'block';
+      svgEyeClosed.style.display = 'none';
+    }
+    if (btnTogglePassword) {
+      btnTogglePassword.setAttribute('aria-label', 'Mostrar contraseña');
+      btnTogglePassword.setAttribute('title', 'Mostrar contraseña');
+    }
     inputCorreoAdmin.value = '';
     inputCedulaAdmin.value = '';
     inputCorreoCobrador.value = '';
