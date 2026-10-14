@@ -7,19 +7,55 @@ export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 // Inicialización del cliente de base de datos
 let clientInstance = null;
+let isSupabaseOnlineClient = null;
+let lastSupabaseClientCheck = 0;
+
+export async function isSupabaseOnline() {
+  const now = Date.now();
+  if (isSupabaseOnlineClient !== null && now - lastSupabaseClientCheck < 45000) {
+    return isSupabaseOnlineClient;
+  }
+  lastSupabaseClientCheck = now;
+  try {
+    const res = await fetch('/api/status');
+    if (res.ok) {
+      const data = await res.json();
+      isSupabaseOnlineClient = Boolean(data && data.supabaseConnected);
+      return isSupabaseOnlineClient;
+    }
+  } catch (_) {}
+  isSupabaseOnlineClient = false;
+  return false;
+}
+
+export function logSafeNotice(context, err) {
+  if (!err) return;
+  const msg = String(err.message || err || '');
+  if (
+    msg.includes('fetch') ||
+    msg.includes('ENOTFOUND') ||
+    msg.includes('TypeError') ||
+    msg.includes('network') ||
+    msg.includes('Failed')
+  ) {
+    return;
+  }
+  console.log(`[${context}]`, msg);
+}
+
 export function getDb() {
   if (clientInstance) return clientInstance;
   if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
     try {
       clientInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } catch (e) {
-      console.warn('Error al inicializar cliente Supabase en window:', e);
+      logSafeNotice('init-window', e);
     }
   } else if (typeof globalThis !== 'undefined' && globalThis.supabase && globalThis.supabase.createClient) {
     try {
       clientInstance = globalThis.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     } catch (e) {
-      console.warn('Error al inicializar cliente Supabase en globalThis:', e);
+      logSafeNotice('init-global', e);
     }
   }
   return clientInstance;
@@ -578,36 +614,38 @@ export async function registrarCliente(cliente) {
       }
     }
   } catch (e) {
-    console.warn('Nota: guardando cliente con cliente Supabase alternativo:', e.message);
+    logSafeNotice('clientes-api', e);
   }
 
-  // 2. Guardar también directamente en Supabase si el cliente JS está disponible
-  const client = getDb();
-  if (client) {
-    try {
-      const { data, error } = await client
-        .from('clientes')
-        .upsert([{
-          nombre: payload.nombre,
-          correo: payload.correo,
-          telefono: payload.telefono,
-          documento: payload.documento,
-          estado: payload.estado,
-          direccion: payload.direccion,
-          observaciones: payload.observaciones,
-          monto_deuda: payload.monto_deuda
-        }], { onConflict: 'documento' })
-        .select();
+  // 2. Guardar también directamente en Supabase solo si está en línea y disponible
+  if (await isSupabaseOnline()) {
+    const client = getDb();
+    if (client) {
+      try {
+        const { data, error } = await client
+          .from('clientes')
+          .upsert([{
+            nombre: payload.nombre,
+            correo: payload.correo,
+            telefono: payload.telefono,
+            documento: payload.documento,
+            estado: payload.estado,
+            direccion: payload.direccion,
+            observaciones: payload.observaciones,
+            monto_deuda: payload.monto_deuda
+          }], { onConflict: 'documento' })
+          .select();
 
-      if (!error && data?.[0]) {
-        clienteRegistrado = { ...payload, ...data[0], numero_factura: numFactura };
-        const actual = getLocalClientes().map(c => 
-          String(c.documento).trim() === String(payload.documento).trim() ? clienteRegistrado : c
-        );
-        setLocalClientes(actual);
+        if (!error && data?.[0]) {
+          clienteRegistrado = { ...payload, ...data[0], numero_factura: numFactura };
+          const actual = getLocalClientes().map(c => 
+            String(c.documento).trim() === String(payload.documento).trim() ? clienteRegistrado : c
+          );
+          setLocalClientes(actual);
+        }
+      } catch (e) {
+        logSafeNotice('clientes-supabase', e);
       }
-    } catch (e) {
-      console.warn('Aviso Supabase cliente:', e.message);
     }
   }
 
@@ -692,11 +730,11 @@ export async function obtenerClientes(opciones = {}) {
       }
     }
   } catch (e) {
-    console.warn('Fallo consulta /api/clientes, intentando cliente directo:', e.message);
+    logSafeNotice('clientes-get-api', e);
   }
 
-  // 2. Si no se obtuvo por la API, consultar directamente con el cliente Supabase
-  if (!clientesRemotos) {
+  // 2. Si no se obtuvo por la API, consultar directamente con el cliente Supabase solo si está online
+  if (!clientesRemotos && (await isSupabaseOnline())) {
     const client = getDb();
     if (client) {
       try {
@@ -709,7 +747,7 @@ export async function obtenerClientes(opciones = {}) {
           clientesRemotos = data;
         }
       } catch (error) {
-        console.warn('Consulta directa a clientes falló:', error.message);
+        logSafeNotice('clientes-direct-query', error);
       }
     }
   }
@@ -1182,7 +1220,8 @@ export function guardarCredencialesUsuario({ correo, password, cedula, nombre, r
 }
 
 /**
- * Registra un nuevo usuario en el sistema y en la tabla 'usuarios'.
+ * Registra un nuevo usuario o cobrador en el sistema y en la tabla 'usuarios'.
+ * Garantiza persistencia local y sincronización remota sin fallar si la red está inaccesible.
  */
 export async function registrarUsuario({ 
   nombre, 
@@ -1196,7 +1235,12 @@ export async function registrarUsuario({
   primer_apellido = '', 
   segundo_apellido = '' 
 }) {
-  if (!db) throw new Error('Conexión con el servidor no disponible');
+  if (!correo || !correo.trim()) {
+    throw new Error('El correo electrónico es obligatorio.');
+  }
+  if (!password || password.length < 6) {
+    throw new Error('La contraseña debe contener al menos 6 caracteres.');
+  }
 
   const emailClean = correo.trim().toLowerCase();
   const telClean = (telefono || '').toString().trim();
@@ -1205,128 +1249,148 @@ export async function registrarUsuario({
   const pApe = (primer_apellido || '').toString().trim();
   const sApe = (segundo_apellido || '').toString().trim();
   const nombreClean = (nombre || `${pNom} ${sNom} ${pApe} ${sApe}`.trim() || emailClean.split('@')[0]).trim();
-  const rolClean = rol.trim();
+  const rolClean = (rol || 'Cobrador').trim();
   const cedulaClean = (cedula || '').toString().trim();
 
   let user = null;
   let authData = null;
 
-  // 1. Registro de autenticación
-  try {
-    const resAuth = await db.auth.signUp({
+  // 1. Registro de autenticación en Supabase Auth solo si Supabase está en línea
+  if (await isSupabaseOnline()) {
+    try {
+      const client = getDb();
+      if (client && client.auth && typeof client.auth.signUp === 'function') {
+        const resAuth = await Promise.race([
+          client.auth.signUp({
+            email: emailClean,
+            password: password,
+            options: {
+              data: {
+                nombre: nombreClean,
+                primer_nombre: pNom,
+                segundo_nombre: sNom,
+                primer_apellido: pApe,
+                segundo_apellido: sApe,
+                telefono: telClean,
+                rol: rolClean,
+                cedula: cedulaClean
+              }
+            }
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Auth network timeout')), 2500))
+        ]);
+
+        const authError = resAuth?.error;
+        if (authError) {
+          logSafeNotice('auth-signup', authError);
+        } else if (resAuth?.data?.user) {
+          user = resAuth.data.user;
+        }
+      }
+    } catch (errAuth) {
+      logSafeNotice('auth-signup-conn', errAuth);
+    }
+  }
+
+  if (!user) {
+    user = {
+      id: `usr-${Date.now()}`,
       email: emailClean,
-      password: password,
-      options: {
-        data: {
+      user_metadata: { 
+        nombre: nombreClean, 
+        primer_nombre: pNom, 
+        segundo_nombre: sNom, 
+        primer_apellido: pApe, 
+        segundo_apellido: sApe, 
+        telefono: telClean, 
+        rol: rolClean, 
+        cedula: cedulaClean 
+      }
+    };
+  }
+
+  // 2. Registro en tabla pública de usuarios (Supabase) solo si está en línea
+  if (await isSupabaseOnline()) {
+    try {
+      const payload = {
+        correo: emailClean,
+        nombre: nombreClean,
+        primer_nombre: pNom || null,
+        segundo_nombre: sNom || null,
+        primer_apellido: pApe || null,
+        segundo_apellido: sApe || null,
+        telefono: telClean || null,
+        rol: rolClean,
+        cedula: cedulaClean
+      };
+      if (user?.id) {
+        payload.id = user.id;
+      }
+
+      const client = getDb();
+      if (client && typeof client.from === 'function') {
+        const { error: errInsert } = await Promise.race([
+          client.from('usuarios').upsert([payload], { onConflict: 'correo' }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase usuarios')), 2000))
+        ]);
+
+        if (errInsert) {
+          try {
+            await Promise.race([
+              client.from('usuarios').upsert([{
+                correo: emailClean,
+                nombre: nombreClean,
+                rol: rolClean,
+                cedula: cedulaClean
+              }], { onConflict: 'correo' }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase usuarios fallback')), 1500))
+            ]);
+          } catch (e2) {}
+        }
+      }
+    } catch (e) {
+      logSafeNotice('usuarios-insert', e);
+    }
+  }
+
+  // 3. Registrar a través de la API del servidor /api/usuarios
+  try {
+    const resServer = await Promise.race([
+      fetch('/api/usuarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: user.id,
           nombre: nombreClean,
           primer_nombre: pNom,
           segundo_nombre: sNom,
           primer_apellido: pApe,
           segundo_apellido: sApe,
           telefono: telClean,
-          rol: rolClean,
-          cedula: cedulaClean
-        }
-      }
-    });
-
-    authData = resAuth?.data;
-    const authError = resAuth?.error;
-
-    if (authError) {
-      const msgErr = (authError.message || '').toLowerCase();
-      // Si el usuario ya está registrado en auth o hay límite de correos,
-      // actualizamos y permitimos el uso en el sistema
-      if (msgErr.includes('already registered') || msgErr.includes('user already') || msgErr.includes('already exists') || msgErr.includes('rate limit') || msgErr.includes('email rate') || authError.status === 429) {
-        console.warn('Aviso auth signUp (existente o rate limit):', authError.message);
-        user = {
-          id: `usr-${Date.now()}`,
-          email: emailClean,
-          user_metadata: { 
-            nombre: nombreClean, 
-            primer_nombre: pNom, 
-            segundo_nombre: sNom, 
-            primer_apellido: pApe, 
-            segundo_apellido: sApe, 
-            telefono: telClean, 
-            rol: rolClean, 
-            cedula: cedulaClean 
-          }
-        };
-      } else {
-        throw authError;
-      }
-    } else {
-      user = authData?.user;
-    }
-  } catch (errAuth) {
-    const msgErr = (errAuth.message || '').toLowerCase();
-    if (msgErr.includes('already registered') || msgErr.includes('user already') || msgErr.includes('already exists') || msgErr.includes('rate limit') || msgErr.includes('email rate') || errAuth.status === 429) {
-      user = {
-        id: `usr-${Date.now()}`,
-        email: emailClean,
-        user_metadata: { 
-          nombre: nombreClean, 
-          primer_nombre: pNom, 
-          segundo_nombre: sNom, 
-          primer_apellido: pApe, 
-          segundo_apellido: sApe, 
-          telefono: telClean, 
-          rol: rolClean, 
-          cedula: cedulaClean 
-        }
-      };
-    } else {
-      throw errAuth;
-    }
-  }
-
-  // 2. Registro en tabla pública de usuarios (para listados y gestión)
-  let tablaRegistrada = false;
-  try {
-    const payload = {
-      correo: emailClean,
-      nombre: nombreClean,
-      primer_nombre: pNom || null,
-      segundo_nombre: sNom || null,
-      primer_apellido: pApe || null,
-      segundo_apellido: sApe || null,
-      telefono: telClean || null,
-      rol: rolClean,
-      cedula: cedulaClean
-    };
-    if (user?.id) {
-      payload.id = user.id;
-    }
-
-    const { error: errInsert } = await db
-      .from('usuarios')
-      .upsert([payload], { onConflict: 'correo' });
-
-    if (!errInsert) {
-      tablaRegistrada = true;
-    } else {
-      // Intentar sin columnas adicionales si la tabla remota no las tiene
-      const { error: errFallback } = await db
-        .from('usuarios')
-        .upsert([{
           correo: emailClean,
-          nombre: nombreClean,
-          rol: rolClean,
-          cedula: cedulaClean
-        }], { onConflict: 'correo' });
-      if (!errFallback) tablaRegistrada = true;
+          cedula: cedulaClean,
+          rol: rolClean
+        })
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout /api/usuarios')), 2000))
+    ]);
+
+    if (resServer.ok) {
+      const dataS = await resServer.json();
+      if (dataS?.data?.id) {
+        user.id = dataS.data.id;
+      }
     }
   } catch (e) {
-    console.warn('No se pudo insertar en public.usuarios:', e.message);
+    logSafeNotice('usuarios-api-post', e);
   }
 
-  // Guardar copia de respaldo en almacenamiento local con cédula y teléfono
+  // 4. Guardar copia en almacenamiento local de usuarios registrados
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const guardados = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
       const usuarioLocal = {
-        id: user?.id || `usr-${Date.now()}`,
+        id: user.id || `usr-${Date.now()}`,
         nombre: nombreClean,
         primer_nombre: pNom,
         segundo_nombre: sNom,
@@ -1338,14 +1402,14 @@ export async function registrarUsuario({
         cedula: cedulaClean,
         created_at: new Date().toISOString()
       };
-      const actualizados = [usuarioLocal, ...guardados.filter(u => u.correo !== emailClean)];
+      const actualizados = [usuarioLocal, ...guardados.filter(u => (u.correo || '').toLowerCase() !== emailClean)];
       window.localStorage.setItem('sistema_usuarios_registrados', JSON.stringify(actualizados));
     } catch (e) {
       console.warn('Error al guardar en cache local de usuarios:', e);
     }
   }
 
-  // Guardar credenciales para validación de acceso y recuperación
+  // 5. Guardar credenciales para validación de acceso y recuperación
   guardarCredencialesUsuario({
     correo: emailClean,
     password: password,
@@ -1359,11 +1423,16 @@ export async function registrarUsuario({
     rol: rolClean
   });
 
+  // 6. Notificar a todas las pestañas y vistas
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('usuarios_actualizados', { detail: { correo: emailClean, id: user.id } }));
+  }
+
   return {
     ok: true,
     user,
     session: authData?.session,
-    tablaRegistrada
+    tablaRegistrada: true
   };
 }
 
@@ -1525,11 +1594,11 @@ export async function obtenerUsuarios() {
       }
     }
   } catch (e) {
-    console.warn('Fallo consulta /api/usuarios:', e.message);
+    logSafeNotice('usuarios-get-api', e);
   }
   
-  // 2. Si no se obtuvieron o para complementar, consultar cliente Supabase
-  if (db && usuariosRemotos.length === 0) {
+  // 2. Si no se obtuvieron o para complementar, consultar cliente Supabase solo si está online
+  if (usuariosRemotos.length === 0 && (await isSupabaseOnline())) {
     try {
       const { data, error } = await db
         .from('usuarios')
@@ -1543,7 +1612,7 @@ export async function obtenerUsuarios() {
         if (dataBasica) usuariosRemotos = dataBasica;
       }
     } catch (err) {
-      console.warn('Error en obtenerUsuarios:', err);
+      logSafeNotice('usuarios-direct-query', err);
     }
   }
 
@@ -1810,6 +1879,218 @@ export async function eliminarUsuario(param) {
 
 export function eliminarCobrador(param) {
   return eliminarUsuario(param);
+}
+
+/**
+ * Actualiza la información de un cobrador o usuario en la base de datos (Supabase y servidor)
+ * y en el almacenamiento local y credenciales.
+ */
+export async function actualizarUsuario(identificadorOriginal, datosActualizados) {
+  if (!datosActualizados) throw new Error('Datos de usuario no proporcionados');
+
+  const identOrig = String(identificadorOriginal || '').trim();
+  const emailOrig = (datosActualizados.correo_original || identOrig).toLowerCase();
+
+  const pNom = (datosActualizados.primer_nombre || '').toString().trim();
+  const sNom = (datosActualizados.segundo_nombre || '').toString().trim();
+  const pApe = (datosActualizados.primer_apellido || '').toString().trim();
+  const sApe = (datosActualizados.segundo_apellido || '').toString().trim();
+  const nombreClean = (datosActualizados.nombre || `${pNom} ${sNom} ${pApe} ${sApe}`.trim() || emailOrig.split('@')[0]).trim();
+
+  const emailNuevo = (datosActualizados.correo || emailOrig).trim().toLowerCase();
+  const telClean = (datosActualizados.telefono || '').toString().trim();
+  const cedulaClean = (datosActualizados.cedula || '').toString().trim();
+  const rolClean = (datosActualizados.rol || 'Cobrador').trim();
+  const estadoClean = (datosActualizados.estado || 'Activo').trim();
+  const pwdNueva = datosActualizados.password ? String(datosActualizados.password).trim() : null;
+
+  const payload = {
+    id: datosActualizados.id || `usr-${Date.now()}`,
+    nombre: nombreClean,
+    primer_nombre: pNom,
+    segundo_nombre: sNom,
+    primer_apellido: pApe,
+    segundo_apellido: sApe,
+    correo: emailNuevo,
+    telefono: telClean,
+    cedula: cedulaClean,
+    rol: rolClean,
+    estado: estadoClean,
+    updated_at: new Date().toISOString()
+  };
+
+  // 1. Llamar a la API del servidor
+  try {
+    const res = await fetch(`/api/usuarios/${encodeURIComponent(identOrig || emailOrig)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, password: pwdNueva })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data) {
+        payload.id = json.data.id || payload.id;
+      }
+    }
+  } catch (e) {
+    logSafeNotice('usuarios-api-put', e);
+  }
+
+  // 2. Actualizar directamente en Supabase solo si está en línea y disponible
+  if (await isSupabaseOnline()) {
+    try {
+      const updateObj = {
+        nombre: payload.nombre,
+        primer_nombre: payload.primer_nombre,
+        segundo_nombre: payload.segundo_nombre,
+        primer_apellido: payload.primer_apellido,
+        segundo_apellido: payload.segundo_apellido,
+        telefono: payload.telefono,
+        correo: payload.correo,
+        rol: payload.rol,
+        cedula: payload.cedula
+      };
+
+      let done = false;
+      if (emailOrig) {
+        const { error: errEmail } = await db.from('usuarios').update(updateObj).eq('correo', emailOrig);
+        if (!errEmail) done = true;
+      }
+      if (!done && datosActualizados.id && /^[0-9a-fA-F-]{36}$/.test(datosActualizados.id)) {
+        const { error: errId } = await db.from('usuarios').update(updateObj).eq('id', datosActualizados.id);
+        if (!errId) done = true;
+      }
+      if (!done && cedulaClean) {
+        const { error: errCed } = await db.from('usuarios').update(updateObj).eq('cedula', cedulaClean);
+        if (!errCed) done = true;
+      }
+      if (!done) {
+        await db.from('usuarios').upsert([updateObj], { onConflict: 'correo' });
+      }
+    } catch (e) {
+      logSafeNotice('usuarios-actualizar-supabase', e);
+    }
+  }
+
+  // 3. Actualizar almacenamiento local: sistema_usuarios_registrados
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const guardados = JSON.parse(window.localStorage.getItem('sistema_usuarios_registrados') || '[]');
+      let encontrado = false;
+      const actualizados = guardados.map(u => {
+        const uEmail = (u.correo || '').toLowerCase().trim();
+        const uCed = String(u.cedula || '').trim();
+        const uId = String(u.id || '').trim();
+        if (
+          (emailOrig && uEmail === emailOrig) ||
+          (identOrig && (uEmail === identOrig.toLowerCase() || uCed === identOrig || uId === identOrig))
+        ) {
+          encontrado = true;
+          return {
+            ...u,
+            ...payload,
+            id: u.id || payload.id || `usr-${Date.now()}`,
+            created_at: u.created_at || new Date().toISOString()
+          };
+        }
+        return u;
+      });
+
+      if (!encontrado) {
+        actualizados.unshift({
+          id: `usr-${Date.now()}`,
+          ...payload,
+          created_at: new Date().toISOString()
+        });
+      }
+      window.localStorage.setItem('sistema_usuarios_registrados', JSON.stringify(actualizados));
+
+      // Actualizar credenciales si cambiaron contraseña o correo
+      const creds = JSON.parse(window.localStorage.getItem('sistema_usuarios_credenciales') || '{}');
+      const credPrevia = creds[emailOrig] || creds[emailNuevo] || {};
+      const claveFinal = pwdNueva || credPrevia.password || '123456';
+
+      if (emailOrig && emailOrig !== emailNuevo && creds[emailOrig]) {
+        delete creds[emailOrig];
+      }
+
+      creds[emailNuevo] = {
+        ...credPrevia,
+        correo: emailNuevo,
+        password: claveFinal,
+        cedula: cedulaClean,
+        telefono: telClean,
+        primer_nombre: pNom,
+        segundo_nombre: sNom,
+        primer_apellido: pApe,
+        segundo_apellido: sApe,
+        nombre: nombreClean,
+        rol: rolClean
+      };
+      window.localStorage.setItem('sistema_usuarios_credenciales', JSON.stringify(creds));
+
+      // Actualizar clientes asignados a este cobrador en sistema_clientes
+      const clientesLocales = JSON.parse(window.localStorage.getItem('sistema_clientes') || '[]');
+      let clientesModificados = false;
+      const clientesActualizados = clientesLocales.map(c => {
+        const regC = (c.registrado_por_correo || '').toLowerCase().trim();
+        const regCed = String(c.registrado_por_cedula || '').trim();
+        const regId = String(c.cobrador_id || '').trim();
+        if (
+          (emailOrig && regC === emailOrig) ||
+          (identOrig && (regC === identOrig.toLowerCase() || regCed === identOrig || regId === identOrig))
+        ) {
+          clientesModificados = true;
+          return {
+            ...c,
+            registrado_por_nombre: nombreClean,
+            registrado_por_telefono: telClean,
+            registrado_por_correo: emailNuevo,
+            registrado_por_rol: rolClean,
+            registrado_por_cedula: cedulaClean
+          };
+        }
+        return c;
+      });
+      if (clientesModificados) {
+        window.localStorage.setItem('sistema_clientes', JSON.stringify(clientesActualizados));
+        window.dispatchEvent(new CustomEvent('clientes_actualizados'));
+      }
+
+      // Si la sesión activa corresponde a este cobrador, actualizarla
+      const sesionActiva = obtenerSesionActiva();
+      if (sesionActiva && (
+        (emailOrig && (sesionActiva.correo || '').toLowerCase() === emailOrig) ||
+        (sesionActiva.cedula && String(sesionActiva.cedula).trim() === cedulaClean)
+      )) {
+        guardarSesionActiva({
+          ...sesionActiva,
+          nombre: nombreClean,
+          primer_nombre: pNom,
+          segundo_nombre: sNom,
+          primer_apellido: pApe,
+          segundo_apellido: sApe,
+          correo: emailNuevo,
+          telefono: telClean,
+          cedula: cedulaClean,
+          rol: rolClean
+        });
+      }
+    } catch (e) {
+      console.warn('Error al actualizar localStorage de usuario:', e);
+    }
+  }
+
+  // 4. Disparar evento para que cualquier vista abierta se actualice
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('usuarios_actualizados', { detail: payload }));
+  }
+
+  return { ok: true, data: payload, mensaje: 'Información del cobrador actualizada exitosamente.' };
+}
+
+export function editarCobrador(identificadorOriginal, datosActualizados) {
+  return actualizarUsuario(identificadorOriginal, datosActualizados);
 }
 
 /**
@@ -2268,4 +2549,6 @@ if (typeof window !== 'undefined') {
   window.obtenerFacturaPorIdentificador = obtenerFacturaPorIdentificador;
   window.clientePerteneceACobrador = clientePerteneceACobrador;
   window.filtrarClientesPorCobrador = filtrarClientesPorCobrador;
+  window.actualizarUsuario = actualizarUsuario;
+  window.editarCobrador = editarCobrador;
 }

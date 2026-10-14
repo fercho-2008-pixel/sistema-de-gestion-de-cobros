@@ -186,9 +186,10 @@
         </form>
 
         <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;"></div>
-      </div>
 
-      <div class="foot-note" style="margin-top:20px;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" id="linkRegistrarNuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+        <!-- Solo visible en Modo Administrador -->
+        <div id="pieRegistroAdmin" class="foot-note" style="margin-top:20px; display:none;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" id="linkRegistrarNuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+      </div>
     </div>
   </div>
 </div>
@@ -399,6 +400,7 @@
   const btnTogglePassword = document.getElementById('btnTogglePassword');
   const svgEyeOpen = document.getElementById('svgEyeOpen');
   const svgEyeClosed = document.getElementById('svgEyeClosed');
+  const pieRegistroAdmin = document.getElementById('pieRegistroAdmin');
 
   // Alternar visibilidad de contraseña entre 'password' y 'text'
   if (btnTogglePassword && inputLoginPassword) {
@@ -445,6 +447,8 @@
       btnIniciar.innerHTML = 'Ingresar como Administrador 🛡️';
       btnIniciar.style.background = '#0f2749';
 
+      if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'block';
+
       setTimeout(() => inputCorreoAdmin.focus(), 60);
     } else {
       formKicker.textContent = 'Acceso Operativo';
@@ -465,6 +469,8 @@
       btnIniciar.innerHTML = 'Ingresar como Cobrador 💼';
       btnIniciar.style.background = '#2563eb';
 
+      if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'none';
+
       setTimeout(() => inputCorreoCobrador.focus(), 60);
     }
   }
@@ -474,6 +480,7 @@
     seccionFormularioLogin.style.display = 'none';
     seccionElegirRol.style.display = 'block';
     loginMsg.style.display = 'none';
+    if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'none';
     inputLoginPassword.value = '';
     inputLoginPassword.type = 'password';
     if (svgEyeOpen && svgEyeClosed) {

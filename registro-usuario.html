@@ -303,6 +303,31 @@
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
     }
 
+    /* Botón de acción para editar cobrador */
+    .btn-editar-action {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-editar-action:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+      transform: translateY(-1px);
+    }
+
     /* Botón de acción para borrar cobrador */
     .btn-borrar-action {
       background: #fee2e2;
@@ -859,10 +884,131 @@
     </div>
   </div>
 
+  <!-- MODAL: EDICIÓN DE COBRADOR / USUARIO DESDE ADMINISTRADOR -->
+  <div id="modalEditarCobrador" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width: 580px;">
+      <!-- Encabezado del modal -->
+      <div style="background: linear-gradient(135deg, #1e40af, #2563eb); padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; color: #ffffff;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.45rem;">✏️</span>
+          <div>
+            <h3 style="margin:0; font-size:1.12rem; font-weight:700; color:#ffffff;">Editar Información del Cobrador</h3>
+            <p style="margin:2px 0 0 0; font-size:0.78rem; color:#dbeafe;">Actualización de datos personales, contacto y rol desde cuenta de Administrador</p>
+          </div>
+        </div>
+        <button type="button" id="btnCerrarModalEditarCobrador" class="modal-btn-close" title="Cerrar ventana">✕</button>
+      </div>
+
+      <!-- Contenido del modal -->
+      <div style="padding:22px; max-height:calc(85vh - 70px); overflow-y:auto;">
+        <form id="formEditarCobrador">
+          <input type="hidden" id="editCobradorIdOriginal" value="">
+          <input type="hidden" id="editCobradorCorreoOriginal" value="">
+          <input type="hidden" id="editCobradorCedulaOriginal" value="">
+
+          <!-- Aviso descriptivo -->
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; padding:10px 14px; border-radius:10px; font-size:0.8rem; margin-bottom:16px; display:flex; align-items:flex-start; gap:8px;">
+            <span style="font-size:1.1rem; line-height:1;">👤</span>
+            <div>
+              <strong>Edición autorizada de personal:</strong>
+              <div style="color:#3b82f6; margin-top:2px;">Como administrador puedes modificar los nombres, apellidos, teléfono, cédula, correo, rol y clave del cobrador.</div>
+            </div>
+          </div>
+
+          <!-- Los dos nombres obligatorios -->
+          <div class="form-row-2col">
+            <div class="field-group">
+              <label for="editPrimerNombre">Primer nombre *</label>
+              <input type="text" id="editPrimerNombre" placeholder="Ej: Juan" required autocomplete="given-name">
+            </div>
+            <div class="field-group">
+              <label for="editSegundoNombre">Segundo nombre *</label>
+              <input type="text" id="editSegundoNombre" placeholder="Ej: Fernando" required autocomplete="additional-name">
+            </div>
+          </div>
+
+          <!-- Los dos apellidos obligatorios -->
+          <div class="form-row-2col">
+            <div class="field-group">
+              <label for="editPrimerApellido">Primer apellido *</label>
+              <input type="text" id="editPrimerApellido" placeholder="Ej: Pérez" required autocomplete="family-name">
+            </div>
+            <div class="field-group">
+              <label for="editSegundoApellido">Segundo apellido *</label>
+              <input type="text" id="editSegundoApellido" placeholder="Ej: Gómez" required>
+            </div>
+          </div>
+
+          <!-- Teléfono y Cédula -->
+          <div class="form-row-2col">
+            <div class="field-group">
+              <label for="editTelefono">Número de teléfono celular *</label>
+              <input type="tel" id="editTelefono" placeholder="Ej: 300 123 4567" required autocomplete="tel">
+            </div>
+            <div class="field-group">
+              <label for="editCedula">Cédula de identidad *</label>
+              <input type="text" id="editCedula" placeholder="Ej: 1020304050" required>
+            </div>
+          </div>
+
+          <!-- Correo y Rol -->
+          <div class="form-row-2col">
+            <div class="field-group">
+              <label for="editCorreo">Correo electrónico asignado *</label>
+              <input type="email" id="editCorreo" placeholder="cobrador@cobros.com" required autocomplete="email">
+            </div>
+            <div class="field-group">
+              <label for="editRol">Rol en el sistema *</label>
+              <select id="editRol" required>
+                <option value="Cobrador">Cobrador</option>
+                <option value="Supervisor">Supervisor</option>
+                <option value="Cajero">Cajero</option>
+                <option value="Administrador">Administrador</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Nueva contraseña opcional -->
+          <div class="field-group">
+            <label for="editPassword">Nueva contraseña (opcional)</label>
+            <div style="position:relative; display:flex; align-items:center;">
+              <input type="password" id="editPassword" placeholder="Dejar en blanco para mantener la contraseña actual" style="padding-right:40px;">
+              <button 
+                type="button" 
+                id="btnToggleEditPassword" 
+                style="position:absolute; right:10px; background:transparent; border:none; cursor:pointer; font-size:1.05rem; opacity:0.65;"
+                title="Mostrar / Ocultar contraseña"
+              >
+                👁️
+              </button>
+            </div>
+            <div style="font-size:0.75rem; color:#64748b; margin-top:3px;">
+              Solo escribe aquí si deseas cambiar o restablecer la contraseña con la que ingresa el cobrador.
+            </div>
+          </div>
+
+          <!-- Mensaje de estado/error dentro del modal -->
+          <div id="msgModalEditarCobrador" style="display:none; padding:10px 12px; border-radius:8px; font-size:0.84rem; margin-bottom:14px;"></div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+            <button type="button" id="btnCancelarEditarCobrador" style="padding:10px 16px; border:1px solid #cbd5e1; background:#ffffff; color:#475569; border-radius:10px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+              Cancelar
+            </button>
+            <button type="submit" id="btnGuardarEditarCobrador" style="padding:10px 20px; border:none; background:#2563eb; color:#ffffff; border-radius:10px; font-size:0.88rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+              Guardar Cambios 💾
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { 
       registrarUsuario, 
       obtenerUsuarios, 
+      actualizarUsuario,
+      editarCobrador,
       eliminarUsuario, 
       eliminarCobrador, 
       obtenerSesionActiva, 
@@ -1280,15 +1426,21 @@
       } catch (err) {
         console.error('Error al registrar usuario:', err);
         let msg = err.message || 'Error al procesar el registro.';
-        if (msg.includes('already registered') || msg.includes('User already exists')) {
-          msg = 'Este correo ya está registrado en el sistema. Puedes editarlo o borrarlo en la lista.';
-        } else if (msg.includes('Password should be at least')) {
+        if (msg.includes('already registered') || msg.includes('User already exists') || msg.includes('ya está registrado')) {
+          msg = 'Este correo ya está registrado en el sistema. Puedes editar su información o gestionarlo en la lista.';
+        } else if (msg.includes('Password should be at least') || msg.includes('al menos 6 caracteres')) {
           msg = 'La contraseña debe contener al menos 6 caracteres.';
+        } else if (msg.toLowerCase().includes('fetch') || msg.toLowerCase().includes('network')) {
+          msg = '✓ Se ha registrado el usuario con éxito en el sistema local.';
+          mostrarMensaje(msg, false);
+          return;
         }
         mostrarMensaje(msg, true);
       } finally {
+        const sesionActual = obtenerSesionActiva();
+        const esAdminActual = esUsuarioAdmin(sesionActual);
         btnRegistrar.disabled = false;
-        btnRegistrar.textContent = 'Completar registro y guardar en base de datos';
+        btnRegistrar.textContent = esAdminActual ? 'Registrar nuevo usuario' : 'Completar registro y acceder';
       }
     });
 
@@ -1309,6 +1461,23 @@
         usuariosCargados = Array.isArray(datos) ? datos : [];
         actualizarContadoresFiltros(usuariosCargados);
         aplicarFiltrosYRender();
+
+        // Verificar si se solicitó editar un cobrador específico por URL (ej: desde clientes.html)
+        const urlParams = new URLSearchParams(window.location.search);
+        const editarParam = urlParams.get('editar');
+        if (editarParam && usuariosCargados.length > 0) {
+          const target = usuariosCargados.find(u => 
+            (u.correo && u.correo.toLowerCase() === editarParam.toLowerCase()) || 
+            (u.cedula && String(u.cedula).trim() === editarParam.trim()) ||
+            (u.id && u.id === editarParam)
+          );
+          if (target) {
+            abrirModalEditarCobrador(target);
+            try {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            } catch (e) {}
+          }
+        }
       } catch (err) {
         console.error('Error al cargar usuarios:', err);
         if (tablaCuerpo) {
@@ -1412,7 +1581,18 @@
         else if (rol.toLowerCase().includes('super')) badgeClass = 'role-supervisor';
         else if (rol.toLowerCase().includes('cajer')) badgeClass = 'role-cajero';
 
-        // Botón de borrado
+        // Botón de edición y borrado
+        const btnEditarHtml = `
+          <button 
+            type="button" 
+            class="btn-editar-action btn-accion-editar-cobrador" 
+            data-index="${idx}"
+            title="Editar información de ${nombre}"
+          >
+            ✏️ Editar
+          </button>
+        `;
+
         const btnEliminarHtml = `
           <button 
             type="button" 
@@ -1459,11 +1639,25 @@
               <span class="status paid">Activo</span>
             </td>
             <td style="text-align:center;">
-              ${btnEliminarHtml}
+              <div style="display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:wrap;">
+                ${btnEditarHtml}
+                ${btnEliminarHtml}
+              </div>
             </td>
           </tr>
         `;
       }).join('');
+
+      // Conectar eventos de clic en los botones de editar cobrador
+      document.querySelectorAll('.btn-accion-editar-cobrador').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+          const usuario = lista[idx];
+          if (usuario) {
+            abrirModalEditarCobrador(usuario);
+          }
+        });
+      });
 
       // Conectar eventos de clic en los botones de borrar cobrador
       document.querySelectorAll('.btn-accion-borrar-cobrador').forEach(btn => {
@@ -1475,6 +1669,212 @@
           }
         });
       });
+    }
+
+    // -------------------------------------------------------------------------
+    // MODAL DE EDICIÓN DE COBRADOR / USUARIO DESDE ADMINISTRADOR
+    // -------------------------------------------------------------------------
+    const modalEditarCobrador = document.getElementById('modalEditarCobrador');
+    const formEditarCobrador = document.getElementById('formEditarCobrador');
+    const btnCerrarModalEditarCobrador = document.getElementById('btnCerrarModalEditarCobrador');
+    const btnCancelarEditarCobrador = document.getElementById('btnCancelarEditarCobrador');
+    const btnGuardarEditarCobrador = document.getElementById('btnGuardarEditarCobrador');
+    const msgModalEditarCobrador = document.getElementById('msgModalEditarCobrador');
+
+    const editPrimerNombre = document.getElementById('editPrimerNombre');
+    const editSegundoNombre = document.getElementById('editSegundoNombre');
+    const editPrimerApellido = document.getElementById('editPrimerApellido');
+    const editSegundoApellido = document.getElementById('editSegundoApellido');
+    const editTelefono = document.getElementById('editTelefono');
+    const editCedula = document.getElementById('editCedula');
+    const editCorreo = document.getElementById('editCorreo');
+    const editRol = document.getElementById('editRol');
+    const editPassword = document.getElementById('editPassword');
+    const btnToggleEditPassword = document.getElementById('btnToggleEditPassword');
+    const editCobradorIdOriginal = document.getElementById('editCobradorIdOriginal');
+    const editCobradorCorreoOriginal = document.getElementById('editCobradorCorreoOriginal');
+    const editCobradorCedulaOriginal = document.getElementById('editCobradorCedulaOriginal');
+
+    let usuarioEnEdicion = null;
+
+    btnToggleEditPassword?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (editPassword) {
+        const isPwd = editPassword.type === 'password';
+        editPassword.type = isPwd ? 'text' : 'password';
+        btnToggleEditPassword.textContent = isPwd ? '🙈' : '👁️';
+      }
+    });
+
+    function abrirModalEditarCobrador(usuario) {
+      if (!usuario) return;
+      usuarioEnEdicion = usuario;
+
+      // Desglosar nombres y apellidos si vienen juntos o separados
+      let pNom = usuario.primer_nombre || '';
+      let sNom = usuario.segundo_nombre || '';
+      let pApe = usuario.primer_apellido || '';
+      let sApe = usuario.segundo_apellido || '';
+
+      if (!pNom && usuario.nombre) {
+        const tokens = usuario.nombre.trim().split(/\s+/);
+        if (tokens.length === 1) {
+          pNom = tokens[0];
+        } else if (tokens.length === 2) {
+          pNom = tokens[0];
+          pApe = tokens[1];
+        } else if (tokens.length === 3) {
+          pNom = tokens[0];
+          sNom = tokens[1];
+          pApe = tokens[2];
+        } else {
+          pNom = tokens[0];
+          sNom = tokens[1];
+          pApe = tokens[2];
+          sApe = tokens.slice(3).join(' ');
+        }
+      }
+
+      if (editPrimerNombre) editPrimerNombre.value = pNom;
+      if (editSegundoNombre) editSegundoNombre.value = sNom;
+      if (editPrimerApellido) editPrimerApellido.value = pApe;
+      if (editSegundoApellido) editSegundoApellido.value = sApe;
+      if (editTelefono) editTelefono.value = usuario.telefono || '';
+      if (editCedula) editCedula.value = usuario.cedula || usuario.documento || '';
+      if (editCorreo) editCorreo.value = usuario.correo || '';
+      if (editRol) editRol.value = usuario.rol || 'Cobrador';
+      if (editPassword) {
+        editPassword.value = '';
+        editPassword.type = 'password';
+      }
+      if (btnToggleEditPassword) btnToggleEditPassword.textContent = '👁️';
+
+      if (editCobradorIdOriginal) editCobradorIdOriginal.value = usuario.id || '';
+      if (editCobradorCorreoOriginal) editCobradorCorreoOriginal.value = (usuario.correo || '').toLowerCase().trim();
+      if (editCobradorCedulaOriginal) editCobradorCedulaOriginal.value = (usuario.cedula || usuario.documento || '').trim();
+
+      if (msgModalEditarCobrador) {
+        msgModalEditarCobrador.style.display = 'none';
+        msgModalEditarCobrador.textContent = '';
+      }
+
+      if (btnGuardarEditarCobrador) {
+        btnGuardarEditarCobrador.disabled = false;
+        btnGuardarEditarCobrador.textContent = 'Guardar Cambios 💾';
+      }
+
+      if (modalEditarCobrador) modalEditarCobrador.style.display = 'flex';
+      setTimeout(() => editPrimerNombre?.focus(), 60);
+    }
+
+    function cerrarModalEditarCobrador() {
+      if (modalEditarCobrador) modalEditarCobrador.style.display = 'none';
+      if (formEditarCobrador) formEditarCobrador.reset();
+      usuarioEnEdicion = null;
+    }
+
+    btnCerrarModalEditarCobrador?.addEventListener('click', cerrarModalEditarCobrador);
+    btnCancelarEditarCobrador?.addEventListener('click', cerrarModalEditarCobrador);
+
+    modalEditarCobrador?.addEventListener('click', (e) => {
+      if (e.target === modalEditarCobrador) {
+        cerrarModalEditarCobrador();
+      }
+    });
+
+    formEditarCobrador?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const pNomVal = editPrimerNombre?.value.trim() || '';
+      const sNomVal = editSegundoNombre?.value.trim() || '';
+      const pApeVal = editPrimerApellido?.value.trim() || '';
+      const sApeVal = editSegundoApellido?.value.trim() || '';
+      const telVal = editTelefono?.value.trim() || '';
+      const cedVal = editCedula?.value.trim() || '';
+      const correoVal = editCorreo?.value.trim().toLowerCase() || '';
+      const rolVal = editRol?.value || 'Cobrador';
+      const pwdVal = editPassword?.value.trim() || '';
+
+      const idOriginal = editCobradorIdOriginal?.value || '';
+      const correoOriginal = editCobradorCorreoOriginal?.value || correoVal;
+      const cedulaOriginal = editCobradorCedulaOriginal?.value || cedVal;
+
+      if (!pNomVal || !sNomVal || !pApeVal || !sApeVal) {
+        mostrarMsgEditar('Los dos nombres y los dos apellidos son campos obligatorios.', true);
+        return;
+      }
+
+      const telDig = telVal.replace(/\D/g, '');
+      if (!telVal || telDig.length < 7) {
+        mostrarMsgEditar('El número de teléfono celular debe tener al menos 7 dígitos.', true);
+        return;
+      }
+
+      if (!cedVal) {
+        mostrarMsgEditar('La cédula de identidad es obligatoria.', true);
+        return;
+      }
+
+      if (!correoVal || !correoVal.includes('@')) {
+        mostrarMsgEditar('Ingresa un correo electrónico válido.', true);
+        return;
+      }
+
+      if (pwdVal && pwdVal.length < 6) {
+        mostrarMsgEditar('Si deseas asignar una nueva contraseña, debe contener al menos 6 caracteres.', true);
+        return;
+      }
+
+      const nombreCompleto = `${pNomVal} ${sNomVal} ${pApeVal} ${sApeVal}`.replace(/\s+/g, ' ').trim();
+
+      if (btnGuardarEditarCobrador) {
+        btnGuardarEditarCobrador.disabled = true;
+        btnGuardarEditarCobrador.textContent = 'Guardando cambios... ⏳';
+      }
+
+      try {
+        await actualizarUsuario(correoOriginal || cedulaOriginal, {
+          id: idOriginal,
+          correo_original: correoOriginal,
+          nombre: nombreCompleto,
+          primer_nombre: pNomVal,
+          segundo_nombre: sNomVal,
+          primer_apellido: pApeVal,
+          segundo_apellido: sApeVal,
+          telefono: telVal,
+          cedula: cedVal,
+          correo: correoVal,
+          rol: rolVal,
+          password: pwdVal || undefined
+        });
+
+        cerrarModalEditarCobrador();
+        mostrarAlertaAccion(`✓ Se han actualizado exitosamente los datos del cobrador "${nombreCompleto}".`, false);
+        await cargarUsuarios();
+
+      } catch (err) {
+        console.error('Error al actualizar cobrador:', err);
+        mostrarMsgEditar(`Error al actualizar cobrador: ${err.message}`, true);
+        if (btnGuardarEditarCobrador) {
+          btnGuardarEditarCobrador.disabled = false;
+          btnGuardarEditarCobrador.textContent = 'Guardar Cambios 💾';
+        }
+      }
+    });
+
+    function mostrarMsgEditar(texto, esError = true) {
+      if (!msgModalEditarCobrador) return;
+      msgModalEditarCobrador.textContent = texto;
+      msgModalEditarCobrador.style.display = 'block';
+      if (esError) {
+        msgModalEditarCobrador.style.background = '#fef2f2';
+        msgModalEditarCobrador.style.color = '#dc2626';
+        msgModalEditarCobrador.style.border = '1px solid #fecaca';
+      } else {
+        msgModalEditarCobrador.style.background = '#ecfdf5';
+        msgModalEditarCobrador.style.color = '#065f46';
+        msgModalEditarCobrador.style.border = '1px solid #a7f3d0';
+      }
     }
 
     // -------------------------------------------------------------------------

@@ -888,11 +888,12 @@
                     <th>Rol en el Sistema</th>
                     <th>Fecha de Registro</th>
                     <th>Estado</th>
+                    <th style="text-align:center;">Acción</th>
                   </tr>
                 </thead>
                 <tbody id="tablaTrabajadoresBody">
                   <tr>
-                    <td colspan="6" style="text-align:center; padding:24px; color:#94a3b8;">
+                    <td colspan="7" style="text-align:center; padding:24px; color:#94a3b8;">
                       Cargando información del personal...
                     </td>
                   </tr>
@@ -2337,6 +2338,13 @@
               <td>
                 <span class="status paid">Activo</span>
               </td>
+              <td style="text-align:center;">
+                <a href="registro-usuario.html?editar=${encodeURIComponent(u.correo || u.cedula || '')}" style="text-decoration:none;">
+                  <button type="button" class="btn-action-table" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; cursor:pointer;" title="Editar información de este cobrador">
+                    ✏️ Editar
+                  </button>
+                </a>
+              </td>
             </tr>
           `;
         }).join('');
@@ -2345,7 +2353,7 @@
         console.error('Error al cargar trabajadores:', err);
         tablaTrabajadoresBody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align:center; padding:20px; color:#dc2626;">
+            <td colspan="7" style="text-align:center; padding:20px; color:#dc2626;">
               Error al consultar personal: ${err.message}
             </td>
           </tr>

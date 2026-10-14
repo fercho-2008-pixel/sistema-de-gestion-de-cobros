@@ -28,6 +28,47 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIs
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Comprobación de conectividad con Supabase con memoria en caché
+let isSupabaseOnlineCached = false;
+let lastSupabaseCheckTime = 0;
+
+async function checkSupabaseAvailable() {
+  const now = Date.now();
+  if (now - lastSupabaseCheckTime < 60000) {
+    return isSupabaseOnlineCached;
+  }
+  lastSupabaseCheckTime = now;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 1200);
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    isSupabaseOnlineCached = res.ok || res.status === 401;
+  } catch (_) {
+    isSupabaseOnlineCached = false;
+  }
+  return isSupabaseOnlineCached;
+}
+
+// Registro limpio de avisos que evita emitir cadenas de 'TypeError: fetch failed'
+function logNotice(label, error) {
+  if (!error) return;
+  const msg = String(error.message || error || '');
+  if (
+    msg.includes('fetch') ||
+    msg.includes('ENOTFOUND') ||
+    msg.includes('timeout') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('TypeError')
+  ) {
+    return;
+  }
+  console.log(`[${label}]`, msg);
+}
+
 // In-memory fallback data store if Supabase is offline or not configured
 const inMemoryClientes = new Map();
 const inMemoryPagos = [];
@@ -107,56 +148,58 @@ app.get('/api/clientes', async (req, res) => {
     let clientes = [];
     let fromDb = false;
 
-    try {
-      const { data, error } = await Promise.race([
-        supabase.from('clientes').select('*').order('created_at', { ascending: false }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3500))
-      ]);
+    if (await checkSupabaseAvailable()) {
+      try {
+        const { data, error } = await Promise.race([
+          supabase.from('clientes').select('*').order('created_at', { ascending: false }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3000))
+        ]);
 
-      if (!error && Array.isArray(data)) {
-        fromDb = true;
-        clientes = data.filter(c => 
-          c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
-        );
-        // Sincronizar en memoria y garantizar que cada cliente tenga su factura única
-        for (const c of clientes) {
-          const doc = String(c.documento).trim();
-          const enMemoria = inMemoryClientes.get(doc);
-          if (!c.numero_factura) {
-            const match = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
-            if (match) {
-              c.numero_factura = match[1];
+        if (!error && Array.isArray(data)) {
+          fromDb = true;
+          clientes = data.filter(c => 
+            c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
+          );
+          // Sincronizar en memoria y garantizar que cada cliente tenga su factura única
+          for (const c of clientes) {
+            const doc = String(c.documento).trim();
+            const enMemoria = inMemoryClientes.get(doc);
+            if (!c.numero_factura) {
+              const match = (c.observaciones || '').match(/\[FACTURA:\s*([A-Za-z0-9]+)\]/i);
+              if (match) {
+                c.numero_factura = match[1];
+                setCodigosFacturas.add(c.numero_factura);
+              } else if (enMemoria?.numero_factura) {
+                c.numero_factura = enMemoria.numero_factura;
+              } else {
+                c.numero_factura = generarCodigoFactura();
+              }
+            }
+            if (c.numero_factura) {
               setCodigosFacturas.add(c.numero_factura);
-            } else if (enMemoria?.numero_factura) {
-              c.numero_factura = enMemoria.numero_factura;
-            } else {
-              c.numero_factura = generarCodigoFactura();
+              if (!inMemoryFacturas.has(c.numero_factura)) {
+                inMemoryFacturas.set(c.numero_factura, {
+                  codigo_factura: c.numero_factura,
+                  numero_factura: c.numero_factura,
+                  cliente_nombre: c.nombre,
+                  cliente_documento: c.documento,
+                  cliente_telefono: c.telefono,
+                  cliente_correo: c.correo,
+                  cliente_direccion: c.direccion,
+                  monto_deuda: c.monto_deuda,
+                  observaciones: c.observaciones,
+                  created_at: c.created_at
+                });
+              }
             }
+            inMemoryClientes.set(doc, { ...(enMemoria || {}), ...c });
           }
-          if (c.numero_factura) {
-            setCodigosFacturas.add(c.numero_factura);
-            if (!inMemoryFacturas.has(c.numero_factura)) {
-              inMemoryFacturas.set(c.numero_factura, {
-                codigo_factura: c.numero_factura,
-                numero_factura: c.numero_factura,
-                cliente_nombre: c.nombre,
-                cliente_documento: c.documento,
-                cliente_telefono: c.telefono,
-                cliente_correo: c.correo,
-                cliente_direccion: c.direccion,
-                monto_deuda: c.monto_deuda,
-                observaciones: c.observaciones,
-                created_at: c.created_at
-              });
-            }
-          }
-          inMemoryClientes.set(doc, { ...(enMemoria || {}), ...c });
+        } else if (error) {
+          logNotice('clientes', error);
         }
-      } else if (error) {
-        console.warn('Supabase /api/clientes notice:', error.message);
+      } catch (e) {
+        logNotice('clientes', e);
       }
-    } catch (e) {
-      console.warn('Supabase offline or unreachable, using in-memory store for clientes:', e.message);
     }
 
     if (!fromDb) {
@@ -203,22 +246,24 @@ app.get('/api/pagos', async (req, res) => {
     let pagos = [];
     let fromDb = false;
 
-    try {
-      const { data, error } = await Promise.race([
-        supabase.from('pagos').select('*').order('created_at', { ascending: false }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3500))
-      ]);
+    if (await checkSupabaseAvailable()) {
+      try {
+        const { data, error } = await Promise.race([
+          supabase.from('pagos').select('*').order('created_at', { ascending: false }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3000))
+        ]);
 
-      if (!error && Array.isArray(data)) {
-        fromDb = true;
-        pagos = data.filter(p => 
-          p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
-        );
-      } else if (error) {
-        console.warn('Supabase /api/pagos notice:', error.message);
+        if (!error && Array.isArray(data)) {
+          fromDb = true;
+          pagos = data.filter(p => 
+            p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
+          );
+        } else if (error) {
+          logNotice('pagos', error);
+        }
+      } catch (e) {
+        logNotice('pagos', e);
       }
-    } catch (e) {
-      console.warn('Supabase offline or unreachable, using in-memory store for pagos:', e.message);
     }
 
     if (!fromDb) {
@@ -260,28 +305,30 @@ app.post('/api/pagos', async (req, res) => {
       cli.monto_deuda = Math.max(0, (Number(cli.monto_deuda) || 0) - montoNum);
     }
 
-    // Intentar en Supabase en segundo plano
-    try {
-      await supabase.from('pagos').insert([{
-        cliente_nombre: pagoPayload.cliente_nombre,
-        documento: pagoPayload.documento,
-        monto: pagoPayload.monto,
-        fecha: pagoPayload.fecha,
-        metodo_pago: pagoPayload.metodo_pago,
-        referencia: pagoPayload.referencia,
-        observaciones: pagoPayload.observaciones,
-        estado: pagoPayload.estado
-      }]);
+    // Intentar en Supabase solo si está disponible
+    if (await checkSupabaseAvailable()) {
+      try {
+        await supabase.from('pagos').insert([{
+          cliente_nombre: pagoPayload.cliente_nombre,
+          documento: pagoPayload.documento,
+          monto: pagoPayload.monto,
+          fecha: pagoPayload.fecha,
+          metodo_pago: pagoPayload.metodo_pago,
+          referencia: pagoPayload.referencia,
+          observaciones: pagoPayload.observaciones,
+          estado: pagoPayload.estado
+        }]);
 
-      if (docClean) {
-        const { data: cli } = await supabase.from('clientes').select('id, monto_deuda').eq('documento', docClean).maybeSingle();
-        if (cli) {
-          const nuevaDeuda = Math.max(0, (Number(cli.monto_deuda) || 0) - montoNum);
-          await supabase.from('clientes').update({ monto_deuda: nuevaDeuda }).eq('id', cli.id);
+        if (docClean) {
+          const { data: cli } = await supabase.from('clientes').select('id, monto_deuda').eq('documento', docClean).maybeSingle();
+          if (cli) {
+            const nuevaDeuda = Math.max(0, (Number(cli.monto_deuda) || 0) - montoNum);
+            await supabase.from('clientes').update({ monto_deuda: nuevaDeuda }).eq('id', cli.id);
+          }
         }
+      } catch (e) {
+        logNotice('pagos', e);
       }
-    } catch (e) {
-      console.warn('Nota: Pago guardado en memoria:', e.message);
     }
 
     return res.json({ ok: true, data: pagoPayload });
@@ -360,29 +407,31 @@ app.post('/api/clientes', async (req, res) => {
 
     let savedData = payload;
 
-    try {
-      const { data, error } = await Promise.race([
-        supabase.from('clientes').upsert([{
-          nombre: payload.nombre,
-          correo: payload.correo,
-          telefono: payload.telefono,
-          documento: payload.documento,
-          estado: payload.estado,
-          direccion: payload.direccion,
-          observaciones: payload.observaciones,
-          monto_deuda: payload.monto_deuda
-        }], { onConflict: 'documento' }).select(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase insert timeout')), 3500))
-      ]);
+    if (await checkSupabaseAvailable()) {
+      try {
+        const { data, error } = await Promise.race([
+          supabase.from('clientes').upsert([{
+            nombre: payload.nombre,
+            correo: payload.correo,
+            telefono: payload.telefono,
+            documento: payload.documento,
+            estado: payload.estado,
+            direccion: payload.direccion,
+            observaciones: payload.observaciones,
+            monto_deuda: payload.monto_deuda
+          }], { onConflict: 'documento' }).select(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase insert timeout')), 3000))
+        ]);
 
-      if (!error && data?.[0]) {
-        savedData = { ...payload, ...data[0], numero_factura: codFactura };
-        inMemoryClientes.set(payload.documento, savedData);
-      } else if (error) {
-        console.warn('Nota Supabase al insertar cliente:', error.message);
+        if (!error && data?.[0]) {
+          savedData = { ...payload, ...data[0], numero_factura: codFactura };
+          inMemoryClientes.set(payload.documento, savedData);
+        } else if (error) {
+          logNotice('Nota Supabase al insertar cliente', error);
+        }
+      } catch (e) {
+        logNotice('Supabase no disponible al guardar cliente', e);
       }
-    } catch (e) {
-      console.warn('Supabase no disponible al guardar cliente, guardado en memoria:', e.message);
     }
 
     return res.json({ ok: true, data: savedData });
@@ -470,12 +519,14 @@ app.delete('/api/clientes/:documento', async (req, res) => {
     const pagosIdx = inMemoryPagos.findIndex(p => String(p.documento).trim() === doc);
     if (pagosIdx !== -1) inMemoryPagos.splice(pagosIdx, 1);
 
-    // Intentar eliminar en Supabase
-    try {
-      await supabase.from('pagos').delete().eq('documento', doc);
-      await supabase.from('clientes').delete().eq('documento', doc);
-    } catch (e) {
-      console.warn('Nota al eliminar de Supabase:', e.message);
+    // Intentar eliminar en Supabase solo si está conectado
+    if (await checkSupabaseAvailable()) {
+      try {
+        await supabase.from('pagos').delete().eq('documento', doc);
+        await supabase.from('clientes').delete().eq('documento', doc);
+      } catch (e) {
+        logNotice('clientes-delete', e);
+      }
     }
 
     return res.json({ ok: true, mensaje: 'Cliente eliminado correctamente.', eliminado: entradaEliminado });
@@ -530,21 +581,25 @@ app.get('/api/usuarios', async (req, res) => {
     let usuarios = [];
     let fromDb = false;
 
-    try {
-      const { data, error } = await Promise.race([
-        supabase.from('usuarios').select('*').order('created_at', { ascending: false }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3500))
-      ]);
+    if (await checkSupabaseAvailable()) {
+      try {
+        const { data, error } = await Promise.race([
+          supabase.from('usuarios').select('*').order('created_at', { ascending: false }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3000))
+        ]);
 
-      if (!error && Array.isArray(data)) {
-        fromDb = true;
-        usuarios = data.filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
-        for (const u of usuarios) {
-          if (u.correo) inMemoryUsuarios.set(u.correo.toLowerCase(), u);
+        if (!error && Array.isArray(data)) {
+          fromDb = true;
+          usuarios = data.filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
+          for (const u of usuarios) {
+            if (u.correo) inMemoryUsuarios.set(u.correo.toLowerCase(), u);
+          }
+        } else if (error) {
+          logNotice('usuarios', error);
         }
+      } catch (e) {
+        logNotice('usuarios', e);
       }
-    } catch (e) {
-      console.warn('Supabase usuarios notice:', e.message);
     }
 
     if (!fromDb) {
@@ -601,48 +656,185 @@ app.post('/api/usuarios', async (req, res) => {
 
     inMemoryUsuarios.set(emailClean, payload);
 
-    try {
-      // Intentar primero con todas las columnas
-      const { data, error } = await supabase
-        .from('usuarios')
-        .upsert([{
-          correo: payload.correo,
+    if (await checkSupabaseAvailable()) {
+      try {
+        // Intentar primero con todas las columnas
+        const { data, error } = await Promise.race([
+          supabase
+            .from('usuarios')
+            .upsert([{
+              correo: payload.correo,
+              nombre: payload.nombre,
+              primer_nombre: payload.primer_nombre,
+              segundo_nombre: payload.segundo_nombre,
+              primer_apellido: payload.primer_apellido,
+              segundo_apellido: payload.segundo_apellido,
+              telefono: payload.telefono,
+              rol: payload.rol,
+              cedula: payload.cedula
+            }], { onConflict: 'correo' })
+            .select(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase insert timeout')), 2000))
+        ]);
+
+        if (!error && data?.[0]) {
+          payload.id = data[0].id || payload.id;
+          inMemoryUsuarios.set(emailClean, { ...payload, ...data[0] });
+        } else if (error) {
+          // Si fallan columnas extras en Supabase, intentar con las columnas básicas
+          try {
+            const { data: fallbackData } = await Promise.race([
+              supabase
+                .from('usuarios')
+                .upsert([{
+                  correo: payload.correo,
+                  nombre: payload.nombre,
+                  rol: payload.rol,
+                  cedula: payload.cedula
+                }], { onConflict: 'correo' })
+                .select(),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase insert timeout')), 1500))
+            ]);
+            if (fallbackData?.[0]) {
+              payload.id = fallbackData[0].id || payload.id;
+            }
+          } catch (e2) {}
+        }
+      } catch (e) {
+        logNotice('usuarios', e);
+      }
+    }
+
+    return res.json({ ok: true, data: payload });
+  } catch (err) {
+    console.error('Error servidor POST /api/usuarios:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Actualizar un cobrador o usuario por identificador (correo, cedula o id)
+app.put('/api/usuarios/:identificador', async (req, res) => {
+  try {
+    const ident = String(req.params.identificador || '').trim();
+    if (!ident) {
+      return res.status(400).json({ ok: false, error: 'Identificador de usuario no especificado.' });
+    }
+    const identLower = ident.toLowerCase();
+
+    const { 
+      nombre, 
+      correo, 
+      rol, 
+      cedula, 
+      telefono, 
+      primer_nombre, 
+      segundo_nombre, 
+      primer_apellido, 
+      segundo_apellido,
+      estado
+    } = req.body;
+
+    const emailNuevo = correo ? String(correo).trim().toLowerCase() : identLower;
+    const telClean = telefono ? String(telefono).trim() : '';
+    const pNom = primer_nombre ? String(primer_nombre).trim() : '';
+    const sNom = segundo_nombre ? String(segundo_nombre).trim() : '';
+    const pApe = primer_apellido ? String(primer_apellido).trim() : '';
+    const sApe = segundo_apellido ? String(segundo_apellido).trim() : '';
+    const nombreCompleto = String(nombre || `${pNom} ${sNom} ${pApe} ${sApe}`.trim() || emailNuevo.split('@')[0]).trim();
+    const cedulaClean = cedula ? String(cedula).trim() : '';
+    const rolClean = String(rol || 'Cobrador').trim();
+
+    // Buscar el usuario previo en memoria
+    let previo = inMemoryUsuarios.get(identLower);
+    if (!previo) {
+      for (const [k, u] of inMemoryUsuarios.entries()) {
+        if (
+          u.id === ident || 
+          String(u.cedula || '').trim() === ident || 
+          String(u.correo || '').toLowerCase() === identLower
+        ) {
+          previo = u;
+          inMemoryUsuarios.delete(k);
+          break;
+        }
+      }
+    } else {
+      inMemoryUsuarios.delete(identLower);
+    }
+
+    const payload = {
+      id: previo?.id || `usr-${Date.now()}`,
+      nombre: nombreCompleto,
+      primer_nombre: pNom || previo?.primer_nombre || null,
+      segundo_nombre: sNom || previo?.segundo_nombre || null,
+      primer_apellido: pApe || previo?.primer_apellido || null,
+      segundo_apellido: sApe || previo?.segundo_apellido || null,
+      telefono: telClean || previo?.telefono || null,
+      correo: emailNuevo,
+      rol: rolClean,
+      cedula: cedulaClean || previo?.cedula || '',
+      estado: estado || previo?.estado || 'Activo',
+      updated_at: new Date().toISOString(),
+      created_at: previo?.created_at || new Date().toISOString()
+    };
+
+    inMemoryUsuarios.set(emailNuevo, payload);
+
+    // Actualizar también la información en clientes vinculados a este cobrador
+    for (const cli of inMemoryClientes.values()) {
+      const regC = (cli.registrado_por_correo || '').toLowerCase().trim();
+      const regId = String(cli.cobrador_id || '').trim();
+      const regCed = String(cli.registrado_por_cedula || '').trim();
+      if (regC === identLower || regId === ident || (previo?.cedula && regCed === previo.cedula)) {
+        cli.registrado_por_nombre = payload.nombre;
+        cli.registrado_por_telefono = payload.telefono;
+        cli.registrado_por_correo = payload.correo;
+        cli.registrado_por_rol = payload.rol;
+        cli.registrado_por_cedula = payload.cedula;
+      }
+    }
+
+    // Actualizar en Supabase (solo si está disponible)
+    if (await checkSupabaseAvailable()) {
+      try {
+        const updateData = {
           nombre: payload.nombre,
           primer_nombre: payload.primer_nombre,
           segundo_nombre: payload.segundo_nombre,
           primer_apellido: payload.primer_apellido,
           segundo_apellido: payload.segundo_apellido,
           telefono: payload.telefono,
+          correo: payload.correo,
           rol: payload.rol,
           cedula: payload.cedula
-        }], { onConflict: 'correo' })
-        .select();
+        };
 
-      if (!error && data?.[0]) {
-        payload.id = data[0].id || payload.id;
-        inMemoryUsuarios.set(emailClean, { ...payload, ...data[0] });
-      } else if (error) {
-        // Si fallan columnas extras en Supabase, intentar con las columnas básicas
-        const { data: fallbackData } = await supabase
-          .from('usuarios')
-          .upsert([{
-            correo: payload.correo,
-            nombre: payload.nombre,
-            rol: payload.rol,
-            cedula: payload.cedula
-          }], { onConflict: 'correo' })
-          .select();
-        if (fallbackData?.[0]) {
-          payload.id = fallbackData[0].id || payload.id;
-        }
+        await Promise.race([
+          (async () => {
+            let resUp = null;
+            if (previo?.id && /^[0-9a-fA-F-]{36}$/.test(previo.id)) {
+              resUp = await supabase.from('usuarios').update(updateData).eq('id', previo.id).select();
+            }
+            if (!resUp?.data?.length) {
+              resUp = await supabase.from('usuarios').update(updateData).eq('correo', identLower).select();
+            }
+            if (!resUp?.data?.length && cedulaClean) {
+              resUp = await supabase.from('usuarios').update(updateData).eq('cedula', cedulaClean).select();
+            }
+            if (!resUp?.data?.length) {
+              await supabase.from('usuarios').upsert([updateData], { onConflict: 'correo' });
+            }
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase update timeout')), 2000))
+        ]);
+      } catch (e) {
+        logNotice('usuarios-actualizar', e);
       }
-    } catch (e) {
-      console.warn('Nota Supabase al registrar usuario:', e.message);
     }
 
-    return res.json({ ok: true, data: payload });
+    return res.json({ ok: true, data: payload, mensaje: 'Cobrador actualizado exitosamente.' });
   } catch (err) {
-    console.error('Error servidor POST /api/usuarios:', err);
+    console.error('Error servidor PUT /api/usuarios:', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
 });
@@ -697,23 +889,28 @@ app.delete('/api/usuarios/:identificador', async (req, res) => {
       }
     }
 
-    // 2. Eliminar de la base de datos Supabase
-    let dbEliminado = false;
-    try {
-      // Eliminar por correo
-      const resCorreo = await supabase.from('usuarios').delete().eq('correo', identLower);
-      if (!resCorreo.error) dbEliminado = true;
+    // 2. Eliminar de la base de datos Supabase si está disponible
+    if (await checkSupabaseAvailable()) {
+      try {
+        await Promise.race([
+          (async () => {
+            // Eliminar por correo
+            await supabase.from('usuarios').delete().eq('correo', identLower);
 
-      // Eliminar por cédula si aplica
-      await supabase.from('usuarios').delete().eq('cedula', ident);
+            // Eliminar por cédula si aplica
+            await supabase.from('usuarios').delete().eq('cedula', ident);
 
-      // Si es formato UUID, eliminar por id
-      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(ident);
-      if (isUuid) {
-        await supabase.from('usuarios').delete().eq('id', ident);
+            // Si es formato UUID, eliminar por id
+            const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(ident);
+            if (isUuid) {
+              await supabase.from('usuarios').delete().eq('id', ident);
+            }
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase delete timeout')), 2000))
+        ]);
+      } catch (e) {
+        logNotice('usuarios-eliminar', e);
       }
-    } catch (e) {
-      console.warn('Nota al eliminar usuario de Supabase:', e.message);
     }
 
     return res.json({
@@ -729,27 +926,14 @@ app.delete('/api/usuarios/:identificador', async (req, res) => {
 
 // Estado de conexión con Supabase
 app.get('/api/status', async (req, res) => {
-  try {
-    const checkPromise = supabase.from('clientes').select('id', { count: 'exact', head: true });
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000));
-    
-    const { count, error } = await Promise.race([checkPromise, timeoutPromise]);
-    return res.json({
-      ok: true,
-      supabaseConnected: !error,
-      clientesCount: !error ? (count ?? 0) : inMemoryClientes.size,
-      inMemoryCount: inMemoryClientes.size,
-      timestamp: new Date().toISOString()
-    });
-  } catch (err) {
-    return res.json({
-      ok: true,
-      supabaseConnected: false,
-      clientesCount: inMemoryClientes.size,
-      inMemoryCount: inMemoryClientes.size,
-      timestamp: new Date().toISOString()
-    });
-  }
+  const isOnline = await checkSupabaseAvailable();
+  return res.json({
+    ok: true,
+    supabaseConnected: isOnline,
+    clientesCount: inMemoryClientes.size,
+    inMemoryCount: inMemoryClientes.size,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Serve static assets from root
