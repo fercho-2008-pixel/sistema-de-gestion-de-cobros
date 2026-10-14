@@ -1,55 +1,64 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Cobros</title>
-    <meta name="description" content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
-    <meta property="og:title" content="Sistema de Gestión de Cobros">
-    <meta property="og:description" content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
-    <link rel="stylesheet" href="menu.css">
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión de Cobros</title>
+  <meta name="description" content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
+  <meta property="og:title" content="Sistema de Gestión de Cobros">
+  <meta property="og:description"
+    content="Panel administrativo y sistema para la gestión de cobros, préstamos y clientes.">
+  <link rel="stylesheet" href="menu.css">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
 <body>
 
-<div class="stage">
+  <div class="stage">
 
-  <div class="left">
-    <div class="brand">
-      <div class="brand-mark">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V5l-8-3z" fill="#0F2749"/></svg>
-      </div>
-      <div class="brand-name">Sistema de Gestión de Cobros<span>Panel administrativo</span></div>
-    </div>
-
-    <div class="hero">
-      <div class="eyebrow">Acceso al panel</div>
-      <h1>Cada préstamo, cada pago, en un solo lugar.</h1>
-      <p>Ingresa con tu cuenta para acceder al sistema y gestionar tus operaciones en tiempo real.</p>
-    </div>
-
-    <div>
-      <div class="left-foot">© 2024 Sistema de Gestión de Cobros</div>
-    </div>
-  </div>
-
-  <div class="right">
-    <div class="card">
-      
-      <!-- PANTALLA 1: SOLO LOS BOTONES DE ELECCIÓN DE ROL -->
-      <div id="seccionElegirRol">
-        <div class="card-head">
-          <div class="kicker">Acceso al sistema</div>
-          <h2>Inicia sesión</h2>
-          <p>Selecciona cómo deseas ingresar al panel:</p>
+    <div class="left">
+      <div class="brand">
+        <div class="brand-mark">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img"
+            aria-label="Logo de gestión de cobros">
+            <rect x="32" y="32" width="448" height="448" rx="112" fill="#102A43" />
+            <path d="M256 102 370 145v91c0 82-48 139-114 174-66-35-114-92-114-174v-91l114-43Z" fill="#E9B95F" />
+            <path d="m207 253 34 34 67-72" fill="none" stroke="#102A43" stroke-width="25" stroke-linecap="round"
+              stroke-linejoin="round" />
+          </svg>
         </div>
+        <div class="brand-name">Sistema de Gestión de Cobros<span>Panel administrativo</span></div>
+      </div>
 
-        <div style="display:flex; flex-direction:column; gap:16px; margin:26px 0 10px 0;">
-          <!-- BOTÓN 1: ADMINISTRADOR -->
-          <button 
-            type="button" 
-            id="btnElegirAdmin" 
+      <div class="hero">
+        <div class="eyebrow">Acceso al panel</div>
+        <h1>Cada préstamo, cada pago, en un solo lugar.</h1>
+        <p>Ingresa con tu cuenta para acceder al sistema y gestionar tus operaciones en tiempo real.</p>
+      </div>
+
+      <div>
+        <div class="left-foot">© 2024 Sistema de Gestión de Cobros</div>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="card">
+
+        <!-- PANTALLA 1: SOLO LOS BOTONES DE ELECCIÓN DE ROL -->
+        <div id="seccionElegirRol">
+          <div class="card-head">
+            <div class="kicker">Acceso al sistema</div>
+            <h2>Inicia sesión</h2>
+            <p>Selecciona cómo deseas ingresar al panel:</p>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:16px; margin:26px 0 10px 0;">
+            <!-- BOTÓN 1: ADMINISTRADOR -->
+            <button
+            type="button"
+            id="btnElegirAdmin"
             style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #0f2749; background:#0f2749; color:#ffffff; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 6px 16px rgba(15,39,73,0.22);"
             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 22px rgba(15,39,73,0.28)';"
             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(15,39,73,0.22)';"
@@ -68,10 +77,10 @@
             <div style="font-size:1.3rem; color:#94a3b8; font-weight:700;">➔</div>
           </button>
 
-          <!-- BOTÓN 2: COBRADOR -->
-          <button 
-            type="button" 
-            id="btnElegirCobrador" 
+            <!-- BOTÓN 2: COBRADOR -->
+            <button
+            type="button"
+            id="btnElegirCobrador"
             style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #cbd5e1; background:#ffffff; color:#0f172a; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 4px 12px rgba(0,0,0,0.05);"
             onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='#2563eb'; this.style.boxShadow='0 8px 20px rgba(37,99,235,0.15)';"
             onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';"
@@ -89,70 +98,70 @@
             </div>
             <div style="font-size:1.3rem; color:#2563eb; font-weight:700;">➔</div>
           </button>
+          </div>
         </div>
-      </div>
 
-      <!-- PANTALLA 2: FORMULARIO QUE PIDE LA INFORMACIÓN SEGÚN EL ROL ELEGIDO -->
-      <div id="seccionFormularioLogin" style="display:none;">
-        <button 
-          type="button" 
-          id="btnVolverElegirRol" 
+        <!-- PANTALLA 2: FORMULARIO QUE PIDE LA INFORMACIÓN SEGÚN EL ROL ELEGIDO -->
+        <div id="seccionFormularioLogin" style="display:none;">
+          <button
+          type="button"
+          id="btnVolverElegirRol"
           style="display:inline-flex; align-items:center; gap:6px; background:transparent; border:none; color:#2563eb; font-size:0.84rem; font-weight:700; cursor:pointer; margin-bottom:14px; padding:0;"
         >
           ← Cambiar opción de ingreso
         </button>
 
-        <div class="card-head" style="margin-bottom:18px;">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-            <div class="kicker" id="formKicker" style="margin-bottom:0;">Acceso Administrativo</div>
-            <span id="badgeRolActual" style="font-size:0.72rem; font-weight:800; padding:3px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; text-transform:uppercase;">ADMIN</span>
+          <div class="card-head" style="margin-bottom:18px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+              <div class="kicker" id="formKicker" style="margin-bottom:0;">Acceso Administrativo</div>
+              <span id="badgeRolActual" style="font-size:0.72rem; font-weight:800; padding:3px 8px; border-radius:6px; background:#dbeafe; color:#1e40af; text-transform:uppercase;">ADMIN</span>
+            </div>
+            <h2 id="formTitulo" style="margin-bottom:4px;">Ingreso como Administrador</h2>
+            <p id="formSubtitulo">Ingresa tu correo electrónico, número de cédula y contraseña para continuar.</p>
           </div>
-          <h2 id="formTitulo" style="margin-bottom:4px;">Ingreso como Administrador</h2>
-          <p id="formSubtitulo">Ingresa tu correo electrónico, número de cédula y contraseña para continuar.</p>
-        </div>
 
-        <form id="loginForm">
-          <!-- CAMPO PARA ADMINISTRADOR: CORREO ELECTRÓNICO -->
-          <div class="field" id="grupoAdminCorreo">
-            <label for="correoAdmin" style="display:flex; justify-content:space-between; align-items:center;">
+          <form id="loginForm">
+            <!-- CAMPO PARA ADMINISTRADOR: CORREO ELECTRÓNICO -->
+            <div class="field" id="grupoAdminCorreo">
+              <label for="correoAdmin" style="display:flex; justify-content:space-between; align-items:center;">
               <span>Correo del Administrador *</span>
               <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 7px; border-radius:4px; font-weight:700;">SOLO ADMIN</span>
             </label>
-            <input id="correoAdmin" class="input filled" type="email" placeholder="admin@cobros.com" autocomplete="email" />
-            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-              Ingresa tu correo electrónico de administrador registrado.
+              <input id="correoAdmin" class="input filled" type="email" placeholder="admin@cobros.com" autocomplete="email" />
+              <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+                Ingresa tu correo electrónico de administrador registrado.
+              </div>
             </div>
-          </div>
 
-          <!-- CAMPO PARA ADMINISTRADOR: CÉDULA -->
-          <div class="field" id="grupoAdminCedula">
-            <label for="cedulaAdmin" style="display:flex; justify-content:space-between; align-items:center;">
+            <!-- CAMPO PARA ADMINISTRADOR: CÉDULA -->
+            <div class="field" id="grupoAdminCedula">
+              <label for="cedulaAdmin" style="display:flex; justify-content:space-between; align-items:center;">
               <span>Cédula del Administrador *</span>
               <span style="font-size:0.7rem; background:#dbeafe; color:#1e40af; padding:2px 7px; border-radius:4px; font-weight:700;">SOLO ADMIN</span>
             </label>
-            <input id="cedulaAdmin" class="input filled" type="text" placeholder="Ej: 1090421332 o 1110500088" autocomplete="username" />
-            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-              Ingresa tu número de cédula de administrador para autorizar el acceso.
+              <input id="cedulaAdmin" class="input filled" type="text" placeholder="Ej: 1090421332 o 1110500088" autocomplete="username" />
+              <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+                Ingresa tu número de cédula de administrador para autorizar el acceso.
+              </div>
             </div>
-          </div>
 
-          <!-- CAMPO PARA COBRADOR: CORREO ELECTRÓNICO -->
-          <div class="field" id="grupoCobradorCorreo" style="display:none;">
-            <label for="correoCobrador" style="display:flex; justify-content:space-between; align-items:center;">
+            <!-- CAMPO PARA COBRADOR: CORREO ELECTRÓNICO -->
+            <div class="field" id="grupoCobradorCorreo" style="display:none;">
+              <label for="correoCobrador" style="display:flex; justify-content:space-between; align-items:center;">
               <span>Correo del Cobrador *</span>
               <span style="font-size:0.7rem; background:#d1fae5; color:#065f46; padding:2px 7px; border-radius:4px; font-weight:700;">COBRADOR</span>
             </label>
-            <input id="correoCobrador" class="input filled" type="email" placeholder="cobrador@cobros.com" autocomplete="email" />
-            <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
-              Ingresa el correo asignado a tu cuenta de Cobrador.
+              <input id="correoCobrador" class="input filled" type="email" placeholder="cobrador@cobros.com" autocomplete="email" />
+              <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">
+                Ingresa el correo asignado a tu cuenta de Cobrador.
+              </div>
             </div>
-          </div>
 
-          <div class="field">
-            <label for="password" id="lblPassword">Contraseña del Administrador *</label>
-            <div style="position:relative; width:100%; display:flex; align-items:center;">
-              <input id="password" class="input filled" type="password" placeholder="**********" required autocomplete="current-password" style="padding-right:44px;" />
-              <button
+            <div class="field">
+              <label for="password" id="lblPassword">Contraseña del Administrador *</label>
+              <div style="position:relative; width:100%; display:flex; align-items:center;">
+                <input id="password" class="input filled" type="password" placeholder="**********" required autocomplete="current-password" style="padding-right:44px;" />
+                <button
                 type="button"
                 id="btnTogglePassword"
                 title="Mostrar contraseña"
@@ -172,194 +181,211 @@
                   <line x1="1" y1="1" x2="23" y2="23"></line>
                 </svg>
               </button>
+              </div>
             </div>
-          </div>
 
-          <div class="row-between">
-            <div class="remember"><div class="checkbox"></div> Recordarme</div>
-            <a class="forgot" href="#" id="linkOlvidastePassword">¿Olvidaste tu contraseña?</a>
-          </div>
+            <div class="row-between">
+              <div class="remember">
+                <div class="checkbox"></div> Recordarme
+              </div>
+              <a class="forgot" href="#" id="linkOlvidastePassword">¿Olvidaste tu contraseña?</a>
+            </div>
 
-          <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer; background:#0f2749;">
+            <button type="submit" id="btnIniciarSesion" class="cta" style="width:100%; cursor:pointer; background:#0f2749;">
             Ingresar como Administrador 🛡️
           </button>
-        </form>
+          </form>
 
-        <div id="loginMsg" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;"></div>
+          <div id="loginMsg"
+            style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.4;">
+          </div>
 
-        <!-- Solo visible en Modo Administrador -->
-        <div id="pieRegistroAdmin" class="foot-note" style="margin-top:20px; display:none;">¿No tienes cuenta? <a href="registro-usuario.html?modo=nuevo" id="linkRegistrarNuevo" style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+          <!-- Solo visible en Modo Administrador -->
+          <div id="pieRegistroAdmin" class="foot-note" style="margin-top:20px; display:none;">¿No tienes cuenta? <a
+              href="registro-usuario.html?modo=nuevo" id="linkRegistrarNuevo"
+              style="font-weight:600; color:#2563eb;">Registrar nuevo usuario</a></div>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<!-- MODAL / MENÚ DE RECUPERACIÓN Y CAMBIO DE CONTRASEÑA -->
-<div id="modalRecuperarPassword" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
-  <div style="background:#ffffff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; overflow:hidden; font-family:'Manrope', -apple-system, sans-serif;">
-    
-    <!-- Encabezado del menú -->
-    <div style="padding:20px 24px; background:linear-gradient(135deg, #0f2749, #1e3f73); color:#ffffff; display:flex; align-items:center; justify-content:space-between;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:1.4rem;">🔐</span>
-        <div>
-          <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff;">Recuperar Contraseña</h3>
-          <p style="margin:2px 0 0 0; font-size:0.78rem; color:#cbd5e1;">Verificación de identidad y cambio de clave</p>
+  <!-- MODAL / MENÚ DE RECUPERACIÓN Y CAMBIO DE CONTRASEÑA -->
+  <div id="modalRecuperarPassword"
+    style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(15,23,42,0.6); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+    <div
+      style="background:#ffffff; border-radius:16px; width:100%; max-width:440px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; overflow:hidden; font-family:'Manrope', -apple-system, sans-serif;">
+
+      <!-- Encabezado del menú -->
+      <div
+        style="padding:20px 24px; background:linear-gradient(135deg, #0f2749, #1e3f73); color:#ffffff; display:flex; align-items:center; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:1.4rem;">🔐</span>
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff;">Recuperar Contraseña</h3>
+            <p style="margin:2px 0 0 0; font-size:0.78rem; color:#cbd5e1;">Verificación de identidad y cambio de clave
+            </p>
+          </div>
         </div>
+        <button type="button" id="btnCerrarModalRecuperar" style="background:transparent; border:none; color:#ffffff; font-size:1.3rem; cursor:pointer; padding:4px 8px; border-radius:6px; line-height:1;">✕</button>
       </div>
-      <button type="button" id="btnCerrarModalRecuperar" style="background:transparent; border:none; color:#ffffff; font-size:1.3rem; cursor:pointer; padding:4px 8px; border-radius:6px; line-height:1;">✕</button>
-    </div>
 
-    <!-- Contenido del Menú -->
-    <div style="padding:24px;">
+      <!-- Contenido del Menú -->
+      <div style="padding:24px;">
 
-      <!-- PASO 1: Ingreso de correo y cédula para verificar identidad -->
-      <div id="recuperarPaso1">
-        <p style="font-size:0.875rem; color:#475569; margin-bottom:18px; line-height:1.5;">
-          Ingresa el correo con el que intentas acceder y tu número de cédula para confirmar tu identidad.
-        </p>
+        <!-- PASO 1: Ingreso de correo y cédula para verificar identidad -->
+        <div id="recuperarPaso1">
+          <p style="font-size:0.875rem; color:#475569; margin-bottom:18px; line-height:1.5;">
+            Ingresa el correo con el que intentas acceder y tu número de cédula para confirmar tu identidad.
+          </p>
 
-        <form id="formVerificarIdentidad">
-          <div style="margin-bottom:16px;">
-            <label for="recCorreo" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+          <form id="formVerificarIdentidad">
+            <div style="margin-bottom:16px;">
+              <label for="recCorreo" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
               Correo electrónico del usuario *
             </label>
-            <input 
-              id="recCorreo" 
-              type="email" 
-              placeholder="ejemplo@cobros.com" 
-              required 
+              <input
+              id="recCorreo"
+              type="email"
+              placeholder="ejemplo@cobros.com"
+              required
               style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
             />
-          </div>
+            </div>
 
-          <div style="margin-bottom:18px;">
-            <label for="recCedula" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+            <div style="margin-bottom:18px;">
+              <label for="recCedula" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
               Cédula de identidad (Documento) *
             </label>
-            <input 
-              id="recCedula" 
-              type="text" 
-              placeholder="Ingresa tu número de cédula" 
-              required 
+              <input
+              id="recCedula"
+              type="text"
+              placeholder="Ingresa tu número de cédula"
+              required
               style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
             />
-          </div>
+            </div>
 
-          <div id="recPaso1Msg" style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;"></div>
+            <div id="recPaso1Msg"
+              style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;">
+            </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button 
-              type="button" 
-              id="btnCancelarRecuperar" 
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button
+              type="button"
+              id="btnCancelarRecuperar"
               style="padding:10px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
             >
               Cancelar
             </button>
-            <button 
-              type="submit" 
-              id="btnVerificarIdentidad" 
+              <button
+              type="submit"
+              id="btnVerificarIdentidad"
               style="padding:10px 18px; background:#0f2749; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
             >
               Confirmar identidad
             </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- PASO 2: Confirmación de identidad exitosa y formulario de nueva contraseña -->
-      <div id="recuperarPaso2" style="display:none;">
-        <div id="recUsuarioConfirmadoBadge" style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-bottom:18px; display:flex; align-items:flex-start; gap:10px;">
-          <span style="font-size:1.3rem;">✅</span>
-          <div style="font-size:0.82rem; color:#065f46; line-height:1.4;">
-            <strong id="recNombreUsuarioText" style="display:block; font-size:0.9rem; color:#047857;">Identidad confirmada</strong>
-            <span id="recDetallesUsuarioText">Puedes asignar tu nueva contraseña a continuación.</span>
-          </div>
+            </div>
+          </form>
         </div>
 
-        <form id="formCambiarPassword">
-          <div style="margin-bottom:14px;">
-            <label for="recNuevaPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+        <!-- PASO 2: Confirmación de identidad exitosa y formulario de nueva contraseña -->
+        <div id="recuperarPaso2" style="display:none;">
+          <div id="recUsuarioConfirmadoBadge"
+            style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:12px; margin-bottom:18px; display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-size:1.3rem;">✅</span>
+            <div style="font-size:0.82rem; color:#065f46; line-height:1.4;">
+              <strong id="recNombreUsuarioText" style="display:block; font-size:0.9rem; color:#047857;">Identidad confirmada</strong>
+              <span id="recDetallesUsuarioText">Puedes asignar tu nueva contraseña a continuación.</span>
+            </div>
+          </div>
+
+          <form id="formCambiarPassword">
+            <div style="margin-bottom:14px;">
+              <label for="recNuevaPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
               Nueva contraseña *
             </label>
-            <div style="position:relative; display:flex; align-items:center;">
-              <input 
-                id="recNuevaPassword" 
-                type="password" 
-                placeholder="Mínimo 6 caracteres" 
-                minlength="6" 
-                required 
+              <div style="position:relative; display:flex; align-items:center;">
+                <input
+                id="recNuevaPassword"
+                type="password"
+                placeholder="Mínimo 6 caracteres"
+                minlength="6"
+                required
                 style="width:100%; box-sizing:border-box; padding:10px 42px 10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
               />
-              <button 
-                type="button" 
-                id="btnToggleRecPwd" 
+                <button
+                type="button"
+                id="btnToggleRecPwd"
                 style="position:absolute; right:8px; background:transparent; border:none; cursor:pointer; font-size:1rem; padding:4px; opacity:0.6;"
                 aria-label="Ver contraseña"
               >
                 👁️
               </button>
+              </div>
+              <span style="font-size:0.75rem; color:#64748b; margin-top:4px; display:block;">Mínimo 6 caracteres.</span>
             </div>
-            <span style="font-size:0.75rem; color:#64748b; margin-top:4px; display:block;">Mínimo 6 caracteres.</span>
-          </div>
 
-          <div style="margin-bottom:18px;">
-            <label for="recConfirmarPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
+            <div style="margin-bottom:18px;">
+              <label for="recConfirmarPassword" style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:6px;">
               Confirmar nueva contraseña *
             </label>
-            <input 
-              id="recConfirmarPassword" 
-              type="password" 
-              placeholder="Repite la nueva contraseña" 
-              minlength="6" 
-              required 
+              <input
+              id="recConfirmarPassword"
+              type="password"
+              placeholder="Repite la nueva contraseña"
+              minlength="6"
+              required
               style="width:100%; box-sizing:border-box; padding:10px 14px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.9rem; outline:none;"
             />
-          </div>
+            </div>
 
-          <div id="recPaso2Msg" style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;"></div>
+            <div id="recPaso2Msg"
+              style="display:none; margin-bottom:14px; padding:10px 12px; border-radius:8px; font-size:0.82rem; line-height:1.4;">
+            </div>
 
-          <div style="display:flex; gap:10px; justify-content:flex-end;">
-            <button 
-              type="button" 
-              id="btnVolverPaso1" 
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+              <button
+              type="button"
+              id="btnVolverPaso1"
               style="padding:10px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
             >
               Atrás
             </button>
-            <button 
-              type="submit" 
-              id="btnActualizarPassword" 
+              <button
+              type="submit"
+              id="btnActualizarPassword"
               style="padding:10px 18px; background:#047857; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;"
             >
               Guardar y actualizar contraseña
             </button>
-          </div>
-        </form>
-      </div>
+            </div>
+          </form>
+        </div>
 
-      <!-- PASO 3: Éxito final -->
-      <div id="recuperarPaso3" style="display:none; text-align:center; padding:12px 0;">
-        <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
-        <h4 style="margin:0 0 8px 0; font-size:1.15rem; color:#0f172a; font-weight:700;">¡Contraseña actualizada con éxito!</h4>
-        <p style="font-size:0.88rem; color:#475569; line-height:1.5; margin-bottom:20px;">
-          La información ha sido guardada y actualizada correctamente. Ya puedes acceder al sistema con tu nueva contraseña.
-        </p>
-        <button 
-          type="button" 
-          id="btnIrLoginConNuevaClave" 
+        <!-- PASO 3: Éxito final -->
+        <div id="recuperarPaso3" style="display:none; text-align:center; padding:12px 0;">
+          <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+          <h4 style="margin:0 0 8px 0; font-size:1.15rem; color:#0f172a; font-weight:700;">¡Contraseña actualizada con
+            éxito!</h4>
+          <p style="font-size:0.88rem; color:#475569; line-height:1.5; margin-bottom:20px;">
+            La información ha sido guardada y actualizada correctamente. Ya puedes acceder al sistema con tu nueva
+            contraseña.
+          </p>
+          <button
+          type="button"
+          id="btnIrLoginConNuevaClave"
           style="width:100%; padding:12px; background:#0f2749; color:#ffffff; border:none; border-radius:8px; font-size:0.95rem; font-weight:600; cursor:pointer;"
         >
           Iniciar sesión ahora
         </button>
-      </div>
+        </div>
 
+      </div>
     </div>
   </div>
-</div>
 
-<script type="module">
-  import { 
+  <script type="module">
+    import { 
     db, 
     obtenerUsuarios, 
     guardarSesionActiva, 
@@ -794,7 +820,8 @@
         : 'Ingresar como Cobrador 💼';
     }
   });
-</script>
+  </script>
 
 </body>
+
 </html>
