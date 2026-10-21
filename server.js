@@ -278,10 +278,72 @@ app.get('/api/pagos', async (req, res) => {
   }
 });
 
+// Lógica de cálculo de penalización por retraso en cuotas
+function procesarReglasPenalizacion(cli, { esRetrasoCuota2, esRetrasoPrueba, esPuntualPrueba } = {}) {
+  if (!cli) return;
+  const tasaBase = Number(cli.tasa_interes_original) > 0 ? Number(cli.tasa_interes_original) : (Number(cli.tasa_interes) || 0);
+  cli.tasa_interes_original = tasaBase;
+  const capital = Number(cli.monto_capital) || 0;
+
+  // REGLA 1: Retraso en segunda cuota (+3.5% durante 2 cuotas posteriores)
+  if (esRetrasoCuota2) {
+    if (!cli.penalizacion_cuota2_activa) {
+      cli.penalizacion_cuota2_activa = true;
+      cli.penalizacion_cuota2_restantes = 2;
+      const recargo35 = Math.round(capital * (3.5 / 100));
+      cli.monto_interes = (Number(cli.monto_interes) || 0) + recargo35;
+      cli.monto_deuda = (Number(cli.monto_deuda) || 0) + recargo35;
+    } else {
+      cli.penalizacion_cuota2_restantes = 2;
+    }
+    const perm08 = cli.penalizacion_permanente_08 ? 0.8 : 0;
+    cli.tasa_interes = Number((tasaBase + perm08 + 3.5).toFixed(2));
+    cli.observaciones = (cli.observaciones || '') + `\n[⚠️ PENALIZACIÓN CUOTA 2: Aumento +3.5% aplicado por retraso. Tasa actual: ${cli.tasa_interes}%. Aplica durante 2 cuotas posteriores]`;
+  }
+  // REGLA 2: Cliente en período de penalización (+3.5% activo)
+  else if (cli.penalizacion_cuota2_activa) {
+    // Si se retrasa en alguna de esas 2 cuotas: +0.8% permanente y reinicia 2 cuotas de prueba
+    if (esRetrasoPrueba) {
+      if (!cli.penalizacion_permanente_08) {
+        cli.penalizacion_permanente_08 = true;
+        const recargo08 = Math.round(capital * (0.8 / 100));
+        cli.monto_interes = (Number(cli.monto_interes) || 0) + recargo08;
+        cli.monto_deuda = (Number(cli.monto_deuda) || 0) + recargo08;
+      }
+      cli.penalizacion_cuota2_restantes = 2;
+      cli.tasa_interes = Number((tasaBase + 0.8 + 3.5).toFixed(2));
+      cli.observaciones = (cli.observaciones || '') + `\n[🚨 PENALIZACIÓN AGRAVADA: Retraso en cuota de prueba. Se sumó +0.8% permanente (Tasa base: ${(tasaBase + 0.8)}%) y se mantendrán las 2 cuotas de prueba para remover el +3.5%. Tasa actual: ${cli.tasa_interes}%]`;
+    }
+    // Si paga a tiempo en la cuota de prueba:
+    else if (esPuntualPrueba !== false) {
+      cli.penalizacion_cuota2_restantes = Math.max(0, (Number(cli.penalizacion_cuota2_restantes) || 2) - 1);
+      if (cli.penalizacion_cuota2_restantes <= 0) {
+        // Se completaron 2 cuotas a tiempo: se retira el +3.5%
+        cli.penalizacion_cuota2_activa = false;
+        const descuento35 = Math.round(capital * (3.5 / 100));
+        cli.monto_interes = Math.max(0, (Number(cli.monto_interes) || 0) - descuento35);
+        cli.monto_deuda = Math.max(0, (Number(cli.monto_deuda) || 0) - descuento35);
+        const perm08 = cli.penalizacion_permanente_08 ? 0.8 : 0;
+        cli.tasa_interes = Number((tasaBase + perm08).toFixed(2));
+        cli.observaciones = (cli.observaciones || '') + `\n[✓ PENALIZACIÓN CUOTA 2 RESTABLECIDA: Cumplidas 2 cuotas puntuales. Interés vuelve a ${cli.tasa_interes}%]`;
+      }
+    }
+  }
+
+  // Recalcular valor de cuota si hay deuda pendiente
+  const numCuotas = Number(cli.numero_cuotas) || 1;
+  if (numCuotas > 0) {
+    cli.valor_cuota = Math.round((Number(cli.monto_deuda) || 0) / Math.max(1, numCuotas));
+  }
+}
+
 // Registrar o actualizar un pago
 app.post('/api/pagos', async (req, res) => {
   try {
-    const { cliente_nombre, documento, monto, fecha, metodo_pago, referencia, observaciones, estado } = req.body;
+    const { 
+      cliente_nombre, documento, monto, fecha, metodo_pago, referencia, observaciones, estado,
+      es_retraso_cuota2, es_retraso_en_prueba, es_puntual_prueba 
+    } = req.body;
     const docClean = documento ? String(documento).trim() : null;
     const montoNum = Number(monto) || 0;
 
@@ -295,14 +357,34 @@ app.post('/api/pagos', async (req, res) => {
       referencia: referencia ? String(referencia).trim() : `REF-${Date.now()}`,
       observaciones: observaciones ? String(observaciones).trim() : null,
       estado: estado || 'Pagado',
+      es_retraso_cuota2: Boolean(es_retraso_cuota2),
+      es_retraso_en_prueba: Boolean(es_retraso_en_prueba),
       created_at: new Date().toISOString()
     };
 
     // Actualizar en memoria
     inMemoryPagos.unshift(pagoPayload);
-    if (docClean && inMemoryClientes.has(docClean)) {
-      const cli = inMemoryClientes.get(docClean);
+    let cliActualizado = null;
+    let cli = docClean ? inMemoryClientes.get(docClean) : null;
+    if (!cli && docClean && (await checkSupabaseAvailable())) {
+      try {
+        const { data } = await supabase.from('clientes').select('*').eq('documento', docClean).maybeSingle();
+        if (data) {
+          cli = data;
+          inMemoryClientes.set(docClean, cli);
+        }
+      } catch (e) {}
+    }
+
+    if (cli) {
+      procesarReglasPenalizacion(cli, {
+        esRetrasoCuota2: Boolean(es_retraso_cuota2),
+        esRetrasoPrueba: Boolean(es_retraso_en_prueba),
+        esPuntualPrueba: es_puntual_prueba !== false
+      });
       cli.monto_deuda = Math.max(0, (Number(cli.monto_deuda) || 0) - montoNum);
+      inMemoryClientes.set(docClean, cli);
+      cliActualizado = cli;
     }
 
     // Intentar en Supabase solo si está disponible
@@ -319,21 +401,97 @@ app.post('/api/pagos', async (req, res) => {
           estado: pagoPayload.estado
         }]);
 
-        if (docClean) {
-          const { data: cli } = await supabase.from('clientes').select('id, monto_deuda').eq('documento', docClean).maybeSingle();
-          if (cli) {
-            const nuevaDeuda = Math.max(0, (Number(cli.monto_deuda) || 0) - montoNum);
-            await supabase.from('clientes').update({ monto_deuda: nuevaDeuda }).eq('id', cli.id);
-          }
+        if (docClean && cliActualizado) {
+          const updatePayload = {
+            monto_deuda: cliActualizado.monto_deuda,
+            tasa_interes: cliActualizado.tasa_interes,
+            monto_interes: cliActualizado.monto_interes,
+            valor_cuota: cliActualizado.valor_cuota,
+            observaciones: cliActualizado.observaciones
+          };
+          if (cliActualizado.tasa_interes_original != null) updatePayload.tasa_interes_original = cliActualizado.tasa_interes_original;
+          if (cliActualizado.penalizacion_cuota2_activa != null) updatePayload.penalizacion_cuota2_activa = cliActualizado.penalizacion_cuota2_activa;
+          if (cliActualizado.penalizacion_cuota2_restantes != null) updatePayload.penalizacion_cuota2_restantes = cliActualizado.penalizacion_cuota2_restantes;
+          if (cliActualizado.penalizacion_permanente_08 != null) updatePayload.penalizacion_permanente_08 = cliActualizado.penalizacion_permanente_08;
+
+          await supabase.from('clientes').update(updatePayload).eq('documento', docClean);
         }
       } catch (e) {
         logNotice('pagos', e);
       }
     }
 
-    return res.json({ ok: true, data: pagoPayload });
+    return res.json({ ok: true, data: pagoPayload, cliente: cliActualizado });
   } catch (err) {
     console.error('Error servidor POST /api/pagos:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Endpoint para aplicar o simular penalización directa en cliente
+app.post('/api/clientes/:documento/penalizacion', async (req, res) => {
+  try {
+    const doc = String(req.params.documento).trim();
+    const { accion } = req.body;
+    let cli = inMemoryClientes.get(doc);
+    if (!cli && (await checkSupabaseAvailable())) {
+      try {
+        const { data } = await supabase.from('clientes').select('*').eq('documento', doc).maybeSingle();
+        if (data) {
+          cli = data;
+          inMemoryClientes.set(doc, cli);
+        }
+      } catch (e) {}
+    }
+
+    if (!cli) {
+      return res.status(404).json({ ok: false, error: 'Cliente no encontrado' });
+    }
+
+    if (accion === 'retraso_cuota_2') {
+      procesarReglasPenalizacion(cli, { esRetrasoCuota2: true });
+    } else if (accion === 'retraso_prueba') {
+      procesarReglasPenalizacion(cli, { esRetrasoPrueba: true });
+    } else if (accion === 'pago_puntual_prueba') {
+      procesarReglasPenalizacion(cli, { esPuntualPrueba: true });
+    } else if (accion === 'restablecer') {
+      const tasaBase = Number(cli.tasa_interes_original) > 0 ? Number(cli.tasa_interes_original) : Number(cli.tasa_interes) || 0;
+      cli.penalizacion_cuota2_activa = false;
+      cli.penalizacion_cuota2_restantes = 0;
+      cli.penalizacion_permanente_08 = false;
+      cli.tasa_interes = tasaBase;
+      const capital = Number(cli.monto_capital) || 0;
+      cli.monto_interes = Math.round(capital * (tasaBase / 100));
+      cli.monto_deuda = capital + cli.monto_interes;
+      const numCuotas = Number(cli.numero_cuotas) || 1;
+      cli.valor_cuota = Math.round(cli.monto_deuda / Math.max(1, numCuotas));
+      cli.observaciones = (cli.observaciones || '') + `\n[🔄 CONDICIONES RESTABLECIDAS: Interés vuelto a tasa inicial ${tasaBase}%]`;
+    }
+
+    inMemoryClientes.set(doc, cli);
+
+    if (await checkSupabaseAvailable()) {
+      try {
+        const updatePayload = {
+          tasa_interes: cli.tasa_interes,
+          monto_interes: cli.monto_interes,
+          monto_deuda: cli.monto_deuda,
+          valor_cuota: cli.valor_cuota,
+          observaciones: cli.observaciones
+        };
+        if (cli.tasa_interes_original != null) updatePayload.tasa_interes_original = cli.tasa_interes_original;
+        if (cli.penalizacion_cuota2_activa != null) updatePayload.penalizacion_cuota2_activa = cli.penalizacion_cuota2_activa;
+        if (cli.penalizacion_cuota2_restantes != null) updatePayload.penalizacion_cuota2_restantes = cli.penalizacion_cuota2_restantes;
+        if (cli.penalizacion_permanente_08 != null) updatePayload.penalizacion_permanente_08 = cli.penalizacion_permanente_08;
+
+        await supabase.from('clientes').update(updatePayload).eq('documento', doc);
+      } catch (e) {
+        logNotice('penalizacion-supabase', e);
+      }
+    }
+
+    return res.json({ ok: true, data: cli });
+  } catch (err) {
     return res.status(500).json({ ok: false, error: err.message });
   }
 });

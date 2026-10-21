@@ -93,11 +93,11 @@
     <div id="resultado" class="result-container" style="display:none; margin-top:20px;">
       <div class="result-item" style="background:#0f172a; padding:12px 14px; border-radius:8px; border-left:4px solid #38bdf8; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
         <div>
-          <span class="result-label" style="color:#94a3b8; font-weight:700; display:block; font-size:0.75rem; text-transform:uppercase;">Nº de Factura Oficial</span>
+          <span class="result-label" style="color:#94a3b8; font-weight:700; display:block; font-size:0.75rem; text-transform:uppercase;">Nº de Contrato Financiero</span>
           <span id="facturaCliente" class="result-value" style="font-family:monospace; color:#38bdf8; font-weight:800; font-size:1.15rem; letter-spacing:1px;">-</span>
         </div>
         <button type="button" id="btnDescargarFacturaConsulta" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer;">
-          📄 Descargar Factura PDF
+          📜 Ver Contrato Financiero
         </button>
       </div>
 
@@ -126,6 +126,57 @@
         <span id="deudaCliente" class="result-value debt">$0 COP</span>
       </div>
 
+      <!-- Detalle Financiero del Crédito -->
+      <div style="background:#1e293b; border-radius:8px; padding:12px; margin-top:12px; border:1px solid #334155;">
+        <span style="font-weight:700; color:#38bdf8; display:block; font-size:0.8rem; text-transform:uppercase; margin-bottom:8px;">
+          💳 Detalles del Préstamo y Cuotas
+        </span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.82rem;">
+          <div>
+            <span style="color:#94a3b8; display:block; font-size:0.75rem;">Capital prestado:</span>
+            <strong id="capitalCliente" style="color:#f8fafc;">$0 COP</strong>
+          </div>
+          <div>
+            <span style="color:#94a3b8; display:block; font-size:0.75rem;">Interés total:</span>
+            <strong id="interesCliente" style="color:#f8fafc;">$0 COP</strong>
+          </div>
+          <div>
+            <span style="color:#94a3b8; display:block; font-size:0.75rem;">Tasa de interés:</span>
+            <strong id="tasaCliente" style="color:#38bdf8;">0%</strong>
+          </div>
+          <div>
+            <span style="color:#94a3b8; display:block; font-size:0.75rem;">Plan pactado:</span>
+            <strong id="planCuotasCliente" style="color:#f8fafc;">-</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado de Penalización de Cuota 2 -->
+      <div id="cajaPenalizacionConsulta" style="display:none; margin-top:12px; border-radius:8px; padding:12px; font-size:0.82rem;">
+        <div id="contenidoPenalizacion"></div>
+      </div>
+
+      <!-- Acciones de Regla de Penalización (Simulación y Ajuste Manual) -->
+      <div id="panelAccionesPenalizacion" style="margin-top:12px; background:#0f172a; border:1px solid #334155; border-radius:8px; padding:10px;">
+        <span style="font-size:0.75rem; color:#94a3b8; font-weight:700; text-transform:uppercase; display:block; margin-bottom:6px;">
+          ⚙️ Control de Penalización Cuota 2
+        </span>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+          <button type="button" id="btnSimularMoraCuota2" style="background:#78350f; color:#fef3c7; border:1px solid #b45309; border-radius:6px; padding:6px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Aplica +3.5% de interés durante 2 cuotas">
+            ⚠️ Aplicar Mora Cuota 2 (+3.5%)
+          </button>
+          <button type="button" id="btnSimularMoraPrueba" style="background:#7f1d1d; color:#fee2e2; border:1px solid #ef4444; border-radius:6px; padding:6px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Aplica +0.8% permanente al interés">
+            🚨 Retraso en Prueba (+0.8% perm.)
+          </button>
+          <button type="button" id="btnSimularPuntualPrueba" style="background:#064e3b; color:#d1fae5; border:1px solid #10b981; border-radius:6px; padding:6px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Avanza una cuota puntual del período de prueba">
+            ✅ Cuota Puntual (Avanzar)
+          </button>
+          <button type="button" id="btnRestablecerPenalizacion" style="background:#1e293b; color:#94a3b8; border:1px solid #475569; border-radius:6px; padding:6px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Restablece tasa de interés original">
+            🔄 Restablecer Interés Original
+          </button>
+        </div>
+      </div>
+
       <div id="seccionHistorial" style="margin-top:14px; padding-top:10px; border-top:1px solid #334155; font-size:13px; color:#94a3b8;">
         <span style="font-weight:600; color:#e2e8f0; display:block; margin-bottom:6px;">Últimos Pagos Registrados:</span>
         <div id="listaPagosCliente" style="line-height:1.6;"></div>
@@ -140,7 +191,7 @@
   </div>
 
   <script type="module">
-    import { buscarClientePorDocumento, verificarAutenticacion, esUsuarioAdmin } from './supabase.js';
+    import { buscarClientePorDocumento, verificarAutenticacion, esUsuarioAdmin, aplicarPenalizacionCliente } from './supabase.js';
 
     // Verificar si el usuario completó su registro o inició sesión
     const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'consulta.html' });
@@ -162,6 +213,24 @@
     const btnBuscarTexto = document.getElementById('btnBuscarTexto');
     const resultadoDiv = document.getElementById('resultado');
     const mensajeDiv = document.getElementById('mensajeEstado');
+
+    let clienteActualConsulta = null;
+
+    // Configurar botones de penalización
+    async function ejecutarAccionPenalizacion(accion) {
+      if (!clienteActualConsulta || !clienteActualConsulta.documento) return;
+      try {
+        await aplicarPenalizacionCliente(clienteActualConsulta.documento, accion);
+        await ejecutarBusqueda(clienteActualConsulta.documento);
+      } catch (e) {
+        alert('Error al aplicar penalización: ' + e.message);
+      }
+    }
+
+    document.getElementById('btnSimularMoraCuota2')?.addEventListener('click', () => ejecutarAccionPenalizacion('retraso_cuota_2'));
+    document.getElementById('btnSimularMoraPrueba')?.addEventListener('click', () => ejecutarAccionPenalizacion('retraso_prueba'));
+    document.getElementById('btnSimularPuntualPrueba')?.addEventListener('click', () => ejecutarAccionPenalizacion('pago_puntual_prueba'));
+    document.getElementById('btnRestablecerPenalizacion')?.addEventListener('click', () => ejecutarAccionPenalizacion('restablecer'));
 
     // Auto-search if query param 'documento' exists
     const urlParams = new URLSearchParams(window.location.search);
@@ -196,6 +265,8 @@
           return;
         }
 
+        clienteActualConsulta = cliente;
+
         // Renderizar datos del cliente
         document.getElementById('facturaCliente').textContent = cliente.numero_factura || 'Factura registrada';
         document.getElementById('nombreCliente').textContent = cliente.nombre || 'Sin nombre';
@@ -205,7 +276,6 @@
         const btnDescargarFac = document.getElementById('btnDescargarFacturaConsulta');
         if (btnDescargarFac) {
           btnDescargarFac.onclick = () => {
-            // Redirigir a clientes con visualización o generar factura
             window.location.href = `clientes.html?factura=${encodeURIComponent(cliente.numero_factura || cliente.documento)}`;
           };
         }
@@ -221,6 +291,67 @@
         deudaEl.className = monto > 0 ? "result-value debt" : "result-value";
         if (monto === 0) {
           deudaEl.style.color = "#10b981";
+        }
+
+        // Renderizar detalles de préstamo y tasas
+        const cap = Number(cliente.monto_capital) || Number(cliente.monto_deuda) || 0;
+        const inte = Number(cliente.monto_interes) || 0;
+        const tasa = Number(cliente.tasa_interes) || 0;
+        const tasaOrig = Number(cliente.tasa_interes_original) || tasa;
+        const nCtas = Number(cliente.numero_cuotas) || 1;
+        const freq = cliente.frecuencia_pago || 'Semanal';
+        const vCta = Number(cliente.valor_cuota) || Math.round(monto / nCtas);
+
+        document.getElementById('capitalCliente').textContent = `$${cap.toLocaleString('es-CO')} COP`;
+        document.getElementById('interesCliente').textContent = `$${inte.toLocaleString('es-CO')} COP`;
+        
+        let textoTasa = `${tasa}%`;
+        if (cliente.tasa_interes_original && Number(cliente.tasa_interes_original) !== tasa) {
+          textoTasa += ` (Base original: ${tasaOrig}%)`;
+        }
+        document.getElementById('tasaCliente').textContent = textoTasa;
+        document.getElementById('planCuotasCliente').textContent = `${nCtas} ctas. ${freq} ($${vCta.toLocaleString('es-CO')})`;
+
+        // Estado de penalización de Cuota 2
+        const cajaPen = document.getElementById('cajaPenalizacionConsulta');
+        const contPen = document.getElementById('contenidoPenalizacion');
+        if (cajaPen && contPen) {
+          if (cliente.penalizacion_cuota2_activa) {
+            cajaPen.style.display = 'block';
+            cajaPen.style.background = '#451a03';
+            cajaPen.style.border = '1.5px solid #d97706';
+            contPen.innerHTML = `
+              <strong style="color:#fbbf24; display:block; font-size:0.88rem; margin-bottom:4px;">
+                ⚠️ Penalización Cuota 2 Activa (+3.5%)
+              </strong>
+              <div style="color:#fef3c7; line-height:1.4;">
+                El cliente se retrasó en la segunda cuota. Se aumentaron <strong>+3.5%</strong> a su interés.<br>
+                Restan <strong style="color:#fbbf24;">${cliente.penalizacion_cuota2_restantes != null ? cliente.penalizacion_cuota2_restantes : 2}</strong> cuota(s) puntual(es) para restablecer la tasa al valor original (${tasaOrig}%).
+                ${cliente.penalizacion_permanente_08 ? '<div style="margin-top:6px; color:#fca5a5;">🚨 <strong>Aviso:</strong> Tiene recargo permanente de +0.8% por mora durante el período de prueba.</div>' : ''}
+              </div>
+            `;
+          } else if (cliente.penalizacion_permanente_08) {
+            cajaPen.style.display = 'block';
+            cajaPen.style.background = '#450a0a';
+            cajaPen.style.border = '1.5px solid #ef4444';
+            contPen.innerHTML = `
+              <strong style="color:#f87171; display:block; font-size:0.88rem; margin-bottom:4px;">
+                🚨 Recargo Permanente (+0.8%) Aplicado
+              </strong>
+              <div style="color:#fee2e2;">
+                El cliente se retrasó durante el período de prueba. El +0.8% adicional permanecerá activo hasta liquidar el préstamo.
+              </div>
+            `;
+          } else {
+            cajaPen.style.display = 'block';
+            cajaPen.style.background = '#064e3b';
+            cajaPen.style.border = '1px solid #059669';
+            contPen.innerHTML = `
+              <span style="color:#a7f3d0; font-weight:600;">
+                ✅ Sin penalizaciones activas. Tasa regular al día (${tasa}%).
+              </span>
+            `;
+          }
         }
 
         // Renderizar pagos recientes

@@ -944,6 +944,8 @@ export async function registrarPago(pago) {
     referencia: pago.referencia?.trim() || null,
     observaciones: pago.observaciones?.trim() || null,
     estado: pago.estado || 'Pagado',
+    es_retraso_cuota2: Boolean(pago.es_retraso_cuota2),
+    es_retraso_en_prueba: Boolean(pago.es_retraso_en_prueba),
     created_at: new Date().toISOString()
   };
 
@@ -951,21 +953,77 @@ export async function registrarPago(pago) {
   const pagosLocales = getLocalPagos();
   setLocalPagos([payload, ...pagosLocales]);
 
-  // 2. Actualizar saldo en clientes locales
-  if (payload.documento) {
-    const clientesLocales = getLocalClientes();
-    const cliIndex = clientesLocales.findIndex(c => String(c.documento).trim() === String(payload.documento).trim());
-    if (cliIndex !== -1) {
-      clientesLocales[cliIndex].monto_deuda = Math.max(0, (Number(clientesLocales[cliIndex].monto_deuda) || 0) - monto);
-      setLocalClientes([...clientesLocales]);
+  // 2. Intentar actualizar a través de la API del servidor (aplica penalizaciones y sincroniza)
+  try {
+    const resServer = await fetch('/api/pagos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...payload,
+        es_retraso_cuota2: pago.es_retraso_cuota2,
+        es_retraso_en_prueba: pago.es_retraso_en_prueba,
+        es_puntual_prueba: pago.es_puntual_prueba
+      })
+    });
+    if (resServer.ok) {
+      const dataS = await resServer.json();
+      if (dataS?.cliente && payload.documento) {
+        const clientesLocales = getLocalClientes();
+        const cliIndex = clientesLocales.findIndex(c => String(c.documento).trim() === String(payload.documento).trim());
+        if (cliIndex !== -1) {
+          clientesLocales[cliIndex] = { ...clientesLocales[cliIndex], ...dataS.cliente };
+          setLocalClientes([...clientesLocales]);
+        }
+      }
+    }
+  } catch (errApi) {
+    // Fallback local si el servidor no responde
+    if (payload.documento) {
+      const clientesLocales = getLocalClientes();
+      const cliIndex = clientesLocales.findIndex(c => String(c.documento).trim() === String(payload.documento).trim());
+      if (cliIndex !== -1) {
+        const cli = clientesLocales[cliIndex];
+        const tasaBase = Number(cli.tasa_interes_original) > 0 ? Number(cli.tasa_interes_original) : (Number(cli.tasa_interes) || 0);
+        cli.tasa_interes_original = tasaBase;
+        const capital = Number(cli.monto_capital) || 0;
+
+        if (pago.es_retraso_cuota2) {
+          cli.penalizacion_cuota2_activa = true;
+          cli.penalizacion_cuota2_restantes = 2;
+          const recargo = Math.round(capital * (3.5 / 100));
+          cli.monto_interes = (Number(cli.monto_interes) || 0) + recargo;
+          cli.monto_deuda = (Number(cli.monto_deuda) || 0) + recargo;
+          cli.tasa_interes = Number((tasaBase + (cli.penalizacion_permanente_08 ? 0.8 : 0) + 3.5).toFixed(2));
+        } else if (cli.penalizacion_cuota2_activa) {
+          if (pago.es_retraso_en_prueba) {
+            cli.penalizacion_permanente_08 = true;
+            const recargo08 = Math.round(capital * (0.8 / 100));
+            cli.monto_interes = (Number(cli.monto_interes) || 0) + recargo08;
+            cli.monto_deuda = (Number(cli.monto_deuda) || 0) + recargo08;
+            cli.penalizacion_cuota2_restantes = 2;
+            cli.tasa_interes = Number((tasaBase + 0.8 + 3.5).toFixed(2));
+          } else {
+            cli.penalizacion_cuota2_restantes = Math.max(0, (Number(cli.penalizacion_cuota2_restantes) || 2) - 1);
+            if (cli.penalizacion_cuota2_restantes <= 0) {
+              cli.penalizacion_cuota2_activa = false;
+              const desc35 = Math.round(capital * (3.5 / 100));
+              cli.monto_interes = Math.max(0, (Number(cli.monto_interes) || 0) - desc35);
+              cli.monto_deuda = Math.max(0, (Number(cli.monto_deuda) || 0) - desc35);
+              cli.tasa_interes = Number((tasaBase + (cli.penalizacion_permanente_08 ? 0.8 : 0)).toFixed(2));
+            }
+          }
+        }
+        cli.monto_deuda = Math.max(0, (Number(cli.monto_deuda) || 0) - monto);
+        setLocalClientes([...clientesLocales]);
+      }
     }
   }
 
-  // 3. Intentar guardar en base de datos remota
+  // 3. Intentar guardar directamente en Supabase si está disponible
   const client = getDb();
   if (client) {
     try {
-      const { data: pagoGuardado, error: errPago } = await client
+      await client
         .from('pagos')
         .insert([{
           cliente_nombre: payload.cliente_nombre,
@@ -976,32 +1034,69 @@ export async function registrarPago(pago) {
           referencia: payload.referencia,
           observaciones: payload.observaciones,
           estado: payload.estado
-        }])
-        .select();
-
-      if (payload.documento) {
-        const { data: cli } = await client
-          .from('clientes')
-          .select('id, monto_deuda')
-          .eq('documento', payload.documento)
-          .maybeSingle();
-
-        if (cli) {
-          const nuevaDeuda = Math.max(0, (Number(cli.monto_deuda) || 0) - monto);
-          await client
-            .from('clientes')
-            .update({ monto_deuda: nuevaDeuda })
-            .eq('id', cli.id);
-        }
-      }
-
-      if (pagoGuardado?.[0]) return pagoGuardado[0];
-    } catch (e) {
-      console.warn('Aviso: pago registrado en cache local con éxito:', e.message);
-    }
+        }]);
+    } catch (e) {}
   }
 
   return payload;
+}
+
+/**
+ * Calcula la información y estado de la regla de penalización de la segunda cuota.
+ */
+export function calcularPenalizacionCuota2(cliente, pagos = []) {
+  if (!cliente) return null;
+  const tasaBase = Number(cliente.tasa_interes_original) > 0 ? Number(cliente.tasa_interes_original) : (Number(cliente.tasa_interes) || 0);
+  const tasaActual = Number(cliente.tasa_interes) || tasaBase;
+  const cuotasPagadas = Array.isArray(pagos) ? pagos.length : 0;
+  const cuotaActualNumero = cuotasPagadas + 1;
+  const esCuota2 = (cuotaActualNumero === 2);
+  const penalizacionActiva = Boolean(cliente.penalizacion_cuota2_activa);
+  const cuotasRestantes = Number(cliente.penalizacion_cuota2_restantes) || (penalizacionActiva ? 2 : 0);
+  const penalizacionPermanente = Boolean(cliente.penalizacion_permanente_08);
+
+  return {
+    tasaBase,
+    tasaActual,
+    cuotasPagadas,
+    cuotaActualNumero,
+    esCuota2,
+    penalizacionActiva,
+    cuotasRestantes,
+    penalizacionPermanente
+  };
+}
+
+/**
+ * Aplica o simula la regla de penalización para un cliente.
+ */
+export async function aplicarPenalizacionCliente(documento, accion) {
+  const doc = String(documento || '').trim();
+  if (!doc) return null;
+
+  try {
+    const res = await fetch(`/api/clientes/${encodeURIComponent(doc)}/penalizacion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion })
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.data) {
+        const locales = getLocalClientes();
+        const index = locales.findIndex(c => String(c.documento).trim() === doc);
+        if (index !== -1) {
+          locales[index] = { ...locales[index], ...json.data };
+          setLocalClientes(locales);
+        }
+        return json.data;
+      }
+    }
+  } catch (e) {
+    console.warn('Error al llamar API penalización:', e.message);
+  }
+
+  return null;
 }
 
 /**

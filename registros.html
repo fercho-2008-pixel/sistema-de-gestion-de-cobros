@@ -787,15 +787,18 @@
             <!-- Barra de acciones (no imprimible) -->
             <div class="modal-factura-barra-acciones no-print">
                 <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:1.3rem;">🧾</span>
+                    <span style="font-size:1.3rem;">📜</span>
                     <div>
-                        <strong style="display:block; font-size:0.95rem;">Factura Oficial Generada</strong>
-                        <span style="font-size:0.75rem; color:#94a3b8;">Documento en 1 sola hoja listo para descargar en PDF o imprimir</span>
+                        <strong style="display:block; font-size:0.95rem;">Contrato Financiero de Crédito Generado</strong>
+                        <span style="font-size:0.75rem; color:#94a3b8;">Documento oficial con desglose crediticio y régimen de penalizaciones por mora</span>
                     </div>
                 </div>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button type="button" id="btnDescargarFacturaPDF" class="btn-factura-accion btn-descargar-pdf">
-                        📥 Descargar Factura (PDF)
+                        📥 Descargar Contrato (PDF)
+                    </button>
+                    <button type="button" id="btnEnviarContratoWA" class="btn-factura-accion" style="background:#25d366; color:#ffffff; border:none;" title="Enviar copia del contrato al cliente por WhatsApp">
+                        💬 Enviar por WhatsApp
                     </button>
                     <button type="button" id="btnImprimirFactura" class="btn-factura-accion btn-imprimir-fac">
                         🖨️ Imprimir
@@ -809,35 +812,35 @@
                 </div>
             </div>
 
-            <!-- Hoja Imprimible (Exactamente 1 página) -->
+            <!-- Hoja Imprimible del Contrato Financiero (Exactamente 1 página) -->
             <div id="facturaImprimible" class="hoja-factura">
                 <!-- Encabezado -->
                 <div class="fac-encabezado">
                     <div>
                         <h2 class="fac-brand-title">SISTEMA DE GESTIÓN DE COBROS</h2>
-                        <p class="fac-brand-sub">Comprobante Oficial de Registro y Otorgamiento de Crédito</p>
-                        <div style="margin-top:5px; font-size:0.78rem; color:#475569;">
-                            <span>Fecha y hora de emisión:</span> <strong id="facFechaEmision">-</strong>
+                        <p class="fac-brand-sub" style="font-weight:700; color:#1e40af;">CONTRATO FINANCIERO DE CRÉDITO Y COMPROMISO DE PAGO</p>
+                        <div style="margin-top:4px; font-size:0.75rem; color:#475569;">
+                            <span>Fecha y hora de suscripción:</span> <strong id="facFechaEmision">-</strong>
                         </div>
                     </div>
                     <div class="fac-box-codigo">
-                        <span class="fac-codigo-etiqueta">Nº FACTURA OFICIAL</span>
-                        <span id="facCodigoNumero" class="fac-codigo-numero">AbCdEfGh12345</span>
-                        <span style="font-size:0.68rem; color:#059669; font-weight:700; display:block; margin-top:2px;">
-                            ✓ CÓDIGO ÚNICO E IRREPETIBLE
+                        <span class="fac-codigo-etiqueta">Nº CONTRATO FINANCIERO</span>
+                        <span id="facCodigoNumero" class="fac-codigo-numero">CTR-12345</span>
+                        <span style="font-size:0.65rem; color:#059669; font-weight:700; display:block; margin-top:2px;">
+                            ✓ TÍTULO VALOR CON MÉRITO EJECUTIVO
                         </span>
                     </div>
                 </div>
 
                 <!-- Bloques de datos del cobrador y del cliente -->
-                <div class="fac-grid-secciones">
+                <div class="fac-grid-secciones" style="margin-bottom:10px;">
                     <!-- Datos del Cobrador / Asesor -->
                     <div class="fac-card-info">
                         <div class="fac-card-titulo">
-                            👤 ASESOR / COBRADOR RESPONSABLE
+                            🏛️ ENTIDAD ACREEDORA / ASESOR RESPONSABLE
                         </div>
                         <div class="fac-fila">
-                            <span class="fac-fila-label">Nombre:</span>
+                            <span class="fac-fila-label">Asesor emisor:</span>
                             <span id="facCobradorNombre" class="fac-fila-val">-</span>
                         </div>
                         <div class="fac-fila">
@@ -854,17 +857,17 @@
                         </div>
                         <div class="fac-fila">
                             <span class="fac-fila-label">Correo:</span>
-                            <span id="facCobradorCorreo" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                            <span id="facCobradorCorreo" class="fac-fila-val" style="font-size:0.72rem;">-</span>
                         </div>
                     </div>
 
-                    <!-- Datos del Cliente -->
+                    <!-- Datos del Cliente / Deudor -->
                     <div class="fac-card-info">
                         <div class="fac-card-titulo">
-                            📋 INFORMACIÓN DEL CLIENTE
+                            👤 DEUDOR / CLIENTE TITULAR
                         </div>
                         <div class="fac-fila">
-                            <span class="fac-fila-label">Nombre completo:</span>
+                            <span class="fac-fila-label">Titular:</span>
                             <span id="facClienteNombre" class="fac-fila-val">-</span>
                         </div>
                         <div class="fac-fila">
@@ -881,87 +884,104 @@
                         </div>
                         <div class="fac-fila">
                             <span class="fac-fila-label">Correo:</span>
-                            <span id="facClienteCorreo" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                            <span id="facClienteCorreo" class="fac-fila-val" style="font-size:0.72rem;">-</span>
                         </div>
                         <div class="fac-fila">
                             <span class="fac-fila-label">Dirección:</span>
-                            <span id="facClienteDireccion" class="fac-fila-val" style="font-size:0.75rem;">-</span>
+                            <span id="facClienteDireccion" class="fac-fila-val" style="font-size:0.72rem;">-</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tabla Financiera -->
-                <table class="fac-tabla-financiera">
+                <!-- Tabla de Condiciones Financieras -->
+                <table class="fac-tabla-financiera" style="margin-bottom:10px;">
                     <thead>
                         <tr>
-                            <th>Concepto Financiero</th>
-                            <th style="text-align:right;">Detalle / Monto (COP)</th>
+                            <th>Concepto Financiero del Crédito</th>
+                            <th style="text-align:right;">Términos Pactados (COP)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Capital inicial solicitado / Monto de crédito</td>
+                            <td>Capital inicial desembolsado / Crédito otorgado</td>
                             <td id="facMontoCapital" style="text-align:right; font-weight:600;">$0 COP</td>
                         </tr>
                         <tr>
-                            <td>Tasa de Interés Pactada</td>
+                            <td>Tasa de Interés base pactada</td>
                             <td id="facTasaInteres" style="text-align:right; font-weight:600;">0%</td>
                         </tr>
                         <tr>
-                            <td>Monto de Intereses Calculados</td>
+                            <td>Total Intereses calculados</td>
                             <td id="facMontoInteres" style="text-align:right; color:#dc2626; font-weight:600;">$0 COP</td>
                         </tr>
                         <tr class="fac-total-row">
-                            <td>MONTO TOTAL A PAGAR (Deuda Inicial)</td>
+                            <td>MONTO TOTAL A PAGAR (Total de la Deuda)</td>
                             <td id="facTotalPagar" style="text-align:right; font-weight:800; color:#1e3a8a;">$0 COP</td>
                         </tr>
                         <tr style="background:#f8fafc;">
-                            <td>Tiempo / Plazo acordado</td>
+                            <td>Plazo total acordado</td>
                             <td id="facPlazoTiempo" style="text-align:right; font-weight:600;">-</td>
                         </tr>
                         <tr style="background:#f8fafc;">
-                            <td>Modalidad de pago (Frecuencia)</td>
+                            <td>Modalidad / Periodicidad de pagos</td>
                             <td id="facFrecuenciaPago" style="text-align:right; font-weight:600;">-</td>
                         </tr>
                         <tr style="background:#ecfdf5; border-top:1.5px solid #a7f3d0;">
-                            <td style="color:#065f46; font-weight:700;">Plan de Cuotas a Pagar</td>
+                            <td style="color:#065f46; font-weight:700;">Plan y Valor de Cuotas</td>
                             <td id="facPlanCuotas" style="text-align:right; font-weight:800; color:#047857;">-</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <!-- Observaciones -->
-                <div class="fac-observaciones-box">
-                    <strong style="color:#1e40af; display:block; margin-bottom:2px;">Observaciones y Términos Registrados:</strong>
-                    <div id="facObservacionesTexto" style="white-space:pre-line; color:#334155;">Sin observaciones adicionales.</div>
+                <!-- CLÁUSULAS CONTRACTUALES Y RÉGIMEN DE PENALIZACIONES (A LAS QUE SE ATIENE AL FIRMAR) -->
+                <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-left:4px solid #1e40af; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:0.71rem; line-height:1.35; color:#1e293b;">
+                    <strong style="color:#0f172a; text-transform:uppercase; font-size:0.75rem; display:block; margin-bottom:4px; letter-spacing:0.03em;">
+                        ⚖️ CLÁUSULAS CONTRACTUALES Y RÉGIMEN DE PENALIZACIONES POR MORA:
+                    </strong>
+                    <div style="margin-bottom:3px;">
+                        <strong>1. Obligación de Pago:</strong> El Deudor se compromete incondicionalmente al pago puntual de cada una de las cuotas acordadas en las fechas y periodicidad fijadas en este contrato.
+                    </div>
+                    <div style="margin-bottom:3px; background:#fffbeb; padding:4px 6px; border-radius:4px; border-left:3px solid #f59e0b;">
+                        <strong style="color:#92400e;">2. Penalización por Retraso en Cuota 2 (+3.5%):</strong> Si el Deudor incurre en retraso en el pago de la <strong>SEGUNDA CUOTA (Cuota #2)</strong>, se aumentará un <strong>+3.5%</strong> a la tasa de interés que tenía. Dicho recargo se mantendrá únicamente durante las <strong>dos (2) cuotas posteriores</strong> al aumento.
+                    </div>
+                    <div style="margin-bottom:3px; background:#f0fdf4; padding:4px 6px; border-radius:4px; border-left:3px solid #10b981;">
+                        <strong style="color:#065f46;">3. Restablecimiento por Puntualidad:</strong> Si el Deudor paga al día las dos (2) cuotas posteriores a la sanción, los intereses volverán automáticamente a su tasa de interés original pactada.
+                    </div>
+                    <div style="margin-bottom:3px; background:#fef2f2; padding:4px 6px; border-radius:4px; border-left:3px solid #ef4444;">
+                        <strong style="color:#991b1b;">4. Mora en Período de Prueba (+0.8% Permanente):</strong> Si el Deudor se retrasa en alguna de esas dos (2) cuotas de prueba, se le sumará un <strong>+0.8% de manera permanente</strong> al interés hasta terminar todas las cuotas del préstamo, conservándose además el <strong>+3.5%</strong> sujeto a la regla de cumplir dos (2) cuotas posteriores al día para poder retirarse.
+                    </div>
+                    <div>
+                        <strong>5. Aceptación y Mérito Ejecutivo:</strong> Al firmar el presente contrato, el Deudor manifiesta que acepta expresamente la totalidad de las condiciones, montos, cuotas y penalizaciones fijadas.
+                    </div>
                 </div>
 
-                <!-- Declaración -->
-                <div style="font-size:0.72rem; color:#64748b; line-height:1.3; background:#f8fafc; padding:8px 10px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:12px;">
-                    <strong>Declaración de conformidad:</strong> El cliente titular declara haber recibido la información clara sobre el crédito otorgado, montos e intereses pactados, comprometiéndose al cumplimiento de los pagos correspondientes según los términos convenidos con el cobrador asignado.
+                <!-- Observaciones -->
+                <div class="fac-observaciones-box" style="margin-bottom:8px; padding:6px 10px;">
+                    <strong style="color:#1e40af; display:block; margin-bottom:2px; font-size:0.73rem;">Observaciones Registradas:</strong>
+                    <div id="facObservacionesTexto" style="white-space:pre-line; color:#334155; font-size:0.71rem;">Sin observaciones adicionales.</div>
                 </div>
 
                 <!-- Firmas -->
-                <div class="fac-firmas-grid">
+                <div class="fac-firmas-grid" style="margin-top:8px; padding-top:6px; gap:20px;">
                     <div>
-                        <div style="height:36px;"></div>
+                        <div style="height:28px;"></div>
                         <div class="fac-linea-firma">
                             <strong id="facFirmaCobradorNombre">Firma del Cobrador / Asesor</strong>
-                            <div style="font-size:0.7rem; color:#64748b;" id="facFirmaCobradorDoc">Emisor Autorizado</div>
+                            <div style="font-size:0.68rem; color:#64748b;" id="facFirmaCobradorDoc">Emisor Autorizado</div>
                         </div>
                     </div>
                     <div>
-                        <div style="height:36px;"></div>
+                        <div style="height:28px;"></div>
                         <div class="fac-linea-firma">
-                            <strong id="facFirmaClienteNombre">Firma del Cliente Titular</strong>
-                            <div style="font-size:0.7rem; color:#64748b;" id="facFirmaClienteDoc">C.C. </div>
+                            <strong id="facFirmaClienteNombre">Firma del Deudor / Titular</strong>
+                            <div style="font-size:0.68rem; color:#64748b;" id="facFirmaClienteDoc">C.C. </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Pie de página -->
-                <div class="fac-pie-validez">
-                    Documento oficial de control expedido por el Sistema de Gestión de Cobros • Código irrepetible de 8 letras y 5 números • 1 sola hoja
+                <div class="fac-pie-validez" style="margin-top:6px; padding-top:4px;">
+                    Contrato Financiero Oficial expedido por el Sistema de Gestión de Cobros • Documento vinculante con mérito ejecutivo • 1 sola hoja
                 </div>
             </div>
         </div>
@@ -1229,17 +1249,54 @@
             window.print();
         });
 
+        // Envío del contrato financiero directamente por WhatsApp
+        const btnEnviarWA = document.getElementById("btnEnviarContratoWA");
+        btnEnviarWA?.addEventListener('click', () => {
+            if (!facturaActualParaDescarga) return;
+            const c = facturaActualParaDescarga;
+            const tel = String(c.telefono || '').replace(/\D/g, '');
+            const cod = c.numero_factura || 'CTR';
+            const cap = Number(c.monto_capital) || 0;
+            const total = Number(c.monto_deuda) || 0;
+            const tasa = Number(c.tasa_interes) || 0;
+            const cuotas = c.numero_cuotas || 1;
+            const freq = c.frecuencia_pago || 'Semanal';
+            const vCuota = Number(c.valor_cuota) || Math.round(total / cuotas);
+
+            const textoMsg = `📄 *CONTRATO FINANCIERO DE CRÉDITO Y COMPROMISO DE PAGO*
+Nº de Contrato: *${cod}*
+Fecha: ${new Date().toLocaleDateString('es-CO')}
+
+Estimado(a) *${c.nombre}*, Identificación *CC ${c.documento}*:
+Se ha formalizado su crédito con los siguientes términos:
+
+💵 *Capital Otorgado:* $${cap.toLocaleString('es-CO')} COP
+📊 *Tasa de Interés Pactada:* ${tasa}%
+💳 *Plan de Pagos:* ${cuotas} cuotas ${freq}
+💰 *Valor por Cuota:* $${vCuota.toLocaleString('es-CO')} COP
+🏁 *Total a Pagar:* $${total.toLocaleString('es-CO')} COP
+
+⚖️ *CLÁUSULA DE PENALIZACIONES:*
+• *Segunda Cuota (Cuota #2):* Si se presenta mora o retraso en esta cuota, se aplicará un recargo de *+3.5%* a la tasa de interés durante las 2 cuotas posteriores. Si paga al día esas 2 cuotas, la tasa volverá a la tasa original (${tasa}%).
+• *Período de Prueba:* Si se retrasa en alguna de esas 2 cuotas, se añadirá un *+0.8% permanente* hasta finalizar el préstamo, manteniéndose además el +3.5% condicionado a 2 cuotas puntuales consecutivas.
+
+Conserve este documento oficial como constancia de su crédito. ¡Gracias por su confianza!`;
+
+            const urlWA = tel ? `https://wa.me/57${tel}?text=${encodeURIComponent(textoMsg)}` : `https://wa.me/?text=${encodeURIComponent(textoMsg)}`;
+            window.open(urlWA, '_blank');
+        });
+
         // Descarga directa en PDF en 1 sola hoja de alta fidelidad (sin hoja en blanco)
         btnDescargarPDF?.addEventListener('click', async () => {
             const facturaEl = document.getElementById('facturaImprimible');
             if (!facturaEl) return;
 
-            const cod = facturaActualParaDescarga?.numero_factura || 'Factura';
+            const cod = facturaActualParaDescarga?.numero_factura || 'Contrato';
             const doc = facturaActualParaDescarga?.documento || 'Cliente';
-            const nombreArchivo = `Factura_${cod}_${doc}.pdf`;
+            const nombreArchivo = `Contrato_Financiero_${cod}_${doc}.pdf`;
 
             btnDescargarPDF.disabled = true;
-            btnDescargarPDF.textContent = '⏳ Generando PDF oficial...';
+            btnDescargarPDF.textContent = '⏳ Generando Contrato PDF...';
 
             // 1. Clonar el elemento de factura para renderizarlo aislado sin interferencia de scroll ni modal
             const clon = facturaEl.cloneNode(true);
@@ -1356,7 +1413,7 @@
                     wrapper.parentNode.removeChild(wrapper);
                 }
                 btnDescargarPDF.disabled = false;
-                btnDescargarPDF.textContent = '📥 Descargar Factura (PDF)';
+                btnDescargarPDF.textContent = '📥 Descargar Contrato (PDF)';
             }
         });
 
@@ -1649,14 +1706,14 @@
             };
 
             btnGuardar.disabled = true;
-            btnGuardar.textContent = "Guardando cliente y emitiendo factura...";
+            btnGuardar.textContent = "Guardando cliente y emitiendo contrato financiero...";
             mensaje.style.display = "none";
 
             try {
                 const clienteGuardado = await registrarCliente(datos);
                 facturaActualParaDescarga = clienteGuardado;
 
-                // Cargar datos en la hoja de factura imprimible (1 hoja)
+                // Cargar datos en la hoja de contrato imprimible (1 hoja)
                 document.getElementById('facCodigoNumero').textContent = clienteGuardado.numero_factura || codigoFacturaUnico;
                 document.getElementById('facFechaEmision').textContent = new Date().toLocaleString('es-CO', {
                     dateStyle: 'medium',
@@ -1692,7 +1749,7 @@
                 document.getElementById('facMontoInteres').textContent = `$${interesCalculado.toLocaleString('es-CO')} COP`;
                 document.getElementById('facTotalPagar').textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
 
-                // Términos y cuotas en la factura
+                // Términos y cuotas en el contrato
                 if (document.getElementById('facPlazoTiempo')) {
                     document.getElementById('facPlazoTiempo').textContent = clienteGuardado.tiempo_pago || tiempoPagoTexto;
                 }
@@ -1706,9 +1763,9 @@
                 // Observaciones
                 document.getElementById('facObservacionesTexto').textContent = txtObservaciones.value.trim() || 'Sin observaciones adicionales registradas.';
 
-                mostrarMensaje(`✓ ¡Cliente "${clienteGuardado.nombre}" guardado con éxito! Factura #${clienteGuardado.numero_factura} emitida correctamente.`, false);
+                mostrarMensaje(`✓ ¡Cliente "${clienteGuardado.nombre}" guardado con éxito! Contrato Financiero #${clienteGuardado.numero_factura} generado correctamente.`, false);
 
-                // Mostrar el modal con la factura en 1 hoja
+                // Mostrar el modal con el contrato financiero en 1 hoja
                 modalFactura.style.display = 'flex';
 
             } catch (error) {
@@ -1724,7 +1781,7 @@
                 mostrarMensaje(msg, true);
             } finally {
                 btnGuardar.disabled = false;
-                btnGuardar.textContent = "Guardar cliente y generar factura";
+                btnGuardar.textContent = "Guardar cliente y emitir contrato financiero";
             }
         });
     </script>

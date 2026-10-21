@@ -7,6 +7,8 @@
 <link rel="stylesheet" href="pagos.css">
 <!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- html2pdf.js para exportar comprobante en 1 sola hoja PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   .badge-success {
     background: #dcfce7;
@@ -32,6 +34,197 @@
     background: #fee2e2;
     color: #991b1b;
     border: 1px solid #f87171;
+  }
+
+  /* ESTILOS Y COMPATIBILIDAD DE IMPRESIÓN COMPROBANTE DE PAGO EN 1 SOLA HOJA */
+  @media print {
+    @page {
+      size: letter portrait;
+      margin: 5mm;
+    }
+    body {
+      background: #ffffff !important;
+      color: #0f172a !important;
+    }
+    body * {
+      visibility: hidden !important;
+    }
+    #modalComprobantePagoGenerado,
+    #modalComprobantePagoGenerado *,
+    #comprobantePagoImprimible,
+    #comprobantePagoImprimible * {
+      visibility: visible !important;
+    }
+    #modalComprobantePagoGenerado {
+      position: absolute !important;
+      left: 0 !important;
+      top: 0 !important;
+      width: 100% !important;
+      background: transparent !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .no-print {
+      display: none !important;
+    }
+  }
+
+  .hoja-comprobante {
+    background: #ffffff;
+    color: #0f172a;
+    padding: 24px 28px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .cmp-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cmp-brand-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .cmp-brand-sub {
+    font-size: 0.82rem;
+    color: #2563eb;
+    font-weight: 700;
+    margin: 2px 0 0 0;
+  }
+
+  .cmp-box-codigo {
+    text-align: right;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 8px 14px;
+  }
+
+  .cmp-codigo-etiqueta {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+  }
+
+  .cmp-codigo-numero {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e40af;
+    letter-spacing: 1px;
+    display: block;
+    margin-top: 2px;
+  }
+
+  .cmp-grid-secciones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .cmp-card-info {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .cmp-card-titulo {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #1e40af;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+  }
+
+  .cmp-fila {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 0.82rem;
+  }
+
+  .cmp-fila-label {
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .cmp-fila-val {
+    color: #0f172a;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .cmp-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 12px;
+    font-size: 0.82rem;
+  }
+
+  .cmp-tabla th {
+    background: #0f172a;
+    color: #ffffff;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .cmp-tabla td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .cmp-total-row {
+    background: #eff6ff;
+    font-weight: 800;
+    font-size: 0.95rem;
+  }
+
+  .cmp-total-row td {
+    border-top: 2px solid #2563eb;
+    border-bottom: 2px solid #2563eb;
+    color: #1e3a8a;
+  }
+
+  .cmp-firmas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 14px;
+    padding-top: 10px;
+  }
+
+  .cmp-linea-firma {
+    border-top: 1px solid #475569;
+    text-align: center;
+    padding-top: 4px;
+    font-size: 0.75rem;
+    color: #334155;
   }
 </style>
 </head>
@@ -70,6 +263,51 @@
                       <div id="badgePlanCuotas" style="display:none; font-size:0.78rem; background:#ffffff; color:#0f172a; padding:4px 10px; border-radius:6px; border:1px solid #bfdbfe; font-weight:700;">
                         💳 <span id="lblTextoPlanCuotas">-</span>
                       </div>
+                    </div>
+                </div>
+
+                <!-- Control de cuotas y penalización por retraso en Cuota 2 -->
+                <div id="cajaInfoCuota" class="group full" style="display:none; background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:12px 14px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <div>
+                            <span style="font-size:0.72rem; color:#64748b; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Número de cuota que abona:</span>
+                            <strong id="lblNumeroCuotaPagar" style="color:#0f172a; font-size:1rem; margin-left:6px; display:inline-block;">Cuota #1</strong>
+                        </div>
+                        <div id="badgeTasaInteresCliente" style="font-size:0.78rem; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:4px; font-weight:700; border:1px solid #bfdbfe;">
+                            Tasa de Interés: <span id="lblTasaInteresValor">0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Alerta específica de Cuota 2 -->
+                    <div id="cajaAlertaCuota2" style="display:none; margin-top:8px; background:#fffbeb; border:1.5px solid #fde68a; border-left:4px solid #f59e0b; border-radius:6px; padding:10px 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div>
+                                <strong style="color:#92400e; font-size:0.82rem;">⚠️ Control de Puntualidad (Segunda Cuota):</strong>
+                                <p style="font-size:0.75rem; color:#78350f; margin:2px 0 0 0;">
+                                    Si el cliente se retrasó en esta 2ª cuota, se aplicará <strong>+3.5% de interés</strong> durante las 2 cuotas posteriores. Si paga esas dos cuotas a tiempo, el interés volverá a su tasa original.
+                                </p>
+                            </div>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; background:#ffffff; padding:6px 10px; border-radius:6px; border:1px solid #fcd34d; font-weight:700; font-size:0.78rem; color:#b45309;">
+                                <input type="checkbox" id="chkRetrasoCuota2" style="width:15px; height:15px;">
+                                Marcar como RETRASADO (+3.5%)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Alerta de período de penalización activo -->
+                    <div id="cajaAlertaPeriodoPrueba" style="display:none; margin-top:8px; background:#fef2f2; border:1.5px solid #fecaca; border-left:4px solid #ef4444; border-radius:6px; padding:10px 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div>
+                                <strong style="color:#991b1b; font-size:0.82rem;">🚨 Período de Penalización Activo (+3.5% aplicado):</strong>
+                                <p style="font-size:0.75rem; color:#7f1d1d; margin:2px 0 0 0;">
+                                    Faltan <strong id="lblCuotasPruebaFaltantes">2</strong> cuota(s) puntual(es) para restablecer al interés original (<span id="lblTasaOriginalBase">0%</span>). Si se retrasa en este pago, se sumará un <strong>+0.8% permanente</strong> hasta el fin del crédito.
+                                </p>
+                            </div>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; background:#ffffff; padding:6px 10px; border-radius:6px; border:1px solid #fca5a5; font-weight:700; font-size:0.78rem; color:#b91c1c;">
+                                <input type="checkbox" id="chkRetrasoPeriodoPrueba" style="width:15px; height:15px;">
+                                Se retrasó en este pago (+0.8% perm.)
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -175,6 +413,179 @@
 
 </div>
 
+<!-- MODAL DE COMPROBANTE OFICIAL DE PAGO EN 1 HOJA -->
+<div id="modalComprobantePagoGenerado" style="display:none; position:fixed; inset:0; z-index:1200; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
+    <div style="background:#ffffff; width:100%; max-width:820px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; margin:auto;">
+        <!-- Barra de acciones -->
+        <div class="no-print" style="background:#0f172a; color:#ffffff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-bottom:1px solid #334155;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.3rem;">🧾</span>
+                <div>
+                    <strong style="display:block; font-size:0.95rem;">Comprobante Oficial de Pago de Cuota</strong>
+                    <span style="font-size:0.75rem; color:#94a3b8;">Recibo legal del abono recibido listo para descargar en PDF o imprimir</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="btnDescargarComprobantePDF" style="background:#2563eb; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.8rem;">
+                    📥 Descargar Comprobante (PDF)
+                </button>
+                <button type="button" id="btnEnviarComprobanteWA" style="background:#25d366; color:#ffffff; border:none; padding:8px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.8rem;" title="Enviar comprobante al cliente por WhatsApp">
+                    💬 Enviar por WhatsApp
+                </button>
+                <button type="button" id="btnImprimirComprobante" style="background:#0284c7; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.8rem;">
+                    🖨️ Imprimir
+                </button>
+                <button type="button" id="btnCerrarModalComprobante" style="background:#475569; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.8rem;" title="Cerrar ventana">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Hoja Imprimible del Comprobante -->
+        <div id="comprobantePagoImprimible" class="hoja-comprobante">
+            <!-- Encabezado -->
+            <div class="cmp-encabezado">
+                <div>
+                    <h2 class="cmp-brand-title">SISTEMA DE GESTIÓN DE COBROS</h2>
+                    <p class="cmp-brand-sub">COMPROBANTE OFICIAL DE PAGO Y ABONO A CRÉDITO</p>
+                    <div style="margin-top:4px; font-size:0.75rem; color:#475569;">
+                        <span>Fecha y hora del abono:</span> <strong id="cmpFechaEmision">-</strong>
+                    </div>
+                </div>
+                <div class="cmp-box-codigo">
+                    <span class="cmp-codigo-etiqueta">Nº RECIBO DE PAGO</span>
+                    <span id="cmpCodigoRecibo" class="cmp-codigo-numero">#PG-0000</span>
+                    <span style="font-size:0.65rem; color:#059669; font-weight:700; display:block; margin-top:2px;">
+                        ✓ ABONO ACREDITADO EN SISTEMA
+                    </span>
+                </div>
+            </div>
+
+            <!-- Bloques Cobrador y Cliente -->
+            <div class="cmp-grid-secciones">
+                <div class="cmp-card-info">
+                    <div class="cmp-card-titulo">👤 RECAUDADOR / ASESOR RESPONSABLE</div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Asesor receptor:</span>
+                        <span id="cmpCobradorNombre" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Cédula:</span>
+                        <span id="cmpCobradorCedula" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Teléfono:</span>
+                        <span id="cmpCobradorTel" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Rol:</span>
+                        <span id="cmpCobradorRol" class="cmp-fila-val">-</span>
+                    </div>
+                </div>
+
+                <div class="cmp-card-info">
+                    <div class="cmp-card-titulo">📋 INFORMACIÓN DEL CLIENTE</div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Nombre del titular:</span>
+                        <span id="cmpClienteNombre" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Cédula / Documento:</span>
+                        <span id="cmpClienteDocumento" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Teléfono:</span>
+                        <span id="cmpClienteTelefono" class="cmp-fila-val">-</span>
+                    </div>
+                    <div class="cmp-fila">
+                        <span class="cmp-fila-label">Nº Factura / Contrato:</span>
+                        <span id="cmpClienteFactura" class="cmp-fila-val" style="font-family:monospace;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de Detalles del Pago -->
+            <table class="cmp-tabla">
+                <thead>
+                    <tr>
+                        <th>Concepto del Pago Efectuado</th>
+                        <th style="text-align:right;">Monto / Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="background:#eff6ff;">
+                        <td><strong>Cuota abonada:</strong></td>
+                        <td id="cmpCuotaAbonada" style="text-align:right; font-weight:800; color:#1e40af;">-</td>
+                    </tr>
+                    <tr class="cmp-total-row">
+                        <td style="color:#065f46; font-size:1rem;"><strong>MONTO DEL ABONO PAGADO</strong></td>
+                        <td id="cmpMontoAbonado" style="text-align:right; font-weight:900; color:#059669; font-size:1.1rem;">$0 COP</td>
+                    </tr>
+                    <tr>
+                        <td>Método de Pago Utilizado</td>
+                        <td id="cmpMetodoPago" style="text-align:right; font-weight:600;">-</td>
+                    </tr>
+                    <tr>
+                        <td>Referencia / Nº Comprobante de Transacción</td>
+                        <td id="cmpReferenciaPago" style="text-align:right; font-family:monospace; font-weight:700;">-</td>
+                    </tr>
+                    <tr>
+                        <td>Saldo Pendiente Anterior al Pago</td>
+                        <td id="cmpSaldoAnterior" style="text-align:right; font-weight:600; color:#64748b;">$0 COP</td>
+                    </tr>
+                    <tr style="background:#f8fafc; border-top:1.5px solid #cbd5e1;">
+                        <td style="font-weight:700; color:#0f172a;">NUEVO SALDO PENDIENTE RESTANTE</td>
+                        <td id="cmpSaldoRestante" style="text-align:right; font-weight:800; color:#dc2626; font-size:0.95rem;">$0 COP</td>
+                    </tr>
+                    <tr style="background:#ffffff;">
+                        <td>Tasa de Interés del Crédito</td>
+                        <td id="cmpTasaInteres" style="text-align:right; font-weight:700;">0%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Estado de Penalizaciones y Puntualidad en el Abono -->
+            <div id="cmpCajaEstadoPuntualidad" style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #10b981; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:0.75rem; color:#1e293b;">
+                <div id="cmpTextoEstadoPuntualidad">✅ Abono recibido conforme a los términos acordados.</div>
+            </div>
+
+            <!-- Observaciones del pago -->
+            <div class="cmp-card-info" style="margin-bottom:12px; padding:8px 10px;">
+                <strong style="color:#1e40af; display:block; margin-bottom:2px; font-size:0.75rem;">Observaciones Registradas:</strong>
+                <div id="cmpObservaciones" style="white-space:pre-line; color:#334155; font-size:0.73rem;">Sin observaciones adicionales.</div>
+            </div>
+
+            <!-- Declaración de Conformidad y Paz y Salvo Parcial -->
+            <div style="font-size:0.7rem; color:#64748b; line-height:1.3; background:#f8fafc; padding:6px 10px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:12px;">
+                <strong>Certificado de descargo:</strong> La entidad acreedora certifica que el cliente titular ha realizado satisfactoriamente el pago especificado, debitándose formalmente del saldo pendiente en el Sistema de Gestión de Cobros.
+            </div>
+
+            <!-- Firmas -->
+            <div class="cmp-firmas-grid">
+                <div>
+                    <div style="height:30px;"></div>
+                    <div class="cmp-linea-firma">
+                        <strong id="cmpFirmaCobrador">Firma del Recaudador / Asesor</strong>
+                        <div style="font-size:0.7rem; color:#64748b;" id="cmpFirmaCobradorCargo">Recaudador Autorizado</div>
+                    </div>
+                </div>
+                <div>
+                    <div style="height:30px;"></div>
+                    <div class="cmp-linea-firma">
+                        <strong id="cmpFirmaCliente">Firma del Cliente Titular</strong>
+                        <div style="font-size:0.7rem; color:#64748b;" id="cmpFirmaClienteDoc">C.C. </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie de página -->
+            <div style="margin-top:10px; text-align:center; font-size:0.68rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:6px;">
+                Comprobante Oficial de Pago expedido por el Sistema de Gestión de Cobros • Documento de validez contable • 1 sola hoja
+            </div>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import { registrarPago, obtenerClientes, buscarClientePorDocumento, verificarAutenticacion, esUsuarioAdmin } from './supabase.js';
 
@@ -246,9 +657,12 @@
     const btnAutollenar = document.getElementById('btnAutollenarCuota');
     const lblCuotaBoton = document.getElementById('lblValorCuotaBoton');
     let valorCuotaCliente = 0;
+    let clienteActual = null;
 
     function mostrarDetallesCliente(cliente) {
       if (!cliente) return;
+      clienteActual = cliente;
+
       if (cliente.numero_factura && cajaFactura && lblFactura) {
         lblFactura.textContent = cliente.numero_factura;
         cajaFactura.style.display = 'block';
@@ -270,6 +684,55 @@
       } else {
         if (badgePlan) badgePlan.style.display = 'none';
         if (btnAutollenar) btnAutollenar.style.display = 'none';
+      }
+
+      // Control visual de Cuota 2 y Penalización
+      const cajaInfoCuota = document.getElementById('cajaInfoCuota');
+      const lblNumeroCuotaPagar = document.getElementById('lblNumeroCuotaPagar');
+      const lblTasaInteresValor = document.getElementById('lblTasaInteresValor');
+      const cajaAlertaCuota2 = document.getElementById('cajaAlertaCuota2');
+      const chkRetrasoCuota2 = document.getElementById('chkRetrasoCuota2');
+      const cajaAlertaPeriodoPrueba = document.getElementById('cajaAlertaPeriodoPrueba');
+      const chkRetrasoPeriodoPrueba = document.getElementById('chkRetrasoPeriodoPrueba');
+      const lblCuotasPruebaFaltantes = document.getElementById('lblCuotasPruebaFaltantes');
+      const lblTasaOriginalBase = document.getElementById('lblTasaOriginalBase');
+
+      if (cajaInfoCuota && lblNumeroCuotaPagar) {
+        const cuotasPagadas = (cliente.ultimos_pagos && Array.isArray(cliente.ultimos_pagos)) ? cliente.ultimos_pagos.length : 0;
+        const cuotaActual = cuotasPagadas + 1;
+        lblNumeroCuotaPagar.textContent = `Cuota #${cuotaActual} de ${nCuotas}`;
+        if (lblTasaInteresValor) {
+          const tasaAct = cliente.tasa_interes != null ? cliente.tasa_interes : 0;
+          let extraTag = '';
+          if (cliente.penalizacion_permanente_08) extraTag += ' (+0.8% perm.)';
+          if (cliente.penalizacion_cuota2_activa) extraTag += ' (+3.5% mora)';
+          lblTasaInteresValor.textContent = `${tasaAct}%${extraTag}`;
+        }
+        cajaInfoCuota.style.display = 'block';
+
+        if (cliente.penalizacion_cuota2_activa) {
+          if (cajaAlertaPeriodoPrueba) {
+            cajaAlertaPeriodoPrueba.style.display = 'block';
+            if (lblCuotasPruebaFaltantes) {
+              lblCuotasPruebaFaltantes.textContent = cliente.penalizacion_cuota2_restantes != null ? cliente.penalizacion_cuota2_restantes : 2;
+            }
+            if (lblTasaOriginalBase) {
+              const orig = cliente.tasa_interes_original != null ? cliente.tasa_interes_original : cliente.tasa_interes;
+              lblTasaOriginalBase.textContent = `${orig}%`;
+            }
+            if (chkRetrasoPeriodoPrueba) chkRetrasoPeriodoPrueba.checked = false;
+          }
+          if (cajaAlertaCuota2) cajaAlertaCuota2.style.display = 'none';
+        } else if (cuotaActual === 2) {
+          if (cajaAlertaCuota2) {
+            cajaAlertaCuota2.style.display = 'block';
+            if (chkRetrasoCuota2) chkRetrasoCuota2.checked = false;
+          }
+          if (cajaAlertaPeriodoPrueba) cajaAlertaPeriodoPrueba.style.display = 'none';
+        } else {
+          if (cajaAlertaCuota2) cajaAlertaCuota2.style.display = 'none';
+          if (cajaAlertaPeriodoPrueba) cajaAlertaPeriodoPrueba.style.display = 'none';
+        }
       }
     }
 
@@ -334,6 +797,12 @@
     formPago.addEventListener('submit', async (e) => {
       e.preventDefault();
 
+      const chkRetrasoCuota2 = document.getElementById('chkRetrasoCuota2');
+      const chkRetrasoPeriodoPrueba = document.getElementById('chkRetrasoPeriodoPrueba');
+      const esRetrasoCuota2 = Boolean(chkRetrasoCuota2 && chkRetrasoCuota2.checked);
+      const esRetrasoPrueba = Boolean(chkRetrasoPeriodoPrueba && chkRetrasoPeriodoPrueba.checked);
+      const esPuntualPrueba = !esRetrasoPrueba;
+
       const pagoData = {
         cliente_nombre: inputNombre.value.trim(),
         documento: inputDocumento.value.trim(),
@@ -342,8 +811,13 @@
         metodo_pago: document.getElementById('metodoPago').value,
         referencia: document.getElementById('referencia').value.trim() || codigoAleatorio,
         observaciones: document.getElementById('observaciones').value.trim(),
-        estado: 'Pagado'
+        estado: 'Pagado',
+        es_retraso_cuota2: esRetrasoCuota2,
+        es_retraso_en_prueba: esRetrasoPrueba,
+        es_puntual_prueba: esPuntualPrueba
       };
+
+      const saldoAnteriorPago = deudaActual;
 
       btnGuardar.disabled = true;
       btnGuardar.textContent = 'Guardando pago...';
@@ -352,20 +826,122 @@
       try {
         await registrarPago(pagoData);
 
+        let mensajeExtra = '';
+        if (esRetrasoCuota2) {
+          mensajeExtra = `
+            <div style="margin-top:8px; padding:8px 12px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:6px; color:#92400e; font-size:0.82rem; text-align:left;">
+              ⚠️ <strong>Penalización Cuota 2 Aplicada:</strong> Se aumentó +3.5% a la tasa de interés durante las siguientes 2 cuotas. Si se pagan a tiempo, la tasa volverá a su valor original.
+            </div>`;
+        } else if (clienteActual?.penalizacion_cuota2_activa && esRetrasoPrueba) {
+          mensajeExtra = `
+            <div style="margin-top:8px; padding:8px 12px; background:#fef2f2; border:1.5px solid #fecaca; border-radius:6px; color:#991b1b; font-size:0.82rem; text-align:left;">
+              🚨 <strong>Penalización Permanente Aplicada:</strong> Retraso en cuota de prueba. Se sumó +0.8% permanente al interés hasta cancelar el crédito, manteniéndose además el +3.5% por 2 cuotas adicionales.
+            </div>`;
+        } else if (clienteActual?.penalizacion_cuota2_activa && esPuntualPrueba) {
+          const restantes = Math.max(0, (clienteActual.penalizacion_cuota2_restantes || 2) - 1);
+          if (restantes === 0) {
+            mensajeExtra = `
+              <div style="margin-top:8px; padding:8px 12px; background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:6px; color:#065f46; font-size:0.82rem; text-align:left;">
+                ✅ <strong>¡Período de prueba completado exitosamente!</strong> Se ha retirado el recargo del +3.5% y el interés regresó a la tasa original.
+              </div>`;
+          } else {
+            mensajeExtra = `
+              <div style="margin-top:8px; padding:8px 12px; background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:6px; color:#065f46; font-size:0.82rem; text-align:left;">
+                ✅ <strong>Pago puntual registrado:</strong> Queda 1 cuota puntual para restablecer el interés a la tasa original.
+              </div>`;
+          }
+        }
+
+        const cuotasPagadas = (clienteActual?.ultimos_pagos?.length || 0) + 1;
+        const totalCuotas = Number(clienteActual?.numero_cuotas) || 1;
+        const freq = clienteActual?.frecuencia_pago || 'Semanal';
+        const cuotaTexto = `Cuota #${cuotasPagadas} de ${totalCuotas} (${freq})`;
+        const saldoRestantePago = Math.max(0, saldoAnteriorPago - pagoData.monto);
+        const cobradorSesion = auth.usuario || {};
+
+        comprobanteActualParaDescarga = {
+          ...pagoData,
+          telefono: clienteActual?.telefono || '',
+          cuota_texto: cuotaTexto,
+          saldo_anterior: saldoAnteriorPago,
+          saldo_restante: saldoRestantePago,
+          tasa_interes: clienteActual?.tasa_interes || 0,
+          texto_estado: esRetrasoCuota2 ? '⚠️ Mora en Cuota 2 (+3.5% aplicado)' : (clienteActual?.penalizacion_cuota2_activa && esRetrasoPrueba ? '🚨 Mora en prueba (+0.8% perm. aplicado)' : '✅ Pago al día'),
+          fecha_emision: new Date().toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' })
+        };
+
+        // Rellenar datos en la hoja del comprobante
+        document.getElementById('cmpFechaEmision').textContent = comprobanteActualParaDescarga.fecha_emision;
+        document.getElementById('cmpCodigoRecibo').textContent = pagoData.referencia;
+        document.getElementById('cmpCobradorNombre').textContent = cobradorSesion.nombre || 'Asesor de Cobros';
+        document.getElementById('cmpCobradorCedula').textContent = cobradorSesion.cedula ? `C.C. ${cobradorSesion.cedula}` : 'Asesor Autorizado';
+        document.getElementById('cmpCobradorTel').textContent = cobradorSesion.telefono || 'N/A';
+        document.getElementById('cmpCobradorRol').textContent = cobradorSesion.rol || 'Cobrador';
+
+        document.getElementById('cmpClienteNombre').textContent = pagoData.cliente_nombre;
+        document.getElementById('cmpClienteDocumento').textContent = pagoData.documento;
+        document.getElementById('cmpClienteTelefono').textContent = clienteActual?.telefono || 'Sin teléfono';
+        document.getElementById('cmpClienteFactura').textContent = clienteActual?.numero_factura || 'CTR-Oficial';
+
+        document.getElementById('cmpCuotaAbonada').textContent = cuotaTexto;
+        document.getElementById('cmpMontoAbonado').textContent = `$${pagoData.monto.toLocaleString('es-CO')} COP`;
+        document.getElementById('cmpMetodoPago').textContent = pagoData.metodo_pago;
+        document.getElementById('cmpReferenciaPago').textContent = pagoData.referencia;
+        document.getElementById('cmpSaldoAnterior').textContent = `$${saldoAnteriorPago.toLocaleString('es-CO')} COP`;
+        document.getElementById('cmpSaldoRestante').textContent = `$${saldoRestantePago.toLocaleString('es-CO')} COP`;
+        document.getElementById('cmpTasaInteres').textContent = `${clienteActual?.tasa_interes || 0}%`;
+
+        const cajaPuntual = document.getElementById('cmpCajaEstadoPuntualidad');
+        const textoPuntual = document.getElementById('cmpTextoEstadoPuntualidad');
+        if (cajaPuntual && textoPuntual) {
+          if (esRetrasoCuota2) {
+            cajaPuntual.style.background = '#fffbeb';
+            cajaPuntual.style.borderLeft = '4px solid #f59e0b';
+            textoPuntual.innerHTML = '<strong style="color:#b45309;">⚠️ Retraso en Cuota 2 Registrado:</strong> Se aplicó +3.5% de interés durante las 2 cuotas posteriores.';
+          } else if (clienteActual?.penalizacion_cuota2_activa && esRetrasoPrueba) {
+            cajaPuntual.style.background = '#fef2f2';
+            cajaPuntual.style.borderLeft = '4px solid #ef4444';
+            textoPuntual.innerHTML = '<strong style="color:#b91c1c;">🚨 Retraso en Período de Prueba:</strong> Se sumó recargo de +0.8% permanente al crédito.';
+          } else {
+            cajaPuntual.style.background = '#f0fdf4';
+            cajaPuntual.style.borderLeft = '4px solid #10b981';
+            textoPuntual.innerHTML = '<strong style="color:#059669;">✅ Pago Puntual y Conforme:</strong> Cuota abonada en las condiciones acordadas.';
+          }
+        }
+
+        document.getElementById('cmpObservaciones').textContent = pagoData.observaciones || 'Sin observaciones adicionales.';
+        document.getElementById('cmpFirmaCobrador').textContent = `Firma: ${cobradorSesion.nombre || 'Asesor de Cobros'}`;
+        document.getElementById('cmpFirmaCobradorCargo').textContent = `${cobradorSesion.rol || 'Recaudador'} • C.C. ${cobradorSesion.cedula || ''}`;
+        document.getElementById('cmpFirmaCliente').textContent = `Firma: ${pagoData.cliente_nombre}`;
+        document.getElementById('cmpFirmaClienteDoc').textContent = `C.C. ${pagoData.documento}`;
+
+        // Mostrar notificación y abrir comprobante oficial
         mensajePago.className = 'notification notification-success';
         mensajePago.style.display = 'block';
-        mensajePago.innerHTML = `¡Pago de <strong>$${pagoData.monto.toLocaleString('es-CO')} COP</strong> registrado exitosamente en el sistema!<br><small>Referencia: ${pagoData.referencia}</small>`;
+        mensajePago.innerHTML = `
+          ¡Pago de <strong>$${pagoData.monto.toLocaleString('es-CO')} COP</strong> registrado exitosamente en el sistema!<br>
+          <small>Referencia: ${pagoData.referencia}</small>${mensajeExtra}
+          <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button type="button" id="btnReabrirComprobante" style="background:#0F2749; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">
+              🧾 Ver / Imprimir Comprobante de Pago
+            </button>
+          </div>
+        `;
 
-        // Actualizar deuda local
-        deudaActual = Math.max(0, deudaActual - pagoData.monto);
-        actualizarResumen();
+        document.getElementById('btnReabrirComprobante')?.addEventListener('click', () => {
+          modalComprobante.style.display = 'flex';
+        });
+
+        // Abrir modal de comprobante de pago automáticamente
+        modalComprobante.style.display = 'flex';
 
         // Limpiar campos de pago
         inputMonto.value = '';
         document.getElementById('referencia').value = '';
         document.getElementById('observaciones').value = '';
         
-        // Refrescar lista clientes
+        // Refrescar cliente y deuda
+        await verificarCliente(pagoData.documento);
         cargarClientes();
       } catch (err) {
         console.error('Error al registrar pago:', err);
@@ -379,6 +955,110 @@
       } finally {
         btnGuardar.disabled = false;
         btnGuardar.textContent = 'Guardar pago';
+      }
+    });
+
+    // Gestión del Modal de Comprobante de Pago
+    let comprobanteActualParaDescarga = null;
+    const modalComprobante = document.getElementById('modalComprobantePagoGenerado');
+    const btnCerrarComprobante = document.getElementById('btnCerrarModalComprobante');
+    const btnImprimirComprobante = document.getElementById('btnImprimirComprobante');
+    const btnDescargarComprobantePDF = document.getElementById('btnDescargarComprobantePDF');
+    const btnEnviarComprobanteWA = document.getElementById('btnEnviarComprobanteWA');
+
+    function cerrarModalComprobante() {
+      if (modalComprobante) modalComprobante.style.display = 'none';
+    }
+    btnCerrarComprobante?.addEventListener('click', cerrarModalComprobante);
+
+    btnImprimirComprobante?.addEventListener('click', () => {
+      window.print();
+    });
+
+    btnEnviarComprobanteWA?.addEventListener('click', () => {
+      if (!comprobanteActualParaDescarga) return;
+      const p = comprobanteActualParaDescarga;
+      const tel = String(p.telefono || '').replace(/\D/g, '');
+      const textoMsg = `🧾 *COMPROBANTE OFICIAL DE PAGO Y ABONO A CRÉDITO*
+Recibo Nº: *${p.referencia}*
+Fecha: ${p.fecha_emision || new Date().toLocaleString('es-CO')}
+
+Estimado(a) *${p.cliente_nombre}*, CC *${p.documento}*:
+Confirmamos la recepción exitosa de su pago:
+
+💳 *Cuota:* ${p.cuota_texto}
+💰 *Monto Pagado:* $${Number(p.monto).toLocaleString('es-CO')} COP
+💳 *Método de Pago:* ${p.metodo_pago}
+📄 *Referencia:* ${p.referencia}
+💵 *Saldo Anterior:* $${Number(p.saldo_anterior).toLocaleString('es-CO')} COP
+🏁 *Nuevo Saldo Restante:* $${Number(p.saldo_restante).toLocaleString('es-CO')} COP
+📊 *Tasa Aplicada:* ${p.tasa_interes}%
+
+${p.texto_estado}
+
+Este comprobante certifica su abono en el Sistema de Gestión de Cobros. ¡Gracias por su puntualidad!`;
+
+      const urlWA = tel ? `https://wa.me/57${tel}?text=${encodeURIComponent(textoMsg)}` : `https://wa.me/?text=${encodeURIComponent(textoMsg)}`;
+      window.open(urlWA, '_blank');
+    });
+
+    btnDescargarComprobantePDF?.addEventListener('click', async () => {
+      const compEl = document.getElementById('comprobantePagoImprimible');
+      if (!compEl) return;
+      const ref = (comprobanteActualParaDescarga?.referencia || 'Recibo').replace(/[^a-zA-Z0-9_-]/g, '');
+      const doc = comprobanteActualParaDescarga?.documento || 'Cliente';
+      const nombreArchivo = `Comprobante_Pago_${ref}_${doc}.pdf`;
+
+      btnDescargarComprobantePDF.disabled = true;
+      btnDescargarComprobantePDF.textContent = '⏳ Generando PDF...';
+
+      const clon = compEl.cloneNode(true);
+      const wrapper = document.createElement('div');
+      wrapper.id = 'temp-pdf-render-box-cmp';
+      wrapper.style.position = 'fixed';
+      wrapper.style.top = '0';
+      wrapper.style.left = '0';
+      wrapper.style.width = '794px';
+      wrapper.style.zIndex = '-99999';
+      wrapper.style.background = '#ffffff';
+      wrapper.style.color = '#0f172a';
+      wrapper.style.margin = '0';
+      wrapper.style.padding = '0';
+      wrapper.style.boxSizing = 'border-box';
+      wrapper.style.pointerEvents = 'none';
+
+      clon.style.width = '794px';
+      clon.style.maxWidth = '794px';
+      clon.style.minWidth = '794px';
+      clon.style.background = '#ffffff';
+      clon.style.color = '#0f172a';
+      clon.style.padding = '22px 26px';
+      clon.style.boxSizing = 'border-box';
+      clon.style.margin = '0';
+
+      wrapper.appendChild(clon);
+      document.body.appendChild(wrapper);
+
+      try {
+        if (typeof window.html2pdf !== 'undefined') {
+          const opt = {
+            margin: [5, 5, 5, 5],
+            filename: nombreArchivo,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, scrollY: 0, scrollX: 0, backgroundColor: '#ffffff' },
+            jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+          };
+          await window.html2pdf().set(opt).from(clon).save();
+        } else {
+          window.print();
+        }
+      } catch (e) {
+        console.error('Error generando PDF de comprobante:', e);
+        window.print();
+      } finally {
+        if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
+        btnDescargarComprobantePDF.disabled = false;
+        btnDescargarComprobantePDF.textContent = '📥 Descargar Comprobante (PDF)';
       }
     });
 </script>
