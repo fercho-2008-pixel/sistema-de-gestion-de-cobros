@@ -62,8 +62,15 @@
             <div class="form">
 
                 <div class="group full" id="cajaFacturaCliente" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-left:4px solid #2563eb; border-radius:8px; padding:10px 14px; margin-bottom:8px;">
-                    <span style="font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase;">Nº Factura del Cliente:</span>
-                    <strong id="lblFacturaCliente" style="font-family:monospace; color:#1d4ed8; font-size:1.05rem; margin-left:8px;">-</strong>
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                      <div>
+                        <span style="font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase;">Nº Factura del Cliente:</span>
+                        <strong id="lblFacturaCliente" style="font-family:monospace; color:#1d4ed8; font-size:1.05rem; margin-left:8px;">-</strong>
+                      </div>
+                      <div id="badgePlanCuotas" style="display:none; font-size:0.78rem; background:#ffffff; color:#0f172a; padding:4px 10px; border-radius:6px; border:1px solid #bfdbfe; font-weight:700;">
+                        💳 <span id="lblTextoPlanCuotas">-</span>
+                      </div>
+                    </div>
                 </div>
 
                 <div class="group">
@@ -78,7 +85,12 @@
                 </div>
 
                 <div class="group">
-                    <label for="monto">Monto a pagar (COP) *</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label for="monto">Monto a pagar (COP) *</label>
+                        <button type="button" id="btnAutollenarCuota" style="display:none; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:6px; padding:2px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;">
+                            ⚡ Aplicar 1 cuota: <span id="lblValorCuotaBoton">$0</span>
+                        </button>
+                    </div>
                     <input type="number" id="monto" placeholder="0" min="1" step="any" required>
                 </div>
 
@@ -229,13 +241,44 @@
 
     const cajaFactura = document.getElementById('cajaFacturaCliente');
     const lblFactura = document.getElementById('lblFacturaCliente');
+    const badgePlan = document.getElementById('badgePlanCuotas');
+    const lblPlanTexto = document.getElementById('lblTextoPlanCuotas');
+    const btnAutollenar = document.getElementById('btnAutollenarCuota');
+    const lblCuotaBoton = document.getElementById('lblValorCuotaBoton');
+    let valorCuotaCliente = 0;
 
-    function mostrarFacturaCliente(numeroFactura) {
-      if (numeroFactura && cajaFactura && lblFactura) {
-        lblFactura.textContent = numeroFactura;
+    function mostrarDetallesCliente(cliente) {
+      if (!cliente) return;
+      if (cliente.numero_factura && cajaFactura && lblFactura) {
+        lblFactura.textContent = cliente.numero_factura;
         cajaFactura.style.display = 'block';
       }
+      const vCuota = Number(cliente.valor_cuota) || 0;
+      const nCuotas = Number(cliente.numero_cuotas) || 1;
+      const freq = cliente.frecuencia_pago || 'Semanal';
+
+      if (vCuota > 0 || nCuotas > 1) {
+        valorCuotaCliente = vCuota > 0 ? vCuota : Math.round((Number(cliente.monto_deuda) || 0) / nCuotas);
+        if (badgePlan && lblPlanTexto) {
+          lblPlanTexto.textContent = `${nCuotas} cuotas ${freq} (${cliente.tiempo_pago ? cliente.tiempo_pago + ' • ' : ''}$${valorCuotaCliente.toLocaleString('es-CO')} COP/cuota)`;
+          badgePlan.style.display = 'block';
+        }
+        if (btnAutollenar && lblCuotaBoton) {
+          lblCuotaBoton.textContent = `$${valorCuotaCliente.toLocaleString('es-CO')}`;
+          btnAutollenar.style.display = 'inline-block';
+        }
+      } else {
+        if (badgePlan) badgePlan.style.display = 'none';
+        if (btnAutollenar) btnAutollenar.style.display = 'none';
+      }
     }
+
+    btnAutollenar?.addEventListener('click', () => {
+      if (valorCuotaCliente > 0) {
+        inputMonto.value = valorCuotaCliente;
+        actualizarResumen();
+      }
+    });
 
     // Auto-completar documento al seleccionar nombre
     inputNombre.addEventListener('change', () => {
@@ -243,7 +286,7 @@
       if (match) {
         inputDocumento.value = match.documento;
         deudaActual = Number(match.monto_deuda) || 0;
-        mostrarFacturaCliente(match.numero_factura);
+        mostrarDetallesCliente(match);
         actualizarResumen();
       }
     });
@@ -261,7 +304,7 @@
         if (cliente) {
           if (!inputNombre.value) inputNombre.value = cliente.nombre;
           deudaActual = Number(cliente.monto_deuda) || 0;
-          mostrarFacturaCliente(cliente.numero_factura);
+          mostrarDetallesCliente(cliente);
           actualizarResumen();
         }
       } catch (e) {

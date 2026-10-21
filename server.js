@@ -344,6 +344,7 @@ app.post('/api/clientes', async (req, res) => {
     const {
       nombre, correo, telefono, documento, estado, direccion, observaciones,
       monto_deuda, situacion_laboral, tasa_interes, monto_capital, monto_interes,
+      tiempo_pago, frecuencia_pago, numero_cuotas, valor_cuota,
       numero_factura, registrado_por_nombre, registrado_por_telefono, registrado_por_correo, registrado_por_rol,
       registrado_por_cedula, cobrador_id,
       primer_nombre, segundo_nombre, primer_apellido, segundo_apellido
@@ -360,8 +361,14 @@ app.post('/api/clientes', async (req, res) => {
 
     setCodigosFacturas.add(codFactura);
 
-    // Adjuntar metadatos de factura y emisor en observaciones para respaldo 100% permanente
-    const metaFacturaStr = `[FACTURA: ${codFactura}] [EMISOR: ${String(registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(registrado_por_telefono || '').trim()} | EMAIL: ${String(registrado_por_correo || '').trim()} | CED: ${String(registrado_por_cedula || '').trim()}]`;
+    // Formatear plan de cuotas para el histórico
+    const fPago = frecuencia_pago ? String(frecuencia_pago).trim() : 'Semanal';
+    const tPago = tiempo_pago ? String(tiempo_pago).trim() : '2 meses';
+    const nCuotas = Number(numero_cuotas) > 0 ? Number(numero_cuotas) : 1;
+    const vCuota = Number(valor_cuota) > 0 ? Number(valor_cuota) : Math.round((Number(monto_deuda) || 0) / nCuotas);
+
+    // Adjuntar metadatos de factura, cuotas y emisor en observaciones para respaldo 100% permanente
+    const metaFacturaStr = `[FACTURA: ${codFactura}] [PLAN: ${nCuotas} cuotas ${fPago} de $${vCuota.toLocaleString('es-CO')} | PLAZO: ${tPago}] [EMISOR: ${String(registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(registrado_por_telefono || '').trim()} | EMAIL: ${String(registrado_por_correo || '').trim()} | CED: ${String(registrado_por_cedula || '').trim()}]`;
     let obsCompleta = observaciones ? String(observaciones).trim() : '';
     if (!obsCompleta.includes(codFactura)) {
       obsCompleta = obsCompleta ? `${obsCompleta}\n\n${metaFacturaStr}` : metaFacturaStr;
@@ -382,6 +389,10 @@ app.post('/api/clientes', async (req, res) => {
       tasa_interes: Number(tasa_interes) || 0,
       monto_capital: Number(monto_capital) || 0,
       monto_interes: Number(monto_interes) || 0,
+      tiempo_pago: tPago,
+      frecuencia_pago: fPago,
+      numero_cuotas: nCuotas,
+      valor_cuota: vCuota,
       direccion: direccion ? String(direccion).trim() : null,
       observaciones: obsCompleta,
       monto_deuda: Number(monto_deuda) || 0,

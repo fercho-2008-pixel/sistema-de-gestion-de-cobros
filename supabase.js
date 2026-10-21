@@ -547,8 +547,14 @@ export async function registrarCliente(cliente) {
   // Asegurar código único de factura de 8 letras (mayúsculas/minúsculas) y 5 números
   const numFactura = cliente.numero_factura || generarCodigoFacturaUnico();
 
-  // Adjuntar metadatos de factura y emisor en observaciones para respaldo 100% permanente
-  const metaFacturaStr = `[FACTURA: ${numFactura}] [EMISOR: ${String(cliente.registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(cliente.registrado_por_telefono || '').trim()} | EMAIL: ${String(cliente.registrado_por_correo || '').trim()} | CED: ${String(cliente.registrado_por_cedula || '').trim()}]`;
+  // Formatear plan de cuotas para el cliente y factura
+  const fPago = cliente.frecuencia_pago ? String(cliente.frecuencia_pago).trim() : 'Semanal';
+  const tPago = cliente.tiempo_pago ? String(cliente.tiempo_pago).trim() : '2 meses';
+  const nCuotas = Number(cliente.numero_cuotas) > 0 ? Number(cliente.numero_cuotas) : 1;
+  const vCuota = Number(cliente.valor_cuota) > 0 ? Number(cliente.valor_cuota) : Math.round((Number(cliente.monto_deuda) || 0) / nCuotas);
+
+  // Adjuntar metadatos de factura, cuotas y emisor en observaciones para respaldo 100% permanente
+  const metaFacturaStr = `[FACTURA: ${numFactura}] [PLAN: ${nCuotas} cuotas ${fPago} de $${vCuota.toLocaleString('es-CO')} | PLAZO: ${tPago}] [EMISOR: ${String(cliente.registrado_por_nombre || 'Asesor').trim()} | TEL: ${String(cliente.registrado_por_telefono || '').trim()} | EMAIL: ${String(cliente.registrado_por_correo || '').trim()} | CED: ${String(cliente.registrado_por_cedula || '').trim()}]`;
   let obsCompleta = cliente.observaciones ? String(cliente.observaciones).trim() : '';
   if (!obsCompleta.includes(numFactura)) {
     obsCompleta = obsCompleta ? `${obsCompleta}\n\n${metaFacturaStr}` : metaFacturaStr;
@@ -569,6 +575,10 @@ export async function registrarCliente(cliente) {
     tasa_interes: Number(cliente.tasa_interes) || 0,
     monto_capital: Number(cliente.monto_capital) || 0,
     monto_interes: Number(cliente.monto_interes) || 0,
+    tiempo_pago: tPago,
+    frecuencia_pago: fPago,
+    numero_cuotas: nCuotas,
+    valor_cuota: vCuota,
     direccion: cliente.direccion?.trim() || null,
     observaciones: obsCompleta,
     monto_deuda: Number(cliente.monto_deuda) || 0,

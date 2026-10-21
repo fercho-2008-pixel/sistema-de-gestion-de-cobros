@@ -500,16 +500,116 @@
                         </div>
                     </div>
 
-                    <!-- Panel de cálculo y total automático con intereses -->
-                    <div class="campo campo-completo" style="background:#f8fafc; border:1px solid #cbd5e1; border-left:4px solid #2563eb; border-radius:10px; padding:14px 16px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <!-- Modalidad de Cobro / Frecuencia de Pagos -->
+                    <div class="campo">
+                        <label for="frecuencia_pago">
+                            Modalidad de Pago (Frecuencia) *
+                        </label>
+                        <select id="frecuencia_pago" name="frecuencia_pago" required>
+                            <option value="Semanal" selected>Semanal (Cada 7 días)</option>
+                            <option value="Quincenal">Quincenal (Cada 15 días)</option>
+                            <option value="Mensual">Mensual (Cada 30 días)</option>
+                        </select>
+                    </div>
+
+                    <!-- Tiempo / Plazo de pago -->
+                    <div class="campo">
+                        <label for="tiempo_pago">
+                            Tiempo / Plazo para Pagar *
+                        </label>
+                        <select id="tiempo_pago" name="tiempo_pago" required>
+                            <option value="1 mes">1 Mes</option>
+                            <option value="2 meses" selected>2 Meses</option>
+                            <option value="3 meses">3 Meses</option>
+                            <option value="4 meses">4 Meses</option>
+                            <option value="5 meses">5 Meses</option>
+                            <option value="6 meses">6 Meses</option>
+                            <option value="12 meses">12 Meses (1 Año)</option>
+                            <option value="personalizado">Otro plazo personalizado...</option>
+                        </select>
+                    </div>
+
+                    <!-- Campo opcional para plazo personalizado -->
+                    <div class="campo" id="contenedorPlazoPersonalizado" style="display:none;">
+                        <label for="plazo_personalizado_valor">
+                            Tiempo personalizado *
+                        </label>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" id="plazo_personalizado_valor" min="1" max="100" placeholder="Ej. 8" value="8" style="flex:1;">
+                            <select id="plazo_personalizado_unidad" style="width:130px;">
+                                <option value="semanas" selected>Semanas</option>
+                                <option value="meses">Meses</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Número de Cuotas (calculado automáticamente y editable) -->
+                    <div class="campo">
+                        <label for="numero_cuotas">
+                            Cantidad Total de Cuotas *
+                        </label>
+                        <div style="position:relative; display:flex; align-items:center;">
+                            <input
+                                type="number"
+                                id="numero_cuotas"
+                                name="numero_cuotas"
+                                min="1"
+                                max="365"
+                                value="8"
+                                required
+                                style="padding-right:75px; font-weight:700;"
+                            >
+                            <span style="position:absolute; right:12px; color:#64748b; font-size:0.85rem; font-weight:600; pointer-events:none;">cuotas</span>
+                        </div>
+                        <small style="font-size:0.75rem; color:#64748b; margin-top:3px; display:block;">Calculado según plazo y modalidad. Puedes ajustarlo libremente.</small>
+                    </div>
+
+                    <!-- Panel de cálculo y total automático con intereses y cuotas calculadas -->
+                    <div class="campo campo-completo" style="background:#f8fafc; border:1px solid #cbd5e1; border-left:5px solid #2563eb; border-radius:12px; padding:16px 20px; box-shadow:0 2px 8px rgba(15,23,42,0.04);">
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:14px; align-items:center;">
+                            <div>
+                                <span style="display:block; font-size:0.75rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Capital Solicitado:</span>
+                                <strong id="lblCapitalCalculado" style="font-size:1.05rem; color:#334155;">$0 COP</strong>
+                            </div>
                             <div>
                                 <span style="display:block; font-size:0.75rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;">Intereses calculados:</span>
-                                <strong id="lblInteresCalculado" style="font-size:0.95rem; color:#dc2626;">$0 COP</strong>
+                                <strong id="lblInteresCalculado" style="font-size:1.05rem; color:#dc2626;">$0 COP (0%)</strong>
                             </div>
-                            <div style="text-align:right;">
-                                <span style="display:block; font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Monto total a pagar (Capital + Intereses):</span>
+                            <div>
+                                <span style="display:block; font-size:0.75rem; color:#1e40af; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Monto total a pagar:</span>
                                 <strong id="lblTotalConIntereses" style="font-size:1.25rem; color:#0f172a; font-weight:800;">$0 COP</strong>
+                            </div>
+                            <!-- TARJETA DESTACADA DE CUOTA CALCULADA -->
+                            <div style="background:#eff6ff; border:1.5px solid #93c5fd; border-radius:10px; padding:10px 14px; text-align:center;">
+                                <span style="display:block; font-size:0.72rem; color:#1d4ed8; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">
+                                    💰 Valor por Cuota (<span id="lblFrecuenciaCuota">Semanal</span>):
+                                </span>
+                                <strong id="lblValorCuotaCalculada" style="font-size:1.3rem; color:#1e40af; font-weight:800; display:block; margin:2px 0;">$0 COP</strong>
+                                <span id="lblDetallePlanCuotas" style="font-size:0.78rem; color:#475569; font-weight:600; display:block;">
+                                    8 cuotas semanales
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Simulador / desglose de cuotas desplegable -->
+                        <div style="margin-top:14px; padding-top:10px; border-top:1px dashed #cbd5e1;">
+                            <button type="button" id="btnToggleTablaCuotas" style="background:none; border:none; color:#2563eb; font-size:0.82rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; padding:0;">
+                                📅 <span>Ver cronograma proyectado de cuotas y fechas sugeridas</span> <span id="flechaCuotas">▼</span>
+                            </button>
+                            <div id="contenedorTablaProyeccionCuotas" style="display:none; margin-top:10px; max-height:220px; overflow-y:auto; border:1px solid #e2e8f0; border-radius:8px; background:#ffffff;">
+                                <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+                                    <thead>
+                                        <tr style="background:#f1f5f9; text-align:left;">
+                                            <th style="padding:7px 10px; font-weight:700; color:#475569;"># Cuota</th>
+                                            <th style="padding:7px 10px; font-weight:700; color:#475569;">Fecha Estimada</th>
+                                            <th style="padding:7px 10px; font-weight:700; color:#475569; text-align:right;">Valor Cuota (COP)</th>
+                                            <th style="padding:7px 10px; font-weight:700; color:#475569; text-align:right;">Saldo Restante</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cuerpoTablaCuotasProyeccion">
+                                        <!-- Generado dinámicamente -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -815,6 +915,18 @@
                             <td>MONTO TOTAL A PAGAR (Deuda Inicial)</td>
                             <td id="facTotalPagar" style="text-align:right; font-weight:800; color:#1e3a8a;">$0 COP</td>
                         </tr>
+                        <tr style="background:#f8fafc;">
+                            <td>Tiempo / Plazo acordado</td>
+                            <td id="facPlazoTiempo" style="text-align:right; font-weight:600;">-</td>
+                        </tr>
+                        <tr style="background:#f8fafc;">
+                            <td>Modalidad de pago (Frecuencia)</td>
+                            <td id="facFrecuenciaPago" style="text-align:right; font-weight:600;">-</td>
+                        </tr>
+                        <tr style="background:#ecfdf5; border-top:1.5px solid #a7f3d0;">
+                            <td style="color:#065f46; font-weight:700;">Plan de Cuotas a Pagar</td>
+                            <td id="facPlanCuotas" style="text-align:right; font-weight:800; color:#047857;">-</td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -1063,8 +1175,25 @@
         const inputMontoFormat = document.getElementById("monto_prestamo_format");
         const inputMontoHidden = document.getElementById("monto_deuda");
         const inputInteres = document.getElementById("porcentaje_interes");
+
+        const selectFrecuencia = document.getElementById("frecuencia_pago");
+        const selectTiempoPago = document.getElementById("tiempo_pago");
+        const inputNumeroCuotas = document.getElementById("numero_cuotas");
+        const contenedorPlazoPers = document.getElementById("contenedorPlazoPersonalizado");
+        const inputPlazoPersValor = document.getElementById("plazo_personalizado_valor");
+        const selectPlazoPersUnidad = document.getElementById("plazo_personalizado_unidad");
+
+        const lblCapital = document.getElementById("lblCapitalCalculado");
         const lblInteres = document.getElementById("lblInteresCalculado");
         const lblTotal = document.getElementById("lblTotalConIntereses");
+        const lblValorCuota = document.getElementById("lblValorCuotaCalculada");
+        const lblFrecuenciaCuota = document.getElementById("lblFrecuenciaCuota");
+        const lblDetallePlanCuotas = document.getElementById("lblDetallePlanCuotas");
+
+        const btnToggleCuotas = document.getElementById("btnToggleTablaCuotas");
+        const flechaCuotas = document.getElementById("flechaCuotas");
+        const contenedorTablaCuotas = document.getElementById("contenedorTablaProyeccionCuotas");
+        const cuerpoTablaCuotas = document.getElementById("cuerpoTablaCuotasProyeccion");
 
         // Modal de factura
         const modalFactura = document.getElementById("modalFacturaGenerada");
@@ -1262,7 +1391,91 @@
             }
         });
 
-        // Cálculo dinámico de intereses y total con formato COP en vivo
+        function obtenerTextoPlazo() {
+            if (!selectTiempoPago) return '2 meses';
+            if (selectTiempoPago.value === "personalizado") {
+                const val = inputPlazoPersValor ? (inputPlazoPersValor.value || 1) : 1;
+                const unidad = selectPlazoPersUnidad ? selectPlazoPersUnidad.value : 'semanas';
+                return `${val} ${unidad}`;
+            }
+            return selectTiempoPago.value;
+        }
+
+        // Calcular número de cuotas según el plazo y la modalidad de pago seleccionados
+        function recalcularCuotasAutomaticas() {
+            const freq = selectFrecuencia ? selectFrecuencia.value : 'Semanal';
+            const tiempo = selectTiempoPago ? selectTiempoPago.value : '2 meses';
+            let cuotasEstimadas = 8;
+
+            if (tiempo === "personalizado") {
+                const num = parseInt(inputPlazoPersValor?.value) || 1;
+                const unidad = selectPlazoPersUnidad?.value || 'semanas';
+                if (unidad === 'semanas') {
+                    if (freq === 'Semanal') cuotasEstimadas = Math.max(1, num);
+                    else if (freq === 'Quincenal') cuotasEstimadas = Math.max(1, Math.round(num / 2));
+                    else cuotasEstimadas = Math.max(1, Math.round(num / 4));
+                } else {
+                    // Meses
+                    if (freq === 'Semanal') cuotasEstimadas = Math.max(1, num * 4);
+                    else if (freq === 'Quincenal') cuotasEstimadas = Math.max(1, num * 2);
+                    else cuotasEstimadas = Math.max(1, num);
+                }
+            } else {
+                let meses = 2;
+                if (tiempo === '1 mes') meses = 1;
+                else if (tiempo === '2 meses') meses = 2;
+                else if (tiempo === '3 meses') meses = 3;
+                else if (tiempo === '4 meses') meses = 4;
+                else if (tiempo === '5 meses') meses = 5;
+                else if (tiempo === '6 meses') meses = 6;
+                else if (tiempo === '12 meses') meses = 12;
+
+                if (freq === 'Semanal') cuotasEstimadas = meses * 4;
+                else if (freq === 'Quincenal') cuotasEstimadas = meses * 2;
+                else if (freq === 'Mensual') cuotasEstimadas = meses * 1;
+            }
+
+            if (inputNumeroCuotas) {
+                inputNumeroCuotas.value = Math.max(1, cuotasEstimadas);
+            }
+        }
+
+        // Generar tabla dinámica de proyección de cuotas
+        function actualizarTablaProyeccion(total, cuotas, valorCuota, freq) {
+            if (!cuerpoTablaCuotas) return;
+            cuerpoTablaCuotas.innerHTML = '';
+
+            if (total <= 0 || cuotas <= 0) {
+                cuerpoTablaCuotas.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:12px; color:#94a3b8;">Ingresa el monto del préstamo para calcular las cuotas.</td></tr>';
+                return;
+            }
+
+            const diasPaso = freq === 'Semanal' ? 7 : (freq === 'Quincenal' ? 15 : 30);
+            let saldoRestante = total;
+            const fechaBase = new Date();
+
+            for (let i = 1; i <= cuotas; i++) {
+                const fechaCuota = new Date(fechaBase);
+                fechaCuota.setDate(fechaBase.getDate() + (i * diasPaso));
+                const fechaStr = fechaCuota.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+
+                // En la última cuota se ajusta el remanente exacto
+                const montoEstaCuota = (i === cuotas) ? saldoRestante : valorCuota;
+                saldoRestante = Math.max(0, saldoRestante - montoEstaCuota);
+
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f1f5f9';
+                tr.innerHTML = `
+                    <td style="padding:6px 10px; font-weight:700; color:#334155;">Cuota ${i} de ${cuotas}</td>
+                    <td style="padding:6px 10px; color:#475569;">${fechaStr}</td>
+                    <td style="padding:6px 10px; text-align:right; font-weight:700; color:#1d4ed8;">$${montoEstaCuota.toLocaleString('es-CO')} COP</td>
+                    <td style="padding:6px 10px; text-align:right; color:#64748b;">$${saldoRestante.toLocaleString('es-CO')} COP</td>
+                `;
+                cuerpoTablaCuotas.appendChild(tr);
+            }
+        }
+
+        // Cálculo dinámico de intereses, total y cuotas con formato COP en vivo
         function recalcularMontosEIntereses() {
             const capital = obtenerNumeroLimpio(inputMontoFormat.value);
             const tasa = parseFloat(inputInteres.value) || 0;
@@ -1273,10 +1486,58 @@
             // Guardar total en campo oculto para el registro de la deuda del cliente
             inputMontoHidden.value = totalConIntereses;
 
+            const freq = selectFrecuencia ? selectFrecuencia.value : 'Semanal';
+            const cuotas = Math.max(1, parseInt(inputNumeroCuotas?.value) || 1);
+            const valorCuota = totalConIntereses > 0 ? Math.round(totalConIntereses / cuotas) : 0;
+
             // Actualizar etiquetas visuales con formato de moneda de Colombia
-            lblInteres.textContent = `$${interesCalculado.toLocaleString('es-CO')} COP (${tasa}%)`;
-            lblTotal.textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
+            if (lblCapital) lblCapital.textContent = `$${capital.toLocaleString('es-CO')} COP`;
+            if (lblInteres) lblInteres.textContent = `$${interesCalculado.toLocaleString('es-CO')} COP (${tasa}%)`;
+            if (lblTotal) lblTotal.textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
+
+            if (lblValorCuota) lblValorCuota.textContent = `$${valorCuota.toLocaleString('es-CO')} COP`;
+            if (lblFrecuenciaCuota) lblFrecuenciaCuota.textContent = freq;
+            if (lblDetallePlanCuotas) {
+                lblDetallePlanCuotas.textContent = `${cuotas} cuota(s) ${freq.toLowerCase()}(es) de $${valorCuota.toLocaleString('es-CO')} COP`;
+            }
+
+            actualizarTablaProyeccion(totalConIntereses, cuotas, valorCuota, freq);
         }
+
+        // Conectar eventos interactivos de plazo, modalidad y cuotas
+        selectTiempoPago?.addEventListener("change", function() {
+            if (contenedorPlazoPers) {
+                contenedorPlazoPers.style.display = this.value === "personalizado" ? "block" : "none";
+            }
+            recalcularCuotasAutomaticas();
+            recalcularMontosEIntereses();
+        });
+
+        inputPlazoPersValor?.addEventListener("input", function() {
+            recalcularCuotasAutomaticas();
+            recalcularMontosEIntereses();
+        });
+
+        selectPlazoPersUnidad?.addEventListener("change", function() {
+            recalcularCuotasAutomaticas();
+            recalcularMontosEIntereses();
+        });
+
+        selectFrecuencia?.addEventListener("change", function() {
+            recalcularCuotasAutomaticas();
+            recalcularMontosEIntereses();
+        });
+
+        inputNumeroCuotas?.addEventListener("input", function() {
+            recalcularMontosEIntereses();
+        });
+
+        btnToggleCuotas?.addEventListener('click', () => {
+            if (!contenedorTablaCuotas) return;
+            const isHidden = contenedorTablaCuotas.style.display === 'none';
+            contenedorTablaCuotas.style.display = isHidden ? 'block' : 'none';
+            if (flechaCuotas) flechaCuotas.textContent = isHidden ? '▲' : '▼';
+        });
 
         // Formatear automáticamente con puntos de miles al escribir el monto
         inputMontoFormat.addEventListener("input", function (e) {
@@ -1352,6 +1613,11 @@
             // Generar código único de factura (8 letras con mayúsculas y minúsculas y 5 números)
             const codigoFacturaUnico = generarCodigoFacturaUnico();
 
+            const tiempoPagoTexto = obtenerTextoPlazo();
+            const frecuenciaVal = selectFrecuencia ? selectFrecuencia.value : 'Semanal';
+            const numCuotasVal = Math.max(1, parseInt(inputNumeroCuotas?.value) || 1);
+            const valorCuotaVal = Math.round(totalConIntereses / numCuotasVal);
+
             const datos = {
                 nombre: nombreCompleto,
                 primer_nombre: pNombre,
@@ -1366,6 +1632,10 @@
                 tasa_interes: tasa,
                 monto_capital: capital,
                 monto_interes: interesCalculado,
+                tiempo_pago: tiempoPagoTexto,
+                frecuencia_pago: frecuenciaVal,
+                numero_cuotas: numCuotasVal,
+                valor_cuota: valorCuotaVal,
                 direccion: document.getElementById("direccion").value.trim(),
                 observaciones: txtObservaciones.value.trim(),
                 monto_deuda: totalConIntereses,
@@ -1421,6 +1691,17 @@
                 document.getElementById('facTasaInteres').textContent = `${tasa}%`;
                 document.getElementById('facMontoInteres').textContent = `$${interesCalculado.toLocaleString('es-CO')} COP`;
                 document.getElementById('facTotalPagar').textContent = `$${totalConIntereses.toLocaleString('es-CO')} COP`;
+
+                // Términos y cuotas en la factura
+                if (document.getElementById('facPlazoTiempo')) {
+                    document.getElementById('facPlazoTiempo').textContent = clienteGuardado.tiempo_pago || tiempoPagoTexto;
+                }
+                if (document.getElementById('facFrecuenciaPago')) {
+                    document.getElementById('facFrecuenciaPago').textContent = clienteGuardado.frecuencia_pago || frecuenciaVal;
+                }
+                if (document.getElementById('facPlanCuotas')) {
+                    document.getElementById('facPlanCuotas').textContent = `${numCuotasVal} cuotas de $${valorCuotaVal.toLocaleString('es-CO')} COP (${frecuenciaVal})`;
+                }
 
                 // Observaciones
                 document.getElementById('facObservacionesTexto').textContent = txtObservaciones.value.trim() || 'Sin observaciones adicionales registradas.';
