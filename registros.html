@@ -627,7 +627,7 @@
                         ></textarea>
                     </div>
 
-                    <!-- SECCIÓN DE INFORMACIÓN DEL COBRADOR / ASESOR (EMISOR DE LA FACTURA) -->
+                    <!-- SECCIÓN DE INFORMACIÓN DEL COBRADOR / ASESOR (EMISOR DEL CONTRATO FINANCIERO) -->
                     <div class="campo campo-completo" style="background:#eff6ff; border:1.5px solid #93c5fd; border-left:5px solid #2563eb; border-radius:12px; padding:18px 20px; box-shadow:0 2px 6px rgba(37,99,235,0.06);">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid #dbeafe; padding-bottom:10px;">
                             <span style="font-size:0.88rem; color:#1e40af; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:8px;">
@@ -762,7 +762,7 @@
                         id="btnGuardar"
                         class="btn-principal"
                     >
-                        Guardar cliente y generar factura
+                        Guardar cliente y emitir contrato financiero
                     </button>
                     
 
@@ -1656,7 +1656,7 @@ Conserve este documento oficial como constancia de su crédito. ¡Gracias por su
             }
 
             if (!cobNombre || !cobTel) {
-                mostrarMensaje("Por favor verifica el nombre y teléfono del cobrador responsable de la factura.", true);
+                mostrarMensaje("Por favor verifica el nombre y teléfono del cobrador responsable del contrato financiero.", true);
                 return;
             }
 

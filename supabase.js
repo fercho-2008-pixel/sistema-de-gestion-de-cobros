@@ -201,19 +201,19 @@ export async function cerrarSesion() {
     } catch (e) {}
   }
   if (typeof window !== 'undefined') {
-    window.location.href = 'index.html';
+    window.location.href = 'menu.html?logout=true';
   }
 }
 
 /**
  * Verifica si hay una sesión activa en la página actual.
- * Si no está autenticado y redirigir es true, redirige a index.html.
+ * Si no está autenticado y redirigir es true, redirige a menu.html.
  */
 export function verificarAutenticacion({ redirigir = true, returnUrl = '' } = {}) {
   const sesion = obtenerSesionActiva();
   if (!sesion) {
     if (redirigir && typeof window !== 'undefined') {
-      const destino = returnUrl ? `index.html?redirect=${encodeURIComponent(returnUrl)}` : 'index.html';
+      const destino = returnUrl ? `menu.html?redirect=${encodeURIComponent(returnUrl)}` : 'menu.html';
       window.location.href = destino;
     }
     return { autenticado: false, usuario: null, esAdmin: false };
@@ -305,7 +305,7 @@ if (typeof window !== 'undefined' && window.localStorage) {
 const CLIENTES_INICIALES = [];
 const PAGOS_INICIALES = [];
 
-function getLocalClientes() {
+export function getLocalClientes() {
   if (typeof window === 'undefined' || !window.localStorage) return [];
   try {
     const raw = window.localStorage.getItem('sistema_clientes');
@@ -327,7 +327,7 @@ function getLocalClientes() {
   }
 }
 
-function setLocalClientes(lista) {
+export function setLocalClientes(lista) {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const limpia = (lista || []).filter(c => 

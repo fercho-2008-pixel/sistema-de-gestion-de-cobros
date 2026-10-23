@@ -8,6 +8,28 @@
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    body {
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      min-height: 100vh !important;
+      padding: 24px 16px 48px !important;
+    }
+
+    .consulta-page-wrapper {
+      width: 100%;
+      max-width: 620px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
     .badge-active {
       background: #dcfce7;
       color: #166534;
@@ -48,11 +70,73 @@
     .btn-pay:hover {
       background: #1d4ed8;
     }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .cliente-item-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .cliente-item-card:hover {
+      border-color: #38bdf8;
+      background: #141f38;
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.08);
+    }
+    .cliente-btn-chip {
+      padding: 6px 11px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .cliente-btn-chip:active {
+      transform: scale(0.97);
+    }
+    .btn-chip-consultar {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .btn-chip-consultar:hover {
+      background: #1d4ed8;
+    }
+    .btn-chip-pago {
+      background: #059669;
+      color: #ffffff;
+    }
+    .btn-chip-pago:hover {
+      background: #047857;
+    }
+    .btn-chip-contrato {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .btn-chip-contrato:hover {
+      background: #475569;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
 
-  <div class="card" style="max-width: 480px;">
+  <div class="consulta-page-wrapper">
+
+    <!-- Rectángulo Principal de Consulta -->
+    <div class="card" id="tarjetaConsulta">
     
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
       <a href="menu2.html" class="back-link" style="margin:0;">
@@ -190,8 +274,77 @@
     </div>
   </div>
 
+  <!-- ========================================================= -->
+  <!-- LISTADO DE CLIENTES REGISTRADOS POR EL COBRADOR (DEBAJO DEL RECTÁNGULO) -->
+  <!-- ========================================================= -->
+  <div class="card" id="seccionMisClientes" style="margin-top: 4px;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 10px; flex-wrap: wrap;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <h3 id="tituloMisClientes" style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin: 0;">
+            📋 Mis Clientes Registrados
+          </h3>
+          <span id="contadorClientesCobrador" style="background: #2563eb; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">0 clientes</span>
+        </div>
+        <p id="subtituloCobrador" style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px; line-height: 1.4;">
+          Clientes registrados exclusivamente en tu cuenta de cobrador.
+        </p>
+      </div>
+      
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <a href="registros.html" style="background: #10b981; color: #ffffff; text-decoration: none; padding: 7px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; transition: background 0.2s;">
+          ➕ Registrar cliente
+        </a>
+      </div>
+    </div>
+
+    <!-- Resumen rápido de cartera -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 14px; font-size: 0.82rem;">
+      <span style="color: #94a3b8;">Total Cartera Pendiente:</span>
+      <strong id="totalCarteraCobrador" style="color: #38bdf8; font-size: 0.95rem; font-family: monospace;">$0 COP</strong>
+    </div>
+
+    <!-- Buscador y filtro rápido -->
+    <div style="margin-bottom: 14px; position: relative;">
+      <input type="text" id="filtroRapidoMisClientes" placeholder="🔎 Filtrar por nombre, cédula o contrato..." style="width: 100%; padding: 9px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; font-size: 0.85rem; color: #ffffff; outline: none;">
+    </div>
+
+    <!-- Estado de Carga -->
+    <div id="loadingMisClientes" style="text-align: center; padding: 24px; color: #94a3b8; font-size: 0.85rem;">
+      <div style="display: inline-block; width: 22px; height: 22px; border: 2.5px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px;"></div>
+      <div>Cargando tus clientes registrados...</div>
+    </div>
+
+    <!-- Listado de clientes -->
+    <div id="listaMisClientes" style="display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px;"></div>
+
+    <!-- Estado Vacío -->
+    <div id="vacioMisClientes" style="display: none; text-align: center; padding: 28px 16px; background: #0f172a; border: 1px dashed #334155; border-radius: 8px;">
+      <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
+      <h4 style="font-size: 0.95rem; color: #e2e8f0; margin-bottom: 4px;">No tienes clientes registrados aún</h4>
+      <p style="font-size: 0.8rem; color: #94a3b8; max-width: 340px; margin: 0 auto 12px; line-height: 1.4;">
+        Todos los clientes que registres desde tu cuenta de cobrador aparecerán aquí automáticamente para consultarlos y gestionarlos en un clic.
+      </p>
+      <a href="registros.html" style="background: #2563eb; color: #ffffff; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-size: 0.8rem; font-weight: 600; display: inline-block;">
+        ➕ Registrar mi primer cliente
+      </a>
+    </div>
+
+  </div>
+
+</div> <!-- Cierre de .consulta-page-wrapper -->
+
   <script type="module">
-    import { buscarClientePorDocumento, verificarAutenticacion, esUsuarioAdmin, aplicarPenalizacionCliente } from './supabase.js';
+    import { 
+      buscarClientePorDocumento, 
+      verificarAutenticacion, 
+      esUsuarioAdmin, 
+      aplicarPenalizacionCliente,
+      obtenerClientes,
+      getLocalClientes,
+      obtenerSesionActiva
+    } from './supabase.js';
 
     // Verificar si el usuario completó su registro o inició sesión
     const auth = verificarAutenticacion({ redirigir: true, returnUrl: 'consulta.html' });
@@ -388,6 +541,274 @@
         btnBuscarTexto.textContent = "Buscar cliente";
       }
     }
+
+    // =========================================================
+    // LÓGICA DE LISTADO DE CLIENTES REGISTRADOS POR EL COBRADOR
+    // =========================================================
+
+    let listaClientesCobrador = [];
+
+    /**
+     * Valida de manera estricta si un cliente fue registrado por la cuenta en sesión.
+     */
+    function esClienteDeCobrador(c, usr) {
+      if (!c || !usr) return false;
+      const userEmail = (usr.correo || usr.email || '').toLowerCase().trim();
+      const userCedula = String(usr.cedula || usr.documento || '').replace(/\D/g, '');
+      const userId = String(usr.id || '').trim();
+      const userNombre = (usr.nombre || '').toLowerCase().trim();
+
+      const regCorreo = (c.registrado_por_correo || '').toLowerCase().trim();
+      const regCedula = String(c.registrado_por_cedula || '').replace(/\D/g, '');
+      const regId = String(c.cobrador_id || '').trim();
+      const regNombre = (c.registrado_por_nombre || '').toLowerCase().trim();
+      const obs = (c.observaciones || '').toLowerCase();
+
+      // 1. Coincidencia directa por correo
+      if (userEmail && regCorreo && userEmail === regCorreo) return true;
+
+      // 2. Coincidencia por cédula del cobrador
+      if (userCedula && regCedula && userCedula === regCedula) return true;
+
+      // 3. Coincidencia por ID único
+      if (userId && regId && userId === regId) return true;
+
+      // 4. Coincidencia por nombre completo o contenido
+      if (userNombre && regNombre) {
+        if (userNombre === regNombre || regNombre.includes(userNombre) || userNombre.includes(regNombre)) return true;
+      }
+
+      // 5. Coincidencia en observaciones de auditoría del contrato
+      if (userEmail && obs.includes(userEmail)) return true;
+      if (userCedula && (obs.includes(`ced: ${userCedula}`) || obs.includes(`ced:${userCedula}`))) return true;
+      if (userNombre && (obs.includes(`emisor: ${userNombre}`) || obs.includes(`cobrador: ${userNombre}`))) return true;
+
+      return false;
+    }
+
+    /**
+     * Carga y filtra los clientes registrados por el cobrador en sesión.
+     */
+    async function cargarClientesDelCobrador() {
+      const loadingEl = document.getElementById('loadingMisClientes');
+      const listaEl = document.getElementById('listaMisClientes');
+      const vacioEl = document.getElementById('vacioMisClientes');
+      const contadorEl = document.getElementById('contadorClientesCobrador');
+      const totalCarteraEl = document.getElementById('totalCarteraCobrador');
+      const subtituloEl = document.getElementById('subtituloCobrador');
+      const tituloEl = document.getElementById('tituloMisClientes');
+
+      if (loadingEl) loadingEl.style.display = 'block';
+      if (vacioEl) vacioEl.style.display = 'none';
+
+      try {
+        const usuarioActivo = auth.usuario || obtenerSesionActiva();
+        const esAdminActual = esUsuarioAdmin(usuarioActivo);
+
+        // Personalizar texto de encabezado según rol
+        if (subtituloEl) {
+          if (esAdminActual) {
+            if (tituloEl) tituloEl.textContent = '📋 Directorio de Clientes';
+            subtituloEl.innerHTML = `👑 Modo Administrador: Mostrando clientes registrados en el sistema.`;
+          } else {
+            const nombreCob = usuarioActivo?.nombre || 'Cobrador';
+            const ccCob = usuarioActivo?.cedula ? ` (C.C. ${usuarioActivo.cedula})` : '';
+            if (tituloEl) tituloEl.textContent = '📋 Mis Clientes Registrados';
+            subtituloEl.innerHTML = `Cartera personal de: <strong>${nombreCob}</strong>${ccCob}. Solo se muestran los clientes registrados bajo tu cuenta.`;
+          }
+        }
+
+        // 1. Obtener desde servidor (usando filtro en query para cobradores)
+        const clientesApi = await obtenerClientes({
+          cobrador: !esAdminActual && usuarioActivo ? (usuarioActivo.correo || usuarioActivo.cedula) : ''
+        });
+
+        // 2. Obtener copia local y unificar para evitar que se pierdan datos locales recientes
+        const locales = getLocalClientes();
+        const mapa = new Map();
+
+        (clientesApi || []).forEach(c => {
+          if (c && c.documento) mapa.set(String(c.documento).trim(), c);
+        });
+
+        (locales || []).forEach(c => {
+          if (c && c.documento && !mapa.has(String(c.documento).trim())) {
+            mapa.set(String(c.documento).trim(), c);
+          }
+        });
+
+        const listaGeneral = Array.from(mapa.values());
+
+        // 3. APLICAR FILTRO ESTRICTO:
+        // Si es cobrador, mostrar ÚNICAMENTE los clientes que él y solo él registró en su cuenta
+        if (!esAdminActual && usuarioActivo) {
+          listaClientesCobrador = listaGeneral.filter(c => esClienteDeCobrador(c, usuarioActivo));
+        } else {
+          listaClientesCobrador = listaGeneral;
+        }
+
+        renderizarListaClientes(listaClientesCobrador);
+      } catch (err) {
+        console.error('Error al cargar clientes del cobrador:', err);
+        if (listaEl) {
+          listaEl.innerHTML = `
+            <div style="color:#f87171; font-size:0.85rem; padding:12px; background:#450a0a; border:1px solid #7f1d1d; border-radius:8px;">
+              Error al consultar tus clientes: ${err.message || err}
+            </div>
+          `;
+        }
+      } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+      }
+    }
+
+    /**
+     * Renderiza las tarjetas de clientes en la lista
+     */
+    function renderizarListaClientes(clientes) {
+      const listaEl = document.getElementById('listaMisClientes');
+      const vacioEl = document.getElementById('vacioMisClientes');
+      const contadorEl = document.getElementById('contadorClientesCobrador');
+      const totalCarteraEl = document.getElementById('totalCarteraCobrador');
+
+      if (!listaEl) return;
+
+      if (contadorEl) {
+        contadorEl.textContent = `${clientes.length} ${clientes.length === 1 ? 'cliente' : 'clientes'}`;
+      }
+
+      const sumaDeuda = clientes.reduce((acc, c) => acc + (Number(c.monto_deuda) || 0), 0);
+      if (totalCarteraEl) {
+        totalCarteraEl.textContent = `$${sumaDeuda.toLocaleString('es-CO')} COP`;
+      }
+
+      if (clientes.length === 0) {
+        listaEl.innerHTML = '';
+        if (vacioEl) vacioEl.style.display = 'block';
+        return;
+      }
+
+      if (vacioEl) vacioEl.style.display = 'none';
+
+      listaEl.innerHTML = clientes.map(c => {
+        const deuda = Number(c.monto_deuda) || 0;
+        const cuotas = Number(c.numero_cuotas) || 1;
+        const freq = c.frecuencia_pago || 'Semanal';
+        const factura = c.numero_factura || 'CTR-' + String(c.documento).slice(-4);
+        const tel = c.telefono ? String(c.telefono).trim() : '';
+        const telLimpio = tel.replace(/\D/g, '');
+
+        let badgePen = '';
+        if (c.penalizacion_cuota2_activa) {
+          badgePen = `<span style="background:#78350f; color:#fef3c7; border:1px solid #b45309; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:700;">⚠️ Mora Cuota 2 (+3.5%)</span>`;
+        } else if (c.penalizacion_permanente_08) {
+          badgePen = `<span style="background:#7f1d1d; color:#fee2e2; border:1px solid #ef4444; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:700;">🚨 +0.8% Perm.</span>`;
+        }
+
+        const badgeEstado = c.estado === 'Activo'
+          ? `<span class="badge-active">Activo</span>`
+          : `<span class="badge-inactive">${c.estado || 'Pendiente'}</span>`;
+
+        return `
+          <div class="cliente-item-card" data-documento="${c.documento}">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="font-size:0.95rem; font-weight:700; color:#f8fafc;">${c.nombre || 'Cliente sin nombre'}</strong>
+                ${badgeEstado}
+                ${badgePen}
+              </div>
+              <span style="font-family:monospace; font-size:0.8rem; font-weight:700; color:#38bdf8; background:#0b1329; padding:2px 8px; border-radius:4px; border:1px solid #1e293b;">
+                ${factura}
+              </span>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; font-size:0.78rem; background:#1e293b; padding:8px 10px; border-radius:6px; border:1px solid #334155;">
+              <div>
+                <span style="color:#94a3b8; display:block; font-size:0.7rem;">Cédula / Documento:</span>
+                <strong style="color:#e2e8f0; font-family:monospace;">${c.documento}</strong>
+              </div>
+              <div>
+                <span style="color:#94a3b8; display:block; font-size:0.7rem;">Saldo Pendiente:</span>
+                <strong style="color:${deuda > 0 ? '#f87171' : '#10b981'}; font-weight:700;">
+                  $${deuda.toLocaleString('es-CO')} COP
+                </strong>
+              </div>
+              <div>
+                <span style="color:#94a3b8; display:block; font-size:0.7rem;">Plan Acordado:</span>
+                <span style="color:#cbd5e1;">${cuotas} ctas. ${freq}</span>
+              </div>
+              <div>
+                <span style="color:#94a3b8; display:block; font-size:0.7rem;">Teléfono:</span>
+                <span style="color:#cbd5e1;">${tel || 'No registrado'}</span>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:2px;">
+              <button type="button" class="cliente-btn-chip btn-chip-consultar" onclick="window.consultarClienteDesdeLista('${c.documento}')" title="Cargar y consultar este cliente arriba">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                🔍 Consultar
+              </button>
+
+              <a href="pagos.html?documento=${encodeURIComponent(c.documento)}&nombre=${encodeURIComponent(c.nombre || '')}" class="cliente-btn-chip btn-chip-pago" title="Registrar un pago a este cliente">
+                💵 + Registrar Pago
+              </a>
+
+              <a href="clientes.html?factura=${encodeURIComponent(c.numero_factura || c.documento)}" class="cliente-btn-chip btn-chip-contrato" title="Ver Contrato Financiero">
+                📜 Contrato
+              </a>
+
+              ${telLimpio ? `
+                <a href="https://wa.me/57${telLimpio}" target="_blank" class="cliente-btn-chip" style="background:#15803d; color:#ffffff;" title="Enviar WhatsApp al cliente">
+                  💬 WhatsApp
+                </a>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /**
+     * Permite consultar un cliente de la lista haciendo un clic:
+     * Llena el input de cédula, ejecuta la búsqueda y sube con scroll suave al rectángulo
+     */
+    window.consultarClienteDesdeLista = function(doc) {
+      if (!doc) return;
+      inputCedula.value = doc;
+      ejecutarBusqueda(doc);
+      const tarjeta = document.getElementById('tarjetaConsulta');
+      if (tarjeta) {
+        tarjeta.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+
+    // Buscador rápido en tiempo real para la lista de clientes del cobrador
+    const inputFiltro = document.getElementById('filtroRapidoMisClientes');
+    inputFiltro?.addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      if (!q) {
+        renderizarListaClientes(listaClientesCobrador);
+        return;
+      }
+      const filtrados = listaClientesCobrador.filter(c => {
+        const nom = (c.nombre || '').toLowerCase();
+        const doc = String(c.documento || '').toLowerCase();
+        const fac = String(c.numero_factura || '').toLowerCase();
+        const tel = String(c.telefono || '').toLowerCase();
+        return nom.includes(q) || doc.includes(q) || fac.includes(q) || tel.includes(q);
+      });
+      renderizarListaClientes(filtrados);
+    });
+
+    // Escuchar eventos de clientes actualizados desde otras pestañas o componentes
+    window.addEventListener('clientes_actualizados', () => {
+      cargarClientesDelCobrador();
+    });
+
+    // Cargar automáticamente los clientes del cobrador al iniciar la pantalla
+    cargarClientesDelCobrador();
   </script>
 
 </body>
