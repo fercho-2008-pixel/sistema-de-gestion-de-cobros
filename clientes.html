@@ -1163,6 +1163,100 @@
     </div>
   </div>
 
+  <!-- MODAL DE EDICIÓN DE INFORMACIÓN DE CLIENTE (SOLO SE CIERRA CON LA EQUIS O CANCELAR) -->
+  <div id="modalEditarCliente" style="display:none; position:fixed; inset:0; z-index:1150; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#ffffff; width:100%; max-width:540px; border-radius:14px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); border:1px solid #e2e8f0; overflow:hidden; max-height:92vh; display:flex; flex-direction:column;">
+      <div style="padding:18px 22px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <div>
+          <h3 style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:700;">✏️ Editar Información del Cliente</h3>
+          <p style="margin:2px 0 0 0; font-size:0.8rem; color:#64748b;">Modifica los datos del cliente y actualízalos de inmediato</p>
+        </div>
+        <button type="button" id="btnCerrarModalEditarCliente" title="Cerrar ventana" style="background:transparent; border:none; font-size:1.4rem; color:#94a3b8; cursor:pointer; line-height:1; font-weight:700;">&times;</button>
+      </div>
+
+      <div style="padding:22px; overflow-y:auto; flex:1;">
+        <form id="formEditarClienteModal">
+          <input type="hidden" id="editCliDocumentoOriginal" />
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Primer nombre *</label>
+              <input type="text" id="editCliPrimerNombre" required placeholder="Ej. Carlos" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Segundo nombre</label>
+              <input type="text" id="editCliSegundoNombre" placeholder="Ej. Andrés" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Primer apellido *</label>
+              <input type="text" id="editCliPrimerApellido" required placeholder="Ej. Mendoza" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Segundo apellido</label>
+              <input type="text" id="editCliSegundoApellido" placeholder="Ej. Gómez" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Cédula / Documento (No editable)</label>
+              <input type="text" id="editCliDocumento" readonly style="width:100%; padding:9px 12px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; border-radius:8px; font-size:0.88rem; outline:none; font-weight:600;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Teléfono / Celular / WhatsApp</label>
+              <input type="tel" id="editCliTelefono" placeholder="Ej. +57 312 456 7890" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Correo electrónico</label>
+              <input type="email" id="editCliCorreo" placeholder="correo@ejemplo.com" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Dirección de residencia o negocio</label>
+              <input type="text" id="editCliDireccion" placeholder="Ej. Calle 45 # 12-30" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none;" />
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Situación laboral</label>
+              <select id="editCliSituacion" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; background:#ffffff;">
+                <option value="Laburando">Laburando (Empleado / Con trabajo)</option>
+                <option value="Desempleado">Desempleado (Sin empleo actual)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Estado del Cliente</label>
+              <select id="editCliEstado" style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; background:#ffffff;">
+                <option value="Activo">Activo</option>
+                <option value="Pendiente">Pendiente</option>
+                <option value="Al Día">Al Día</option>
+              </select>
+            </div>
+
+            <div style="grid-column: span 2;">
+              <label style="display:block; font-size:0.82rem; font-weight:600; color:#334155; margin-bottom:4px;">Observaciones / Notas adicionales</label>
+              <textarea id="editCliObservaciones" rows="2" placeholder="Detalles o notas sobre el cliente..." style="width:100%; padding:9px 12px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem; outline:none; font-family:inherit; resize:vertical;"></textarea>
+            </div>
+          </div>
+
+          <div id="editCliMsg" style="display:none; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:14px; line-height:1.4;"></div>
+
+          <div style="display:flex; justify-content:flex-end; gap:10px; pt-2;">
+            <button type="button" id="btnCancelarEditarCliente" style="padding:9px 16px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+              Cancelar
+            </button>
+            <button type="submit" id="btnGuardarEditarCliente" style="padding:9px 20px; background:#2563eb; color:#ffffff; border:none; border-radius:8px; font-size:0.88rem; font-weight:600; cursor:pointer;">
+              💾 Guardar Cambios
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL DE VISUALIZACIÓN Y DESCARGA DE FACTURA EN 1 SOLA HOJA -->
   <div id="modalFacturaDirectorio" style="display:none; position:fixed; inset:0; z-index:1200; background:rgba(15,23,42,0.75); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
     <div style="background:#ffffff; width:100%; max-width:820px; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); overflow:hidden; margin:auto;">
@@ -1352,6 +1446,7 @@
       cerrarSesion,
       obtenerClientes,
       registrarCliente,
+      actualizarCliente,
       obtenerUsuarios,
       eliminarClientePorDocumento,
       validarContrasenaAcceso,
@@ -2110,6 +2205,15 @@ Documento oficial expedido por el Sistema de Gestión de Cobros.`;
             <td style="text-align:right; white-space:nowrap;">
               <button 
                 type="button" 
+                class="btn-action-table btn-abrir-editar-cliente" 
+                data-documento="${c.documento}"
+                title="Editar datos e información del cliente"
+                style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; cursor:pointer;"
+              >
+                ✏️ Editar
+              </button>
+              <button 
+                type="button" 
                 class="btn-action-table btn-ver-factura" 
                 data-documento="${c.documento}"
                 title="Ver y descargar Contrato Financiero oficial en PDF con penalizaciones"
@@ -2145,6 +2249,17 @@ Documento oficial expedido por el Sistema de Gestión de Cobros.`;
           </tr>
         `;
       }).join('');
+
+      // Asociar eventos a los botones de editar cliente
+      document.querySelectorAll('.btn-abrir-editar-cliente').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const doc = e.currentTarget.getAttribute('data-documento');
+          const cliente = listaClientesOriginal.find(cl => String(cl.documento).trim() === String(doc).trim());
+          if (cliente) {
+            abrirModalEditarCliente(cliente);
+          }
+        });
+      });
 
       // Asociar eventos a los botones de factura
       document.querySelectorAll('.btn-ver-factura').forEach(btn => {
@@ -2601,8 +2716,190 @@ Documento oficial expedido por el Sistema de Gestión de Cobros.`;
     btnAbrirModalNuevo?.addEventListener('click', abrirModalNuevo);
     btnCerrarModalNuevo?.addEventListener('click', cerrarModalNuevo);
     btnCancelarNuevo?.addEventListener('click', cerrarModalNuevo);
-    modalNuevo?.addEventListener('click', (e) => {
-      if (e.target === modalNuevo) cerrarModalNuevo();
+    // No cerrar al hacer clic fuera del rectángulo; solo se puede salir con la X o Cancelar
+
+    // -----------------------------------------------------------------
+    // MODAL DE EDICIÓN DE CLIENTE (SOLO SE CIERRA CON LA X O CANCELAR)
+    // -----------------------------------------------------------------
+    const modalEditarCli = document.getElementById('modalEditarCliente');
+    const btnCerrarModalEditarCli = document.getElementById('btnCerrarModalEditarCliente');
+    const btnCancelarEditarCli = document.getElementById('btnCancelarEditarCliente');
+    const formEditarCli = document.getElementById('formEditarClienteModal');
+    const editCliMsg = document.getElementById('editCliMsg');
+    const btnGuardarEditarCli = document.getElementById('btnGuardarEditarCliente');
+
+    const editDocOriginal = document.getElementById('editCliDocumentoOriginal');
+    const editPNombre = document.getElementById('editCliPrimerNombre');
+    const editSNombre = document.getElementById('editCliSegundoNombre');
+    const editPApellido = document.getElementById('editCliPrimerApellido');
+    const editSApellido = document.getElementById('editCliSegundoApellido');
+    const editDocInput = document.getElementById('editCliDocumento');
+    const editTelInput = document.getElementById('editCliTelefono');
+    const editCorreoInput = document.getElementById('editCliCorreo');
+    const editDirInput = document.getElementById('editCliDireccion');
+    const editSituacionInput = document.getElementById('editCliSituacion');
+    const editEstadoInput = document.getElementById('editCliEstado');
+    const editObsInput = document.getElementById('editCliObservaciones');
+
+    let clienteEnEdicion = null;
+
+    function abrirModalEditarCliente(cliente) {
+      if (!cliente) return;
+      clienteEnEdicion = cliente;
+
+      if (formEditarCli) formEditarCli.reset();
+      if (editCliMsg) {
+        editCliMsg.style.display = 'none';
+        editCliMsg.textContent = '';
+      }
+
+      // Separar nombres si no están individualizados
+      let pNom = cliente.primer_nombre || '';
+      let sNom = cliente.segundo_nombre || '';
+      let pApe = cliente.primer_apellido || '';
+      let sApe = cliente.segundo_apellido || '';
+
+      if (!pNom && cliente.nombre) {
+        const partes = cliente.nombre.trim().split(/\s+/);
+        if (partes.length === 1) {
+          pNom = partes[0];
+        } else if (partes.length === 2) {
+          pNom = partes[0];
+          pApe = partes[1];
+        } else if (partes.length === 3) {
+          pNom = partes[0];
+          pApe = partes[1];
+          sApe = partes[2];
+        } else if (partes.length >= 4) {
+          pNom = partes[0];
+          sNom = partes[1];
+          pApe = partes[2];
+          sApe = partes.slice(3).join(' ');
+        }
+      }
+
+      if (editDocOriginal) editDocOriginal.value = cliente.documento || '';
+      if (editPNombre) editPNombre.value = pNom;
+      if (editSNombre) editSNombre.value = sNom;
+      if (editPApellido) editPApellido.value = pApe;
+      if (editSApellido) editSApellido.value = sApe;
+      if (editDocInput) editDocInput.value = cliente.documento || '';
+      if (editTelInput) editTelInput.value = cliente.telefono || '';
+      if (editCorreoInput) editCorreoInput.value = cliente.correo || '';
+      if (editDirInput) editDirInput.value = cliente.direccion || '';
+      if (editSituacionInput) editSituacionInput.value = cliente.situacion_laboral || 'Laburando';
+      if (editEstadoInput) editEstadoInput.value = cliente.estado || 'Activo';
+      
+      const obsLimpias = (cliente.observaciones || '').replace(/\[FACTURA:[^\]]*\]/gi, '').replace(/\[PLAN:[^\]]*\]/gi, '').replace(/\[EMISOR:[^\]]*\]/gi, '').trim();
+      if (editObsInput) editObsInput.value = obsLimpias;
+
+      if (btnGuardarEditarCli) {
+        btnGuardarEditarCli.disabled = false;
+        btnGuardarEditarCli.textContent = '💾 Guardar Cambios';
+      }
+
+      if (modalEditarCli) modalEditarCli.style.display = 'flex';
+      setTimeout(() => editPNombre?.focus(), 60);
+    }
+
+    function cerrarModalEditarCliente() {
+      if (modalEditarCli) modalEditarCli.style.display = 'none';
+      if (formEditarCli) formEditarCli.reset();
+      clienteEnEdicion = null;
+    }
+
+    btnCerrarModalEditarCli?.addEventListener('click', cerrarModalEditarCliente);
+    btnCancelarEditarCli?.addEventListener('click', cerrarModalEditarCliente);
+    // No agregar listener de clic en fondo de modalEditarCli para que solo se cierre con la X o Cancelar
+
+    formEditarCli?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docOrig = editDocOriginal?.value || clienteEnEdicion?.documento;
+      if (!docOrig) {
+        mostrarAlerta('No se identificó el documento del cliente.', 'error');
+        return;
+      }
+
+      const pNom = editPNombre?.value.trim() || '';
+      const sNom = editSNombre?.value.trim() || '';
+      const pApe = editPApellido?.value.trim() || '';
+      const sApe = editSApellido?.value.trim() || '';
+      const nombreCompleto = `${pNom} ${sNom} ${pApe} ${sApe}`.replace(/\s+/g, ' ').trim();
+
+      const tel = editTelInput?.value.trim() || '';
+      const correo = editCorreoInput?.value.trim() || '';
+      const direccion = editDirInput?.value.trim() || '';
+      const situacion = editSituacionInput?.value || 'Laburando';
+      const estado = editEstadoInput?.value || 'Activo';
+      const obsUsuario = editObsInput?.value.trim() || '';
+
+      if (!pNom || !pApe) {
+        if (editCliMsg) {
+          editCliMsg.style.display = 'block';
+          editCliMsg.style.background = '#fef2f2';
+          editCliMsg.style.color = '#dc2626';
+          editCliMsg.textContent = 'El primer nombre y el primer apellido son obligatorios.';
+        }
+        return;
+      }
+
+      // Conservar metadatos de factura de auditoría si existen
+      let obsFinal = obsUsuario;
+      const obsPrevias = clienteEnEdicion?.observaciones || '';
+      const metaMatches = obsPrevias.match(/\[(FACTURA|PLAN|EMISOR):[^\]]*\]/gi);
+      if (metaMatches && metaMatches.length > 0) {
+        const metasStr = metaMatches.join(' ');
+        obsFinal = obsFinal ? `${obsFinal}\n\n${metasStr}` : metasStr;
+      }
+
+      const datosActualizados = {
+        nombre: nombreCompleto,
+        primer_nombre: pNom,
+        segundo_nombre: sNom,
+        primer_apellido: pApe,
+        segundo_apellido: sApe,
+        telefono: tel,
+        correo: correo,
+        direccion: direccion,
+        situacion_laboral: situacion,
+        estado: estado,
+        observaciones: obsFinal
+      };
+
+      if (btnGuardarEditarCli) {
+        btnGuardarEditarCli.disabled = true;
+        btnGuardarEditarCli.textContent = 'Guardando cambios...';
+      }
+
+      try {
+        await actualizarCliente(docOrig, datosActualizados);
+        if (editCliMsg) {
+          editCliMsg.style.display = 'block';
+          editCliMsg.style.background = '#ecfdf5';
+          editCliMsg.style.color = '#059669';
+          editCliMsg.textContent = `¡Información de "${nombreCompleto}" actualizada correctamente!`;
+        }
+
+        await cargarClientes();
+
+        setTimeout(() => {
+          cerrarModalEditarCliente();
+          mostrarAlerta(`Cliente "${nombreCompleto}" actualizado correctamente en Supabase y el directorio.`, 'success');
+        }, 500);
+      } catch (err) {
+        console.error('Error al actualizar cliente:', err);
+        if (editCliMsg) {
+          editCliMsg.style.display = 'block';
+          editCliMsg.style.background = '#fef2f2';
+          editCliMsg.style.color = '#dc2626';
+          editCliMsg.textContent = 'Error al actualizar: ' + (err.message || err);
+        }
+      } finally {
+        if (btnGuardarEditarCli) {
+          btnGuardarEditarCli.disabled = false;
+          btnGuardarEditarCli.textContent = '💾 Guardar Cambios';
+        }
+      }
     });
 
     formNuevoCliente?.addEventListener('submit', async (e) => {

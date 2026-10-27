@@ -1776,11 +1776,7 @@
     btnCerrarModalEditarCobrador?.addEventListener('click', cerrarModalEditarCobrador);
     btnCancelarEditarCobrador?.addEventListener('click', cerrarModalEditarCobrador);
 
-    modalEditarCobrador?.addEventListener('click', (e) => {
-      if (e.target === modalEditarCobrador) {
-        cerrarModalEditarCobrador();
-      }
-    });
+    // No cerrar al hacer clic fuera del rectángulo; solo se puede salir con la X o Cancelar
 
     formEditarCobrador?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -1915,11 +1911,7 @@
     btnCerrarModalEliminarCobrador?.addEventListener('click', cerrarModalEliminarCobrador);
     btnCancelarEliminarCobrador?.addEventListener('click', cerrarModalEliminarCobrador);
 
-    modalEliminarCobrador?.addEventListener('click', (e) => {
-      if (e.target === modalEliminarCobrador) {
-        cerrarModalEliminarCobrador();
-      }
-    });
+    // No cerrar al hacer clic fuera del rectángulo; solo se puede salir con la X o Cancelar
 
     // Acción de confirmar borrado en la base de datos
     btnConfirmarEliminarCobrador?.addEventListener('click', async () => {

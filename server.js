@@ -121,19 +121,22 @@ function initInMemoryStore() {
 initInMemoryStore();
 
 // Constantes para excluir datos predeterminados/demo o eliminados
-const DOCS_PREDETERMINADOS = ['1020304050', '1030405060', '1040506070', '0000000000'];
+const DOCS_PREDETERMINADOS = ['1020304050', '1030405060', '1040506070', '0000000000', 'test-reg-9999'];
 const NOMBRES_PREDETERMINADOS = [
   'maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez',
-  'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado'
+  'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado',
+  'cliente', 'cliente sin nombre', 'test', 'prueba'
 ];
 
 function esRegistroExcluido(nombre = '', doc = '', estado = '') {
   const n = String(nombre || '').trim().toLowerCase();
-  const d = String(doc || '').trim();
+  const d = String(doc || '').trim().toLowerCase();
   const e = String(estado || '').trim().toLowerCase();
   if (e === 'eliminado') return true;
-  if (DOCS_PREDETERMINADOS.includes(d)) return true;
-  if (n.includes('moncada') || n.includes('james') || n.includes('[eliminado]')) return true;
+  if (d === 'test-reg-9999' || d.startsWith('test') || d === '0000000000') return true;
+  if (DOCS_PREDETERMINADOS.includes(d) || DOCS_PREDETERMINADOS.includes(String(doc || '').trim())) return true;
+  if (n === 'cliente' || n === 'cliente sin nombre' || n.startsWith('test') || n.includes('[eliminado]') || n === 'eliminado') return true;
+  if (n.includes('moncada') || n.includes('james')) return true;
   if (NOMBRES_PREDETERMINADOS.includes(n)) return true;
   return false;
 }
@@ -246,20 +249,42 @@ app.get('/api/pagos', async (req, res) => {
     let pagos = [];
     let fromDb = false;
 
+    // Obtener los documentos de clientes realmente registrados
+    const docsValidos = new Set();
+    for (const [docKey, c] of inMemoryClientes.entries()) {
+      if (c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)) {
+        docsValidos.add(String(c.documento).trim().toLowerCase());
+      }
+    }
+
     if (await checkSupabaseAvailable()) {
       try {
-        const { data, error } = await Promise.race([
-          supabase.from('pagos').select('*').order('created_at', { ascending: false }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3000))
+        const [resPagos, resCli] = await Promise.race([
+          Promise.all([
+            supabase.from('pagos').select('*').order('created_at', { ascending: false }),
+            supabase.from('clientes').select('documento, nombre, estado')
+          ]),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase query timeout')), 3500))
         ]);
 
-        if (!error && Array.isArray(data)) {
+        if (resCli && resCli.data && Array.isArray(resCli.data)) {
+          resCli.data.forEach(c => {
+            if (c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)) {
+              docsValidos.add(String(c.documento).trim().toLowerCase());
+            }
+          });
+        }
+
+        if (resPagos && !resPagos.error && Array.isArray(resPagos.data)) {
           fromDb = true;
-          pagos = data.filter(p => 
-            p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
-          );
-        } else if (error) {
-          logNotice('pagos', error);
+          // Solo incluir pagos de clientes que REALMENTE estén registrados en el sistema
+          pagos = resPagos.data.filter(p => {
+            if (!p || !p.documento) return false;
+            const docP = String(p.documento).trim().toLowerCase();
+            return docsValidos.has(docP) && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado);
+          });
+        } else if (resPagos && resPagos.error) {
+          logNotice('pagos', resPagos.error);
         }
       } catch (e) {
         logNotice('pagos', e);
@@ -267,14 +292,16 @@ app.get('/api/pagos', async (req, res) => {
     }
 
     if (!fromDb) {
-      pagos = inMemoryPagos.filter(p =>
-        p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
-      );
+      pagos = inMemoryPagos.filter(p => {
+        if (!p || !p.documento) return false;
+        const docP = String(p.documento).trim().toLowerCase();
+        return docsValidos.has(docP) && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado);
+      });
     }
 
     return res.json({ ok: true, data: pagos, source: fromDb ? 'supabase' : 'in-memory' });
   } catch (err) {
-    return res.json({ ok: true, data: inMemoryPagos.filter(p => !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)), source: 'in-memory-fallback' });
+    return res.json({ ok: true, data: [], source: 'in-memory-fallback' });
   }
 });
 
@@ -606,6 +633,91 @@ app.post('/api/clientes', async (req, res) => {
     return res.json({ ok: true, data: savedData });
   } catch (err) {
     console.error('Error servidor POST /api/clientes:', err);
+    return res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Actualizar un cliente existente
+app.put('/api/clientes/:documento', async (req, res) => {
+  try {
+    const docParam = String(req.params.documento || '').trim();
+    if (!docParam) {
+      return res.status(400).json({ ok: false, error: 'Documento no especificado.' });
+    }
+
+    const {
+      nombre,
+      primer_nombre,
+      segundo_nombre,
+      primer_apellido,
+      segundo_apellido,
+      telefono,
+      correo,
+      direccion,
+      situacion_laboral,
+      estado,
+      observaciones
+    } = req.body;
+
+    let clientePrevio = inMemoryClientes.get(docParam);
+    if (!clientePrevio) {
+      for (const [k, c] of inMemoryClientes.entries()) {
+        if (String(c.documento || '').trim() === docParam) {
+          clientePrevio = c;
+          break;
+        }
+      }
+    }
+
+    const pNom = primer_nombre !== undefined ? String(primer_nombre).trim() : (clientePrevio?.primer_nombre || '');
+    const sNom = segundo_nombre !== undefined ? String(segundo_nombre).trim() : (clientePrevio?.segundo_nombre || '');
+    const pApe = primer_apellido !== undefined ? String(primer_apellido).trim() : (clientePrevio?.primer_apellido || '');
+    const sApe = segundo_apellido !== undefined ? String(segundo_apellido).trim() : (clientePrevio?.segundo_apellido || '');
+    const nombreCompleto = nombre ? String(nombre).trim() : (`${pNom} ${sNom} ${pApe} ${sApe}`.trim() || clientePrevio?.nombre || '');
+
+    const actualizado = {
+      ...(clientePrevio || {}),
+      nombre: nombreCompleto,
+      primer_nombre: pNom,
+      segundo_nombre: sNom,
+      primer_apellido: pApe,
+      segundo_apellido: sApe,
+      telefono: telefono !== undefined ? String(telefono).trim() : clientePrevio?.telefono,
+      correo: correo !== undefined ? String(correo).trim() : clientePrevio?.correo,
+      direccion: direccion !== undefined ? String(direccion).trim() : clientePrevio?.direccion,
+      situacion_laboral: situacion_laboral || clientePrevio?.situacion_laboral || 'Laburando',
+      estado: estado || clientePrevio?.estado || 'Activo',
+      observaciones: observaciones !== undefined ? String(observaciones).trim() : clientePrevio?.observaciones,
+      documento: docParam
+    };
+
+    inMemoryClientes.set(docParam, actualizado);
+
+    if (await checkSupabaseAvailable()) {
+      try {
+        const updatePayload = {
+          nombre: actualizado.nombre,
+          telefono: actualizado.telefono,
+          correo: actualizado.correo,
+          direccion: actualizado.direccion,
+          estado: actualizado.estado
+        };
+        if (actualizado.observaciones) updatePayload.observaciones = actualizado.observaciones;
+
+        const { error } = await supabase
+          .from('clientes')
+          .update(updatePayload)
+          .eq('documento', docParam);
+
+        if (error) logNotice('update-cliente-supabase', error);
+      } catch (e) {
+        logNotice('update-cliente', e);
+      }
+    }
+
+    return res.json({ ok: true, data: actualizado });
+  } catch (err) {
+    console.error('Error servidor PUT /api/clientes/:documento:', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
 });

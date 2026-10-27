@@ -249,19 +249,22 @@ if (typeof window !== 'undefined') {
 // ----------------------------------------------------------
 
 // Excluir cualquier documento o nombre predeterminado / demo o registros eliminados
-export const DOCS_PREDETERMINADOS = new Set(['1020304050', '1030405060', '1040506070', '0000000000']);
+export const DOCS_PREDETERMINADOS = new Set(['1020304050', '1030405060', '1040506070', '0000000000', 'test-reg-9999']);
 export const NOMBRES_PREDETERMINADOS = new Set([
   'maría pérez', 'maria perez', 'juan torres', 'luisa ramírez', 'luisa ramirez',
-  'administrador principal', 'admin@cobros.com', 'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado'
+  'administrador principal', 'admin@cobros.com', 'james moncada', 'james', 'moncada', '[eliminado]', 'eliminado',
+  'cliente', 'cliente sin nombre', 'test', 'prueba'
 ]);
 
 export function esRegistroExcluido(nombre = '', doc = '', estado = '') {
   const n = String(nombre || '').trim().toLowerCase();
-  const d = String(doc || '').trim();
+  const d = String(doc || '').trim().toLowerCase();
   const e = String(estado || '').trim().toLowerCase();
   if (e === 'eliminado') return true;
-  if (DOCS_PREDETERMINADOS.has(d)) return true;
-  if (n.includes('moncada') || n.includes('james') || n.includes('[eliminado]')) return true;
+  if (d === 'test-reg-9999' || d.startsWith('test') || d === '0000000000') return true;
+  if (DOCS_PREDETERMINADOS.has(d) || DOCS_PREDETERMINADOS.has(String(doc || '').trim())) return true;
+  if (n === 'cliente' || n === 'cliente sin nombre' || n.startsWith('test') || n.includes('[eliminado]') || n === 'eliminado') return true;
+  if (n.includes('moncada') || n.includes('james')) return true;
   if (NOMBRES_PREDETERMINADOS.has(n)) return true;
   return false;
 }
@@ -346,10 +349,15 @@ function getLocalPagos() {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
 
-    // Filtrar estrictamente cualquier pago demo o eliminado
-    const filtrados = parsed.filter(p => 
-      p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
-    );
+    const clientesLoc = getLocalClientes();
+    const docsValidos = new Set(clientesLoc.map(c => String(c.documento || '').trim().toLowerCase()));
+
+    // Filtrar estrictamente cualquier pago demo, eliminado o de cliente no registrado
+    const filtrados = parsed.filter(p => {
+      if (!p || !p.documento) return false;
+      const docP = String(p.documento).trim().toLowerCase();
+      return (docsValidos.size === 0 || docsValidos.has(docP)) && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado);
+    });
 
     if (filtrados.length !== parsed.length) {
       setLocalPagos(filtrados);
@@ -1191,15 +1199,22 @@ export async function obtenerResumenDashboard() {
   }
 
   if (pagos && Array.isArray(pagos)) {
-    let pagosReales = pagos.filter(p => 
-      p && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado)
+    // FILTRO ESTRICTO: Solo pagos de clientes que REALMENTE están registrados en el sistema
+    const docsValidos = new Set(
+      (clientesReales || []).map(c => String(c.documento || '').trim().toLowerCase())
     );
+
+    let pagosReales = pagos.filter(p => {
+      if (!p || !p.documento) return false;
+      const docP = String(p.documento || '').trim().toLowerCase();
+      return docsValidos.has(docP) && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado);
+    });
 
     // Si es cobrador, mostrar únicamente pagos de sus propios clientes
     if (!esAdmin && sesion) {
       const clientesDelCobrador = clientes ? filtrarClientesPorCobrador(clientes, sesion) : [];
-      const docsCobrador = new Set(clientesDelCobrador.map(c => String(c.documento || '').trim()));
-      pagosReales = pagosReales.filter(p => docsCobrador.has(String(p.documento || '').trim()));
+      const docsCobrador = new Set(clientesDelCobrador.map(c => String(c.documento || '').trim().toLowerCase()));
+      pagosReales = pagosReales.filter(p => docsCobrador.has(String(p.documento || '').trim().toLowerCase()));
     }
 
     const pagosHoy = pagosReales.filter(p => p.fecha === hoyStr);
@@ -1226,9 +1241,18 @@ export async function obtenerResumenDashboard() {
     prestamosActivos = clientesLocales.filter(c => Number(c.monto_deuda) > 0 || c.estado === 'Activo').length;
 
     let pagosLocales = getLocalPagos();
+    const docsValidosLoc = new Set(
+      (clientesLocales || []).map(c => String(c.documento || '').trim().toLowerCase())
+    );
+    pagosLocales = pagosLocales.filter(p => {
+      if (!p || !p.documento) return false;
+      const docP = String(p.documento || '').trim().toLowerCase();
+      return docsValidosLoc.has(docP) && !esRegistroExcluido(p.cliente_nombre, p.documento, p.estado);
+    });
+
     if (!esAdmin && sesion) {
-      const docsCobrador = new Set(clientesLocales.map(c => String(c.documento || '').trim()));
-      pagosLocales = pagosLocales.filter(p => docsCobrador.has(String(p.documento || '').trim()));
+      const docsCobrador = new Set(clientesLocales.map(c => String(c.documento || '').trim().toLowerCase()));
+      pagosLocales = pagosLocales.filter(p => docsCobrador.has(String(p.documento || '').trim().toLowerCase()));
     }
 
     const pagosHoy = pagosLocales.filter(p => p.fecha === hoyStr);
@@ -2646,6 +2670,77 @@ export async function autenticarUsuarioConRol({ modo = 'admin', identificador = 
   return { ok: false, error: 'Modo de acceso no reconocido.' };
 }
 
+/**
+ * Actualiza la información de un cliente existente (nombre, teléfono, dirección, etc.).
+ */
+export async function actualizarCliente(documento, datos) {
+  const docClean = String(documento || '').trim();
+  if (!docClean) throw new Error('Documento de cliente no especificado.');
+
+  let clienteActualizado = null;
+
+  // 1. Intentar actualizar a través de la API
+  try {
+    const res = await fetch(`/api/clientes/${encodeURIComponent(docClean)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.ok && json.data) {
+        clienteActualizado = json.data;
+      }
+    }
+  } catch (e) {
+    console.warn('Error al actualizar cliente por API:', e);
+  }
+
+  // 2. Si no se pudo por API, intentar con cliente Supabase directamente
+  if (!clienteActualizado && (await isSupabaseOnline())) {
+    const client = getDb();
+    if (client) {
+      try {
+        const updatePayload = {
+          nombre: datos.nombre,
+          telefono: datos.telefono,
+          correo: datos.correo,
+          direccion: datos.direccion,
+          estado: datos.estado
+        };
+        if (datos.observaciones) updatePayload.observaciones = datos.observaciones;
+
+        const { data, error } = await client
+          .from('clientes')
+          .update(updatePayload)
+          .eq('documento', docClean)
+          .select();
+        if (!error && Array.isArray(data) && data[0]) {
+          clienteActualizado = data[0];
+        }
+      } catch (e) {}
+    }
+  }
+
+  // 3. Actualizar en almacenamiento local siempre
+  const locales = getLocalClientes();
+  const idx = locales.findIndex(c => String(c.documento).trim() === docClean);
+  if (idx !== -1) {
+    locales[idx] = { ...locales[idx], ...datos, ...(clienteActualizado || {}) };
+    setLocalClientes(locales);
+    if (!clienteActualizado) clienteActualizado = locales[idx];
+  } else if (clienteActualizado) {
+    locales.unshift(clienteActualizado);
+    setLocalClientes(locales);
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('clientes_actualizados', { detail: clienteActualizado }));
+  }
+
+  return clienteActualizado;
+}
+
 if (typeof window !== 'undefined') {
   window.autenticarUsuarioConRol = autenticarUsuarioConRol;
   window.generarCodigoFacturaUnico = generarCodigoFacturaUnico;
@@ -2656,4 +2751,5 @@ if (typeof window !== 'undefined') {
   window.filtrarClientesPorCobrador = filtrarClientesPorCobrador;
   window.actualizarUsuario = actualizarUsuario;
   window.editarCobrador = editarCobrador;
+  window.actualizarCliente = actualizarCliente;
 }
