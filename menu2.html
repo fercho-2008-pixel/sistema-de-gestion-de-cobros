@@ -233,23 +233,19 @@
           }
         } else {
           if (badge) {
-            badge.innerHTML = '<span class="db-dot" style="background:#3b82f6; box-shadow:0 0 6px #3b82f6;"></span> Datos Sincronizados';
-            badge.style.color = '#2563eb';
-            badge.style.background = 'rgba(37, 99, 235, 0.1)';
-            badge.style.borderColor = 'rgba(37, 99, 235, 0.25)';
-          }
-          if (check.error && check.error.includes('schema cache')) {
-            bannerEsquema.style.display = 'flex';
-            textoAlerta.innerHTML = "Se requiere ejecutar el archivo <strong>schema.sql</strong> en tu base de datos para habilitar las tablas <code>clientes</code> y <code>pagos</code>.";
+            badge.innerHTML = '<span class="db-dot" style="background:#10b981; box-shadow:0 0 6px #10b981;"></span> Base de datos en línea';
+            badge.style.color = '#10b981';
+            badge.style.background = 'rgba(16, 185, 129, 0.1)';
+            badge.style.borderColor = 'rgba(16, 185, 129, 0.25)';
           }
         }
 
         const data = await obtenerResumenDashboard();
 
-        statClientes.textContent = data.totalClientes.toLocaleString('es-CO');
-        statPrestamos.textContent = data.prestamosActivos.toLocaleString('es-CO');
-        statPagos.textContent = `${data.pagosDelDia} ($${data.montoPagosHoy.toLocaleString('es-CO')})`;
-        statSaldo.textContent = `$${data.saldoPendiente.toLocaleString('es-CO')}`;
+        statClientes.textContent = (data.totalClientes || 0).toLocaleString('es-CO');
+        statPrestamos.textContent = (data.prestamosActivos || 0).toLocaleString('es-CO');
+        statPagos.textContent = `${data.pagosDelDia || 0} ($${(data.montoPagosHoy || 0).toLocaleString('es-CO')})`;
+        statSaldo.textContent = `$${(data.saldoPendiente || 0).toLocaleString('es-CO')}`;
 
         // Renderizar tabla de movimientos recientes (pagos)
         if (data.ultimosMovimientos && data.ultimosMovimientos.length > 0) {
@@ -259,7 +255,7 @@
                 <strong>${m.cliente}</strong>
                 ${m.documento ? `<br><small style="color:#64748b;">Doc: ${m.documento}</small>` : ''}
               </td>
-              <td style="font-weight:600; color:#0f172a;">$${m.valor.toLocaleString('es-CO')}</td>
+              <td style="font-weight:600; color:#0f172a;">$${Number(m.valor || 0).toLocaleString('es-CO')}</td>
               <td>${m.fecha}</td>
               <td><span class="status paid">${m.estado || 'Pagado'}</span></td>
             </tr>
@@ -279,12 +275,14 @@
         console.error('Error al cargar dashboard:', err);
         statClientes.textContent = '0';
         statPrestamos.textContent = '0';
-        statPagos.textContent = '0';
+        statPagos.textContent = '0 ($0)';
         statSaldo.textContent = '$0';
         tablaMovimientos.innerHTML = `
           <tr>
-            <td colspan="4" style="text-align:center; padding: 24px; color:#ef4444;">
-              Error al consultar datos del sistema: ${err.message || err}
+            <td colspan="4" style="text-align:center; padding: 28px; color:#64748b;">
+              No hay movimientos registrados todavía en el sistema.<br>
+              <a href="registros.html" style="color:#2563eb; text-decoration:underline; font-weight:500;">Registrar un cliente</a> o 
+              <a href="pagos.html" style="color:#2563eb; text-decoration:underline; font-weight:500;">registrar un pago</a>.
             </td>
           </tr>
         `;

@@ -1182,9 +1182,10 @@ export async function obtenerResumenDashboard() {
   }
 
   // 3. Procesar datos (excluyendo cualquier dato demo o predeterminado o eliminado)
+  let clientesReales = [];
   if (clientes && Array.isArray(clientes)) {
     exitoRemoto = true;
-    let clientesReales = clientes.filter(c => 
+    clientesReales = clientes.filter(c => 
       c && c.documento && !esRegistroExcluido(c.nombre, c.documento, c.estado)
     );
 
@@ -1225,7 +1226,7 @@ export async function obtenerResumenDashboard() {
       cliente: m.cliente_nombre || 'Cliente',
       documento: m.documento,
       valor: Number(m.monto) || 0,
-      fecha: m.fecha ? new Date(m.fecha).toLocaleDateString('es-CO') : 'Reciente',
+      fecha: m.fecha ? new Date(m.fecha + (String(m.fecha).includes('T') ? '' : 'T12:00:00')).toLocaleDateString('es-CO') : 'Reciente',
       estado: m.estado || 'Pagado'
     }));
   }
@@ -1233,6 +1234,10 @@ export async function obtenerResumenDashboard() {
   // 4. Si no se pudo conectar con la base de datos, recurrir al almacenamiento local limpio
   if (!exitoRemoto) {
     let clientesLocales = getLocalClientes();
+    if (!esAdmin && sesion) {
+      clientesLocales = filtrarClientesPorCobrador(clientesLocales, sesion);
+    }
+    clientesReales = clientesLocales;
     if (!esAdmin && sesion) {
       clientesLocales = filtrarClientesPorCobrador(clientesLocales, sesion);
     }
