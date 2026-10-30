@@ -12,18 +12,50 @@ let lastSupabaseClientCheck = 0;
 
 export async function isSupabaseOnline() {
   const now = Date.now();
-  if (isSupabaseOnlineClient !== null && now - lastSupabaseClientCheck < 45000) {
+  if (isSupabaseOnlineClient !== null && now - lastSupabaseClientCheck < 25000) {
     return isSupabaseOnlineClient;
   }
   lastSupabaseClientCheck = now;
+
+  // 1. Probar directamente con el cliente Supabase
+  const client = getDb();
+  if (client && typeof client.from === 'function') {
+    try {
+      const { data, error } = await Promise.race([
+        client.from('clientes').select('id').limit(1),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 2500))
+      ]);
+      if (!error) {
+        isSupabaseOnlineClient = true;
+        return true;
+      }
+    } catch (_) {}
+  }
+
+  // 2. Probar endpoint del servidor /api/status si está corriendo
   try {
     const res = await fetch('/api/status');
     if (res.ok) {
       const data = await res.json();
-      isSupabaseOnlineClient = Boolean(data && data.supabaseConnected);
-      return isSupabaseOnlineClient;
+      if (data && data.supabaseConnected) {
+        isSupabaseOnlineClient = true;
+        return true;
+      }
     }
   } catch (_) {}
+
+  // 3. Probar health check directo de la API de Supabase
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+      method: 'GET',
+      headers: { 'apikey': SUPABASE_ANON_KEY }
+    });
+    if (res.ok || res.status === 401) {
+      isSupabaseOnlineClient = true;
+      return true;
+    }
+  } catch (_) {}
+
   isSupabaseOnlineClient = false;
   return false;
 }

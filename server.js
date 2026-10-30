@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createClient } from '@supabase/supabase-js';
@@ -114,6 +115,61 @@ function generarCodigoFactura(existentes = setCodigosFacturas) {
   return codigo;
 }
 
+// Archivo local de persistencia en disco para asegurar que ningún dato se pierda
+const LOCAL_DATA_FILE = path.join(__dirname, 'local_data.json');
+
+function persistLocalData() {
+  try {
+    const payload = {
+      clientes: Array.from(inMemoryClientes.values()),
+      usuarios: Array.from(inMemoryUsuarios.values()),
+      pagos: inMemoryPagos,
+      facturas: Array.from(inMemoryFacturas.values()),
+      eliminados: inMemoryEliminados,
+      updated_at: new Date().toISOString()
+    };
+    fs.writeFileSync(LOCAL_DATA_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+  } catch (e) {
+    console.warn('Nota al guardar local_data.json:', e.message);
+  }
+}
+
+function loadLocalData() {
+  try {
+    if (fs.existsSync(LOCAL_DATA_FILE)) {
+      const raw = fs.readFileSync(LOCAL_DATA_FILE, 'utf-8');
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.clientes)) {
+        data.clientes.forEach(c => {
+          if (c && c.documento) {
+            inMemoryClientes.set(String(c.documento).trim(), c);
+            if (c.numero_factura) setCodigosFacturas.add(c.numero_factura);
+          }
+        });
+      }
+      if (Array.isArray(data.usuarios)) {
+        data.usuarios.forEach(u => {
+          if (u && u.correo) inMemoryUsuarios.set(u.correo.toLowerCase(), u);
+        });
+      }
+      if (Array.isArray(data.pagos)) {
+        data.pagos.forEach(p => inMemoryPagos.push(p));
+      }
+      if (Array.isArray(data.facturas)) {
+        data.facturas.forEach(f => {
+          const cod = f.codigo_factura || f.numero_factura;
+          if (cod) inMemoryFacturas.set(cod, f);
+        });
+      }
+      if (Array.isArray(data.eliminados)) {
+        data.eliminados.forEach(el => inMemoryEliminados.push(el));
+      }
+    }
+  } catch (e) {
+    console.warn('Nota al cargar local_data.json:', e.message);
+  }
+}
+
 // Seed in-memory store with demo data if empty
 function initInMemoryStore() {
   inMemoryUsuarios.set('ferchogarces2008@gmail.com', {
@@ -145,6 +201,9 @@ function initInMemoryStore() {
     telefono: '3100000000',
     created_at: new Date().toISOString()
   });
+
+  // Cargar datos persistidos previamente en disco
+  loadLocalData();
 }
 initInMemoryStore();
 
@@ -441,6 +500,7 @@ app.post('/api/pagos', async (req, res) => {
       inMemoryClientes.set(docClean, cli);
       cliActualizado = cli;
     }
+    persistLocalData();
 
     // Intentar en Supabase solo si está disponible
     if (await checkSupabaseAvailable()) {
@@ -628,6 +688,7 @@ app.post('/api/clientes', async (req, res) => {
       codigo_factura: codFactura,
       fecha_emision: payload.created_at
     });
+    persistLocalData();
 
     let savedData = payload;
 
@@ -720,6 +781,7 @@ app.put('/api/clientes/:documento', async (req, res) => {
     };
 
     inMemoryClientes.set(docParam, actualizado);
+    persistLocalData();
 
     if (await checkSupabaseAvailable()) {
       try {
@@ -827,6 +889,7 @@ app.delete('/api/clientes/:documento', async (req, res) => {
     inMemoryClientes.delete(doc);
     const pagosIdx = inMemoryPagos.findIndex(p => String(p.documento).trim() === doc);
     if (pagosIdx !== -1) inMemoryPagos.splice(pagosIdx, 1);
+    persistLocalData();
 
     // Intentar eliminar en Supabase solo si está conectado
     if (await checkSupabaseAvailable()) {
@@ -975,6 +1038,7 @@ app.post('/api/usuarios', async (req, res) => {
     };
 
     inMemoryUsuarios.set(emailClean, payload);
+    persistLocalData();
 
     if (await checkSupabaseAvailable()) {
       try {
@@ -1099,6 +1163,7 @@ app.put('/api/usuarios/:identificador', async (req, res) => {
     };
 
     inMemoryUsuarios.set(emailNuevo, payload);
+    persistLocalData();
 
     // Actualizar también la información en clientes vinculados a este cobrador
     for (const cli of inMemoryClientes.values()) {
@@ -1208,6 +1273,7 @@ app.delete('/api/usuarios/:identificador', async (req, res) => {
         inMemoryUsuarios.delete(key);
       }
     }
+    persistLocalData();
 
     // 2. Eliminar de la base de datos Supabase si está disponible
     if (await checkSupabaseAvailable()) {

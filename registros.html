@@ -14,6 +14,238 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Script de ejecución directa para compatibilidad garantizada en descargas de GitHub (file:// y local) -->
+    <script>
+      function generarCodigoFacturaLocal() {
+        var mayus = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        var minus = 'abcdefghijkmnopqrstuvwxyz';
+        var nums = '0123456789';
+        var res = '';
+        for (var i = 0; i < 4; i++) {
+          res += mayus.charAt(Math.floor(Math.random() * mayus.length));
+          res += minus.charAt(Math.floor(Math.random() * minus.length));
+        }
+        for (var j = 0; j < 5; j++) {
+          res += nums.charAt(Math.floor(Math.random() * nums.length));
+        }
+        return res;
+      }
+
+      window.guardarClienteDirecto = async function(event) {
+        if (event && event.preventDefault) event.preventDefault();
+
+        // Si el módulo principal de Supabase ya tiene registrado el cliente mediante su propio listener, delegar
+        if (window.guardandoEnModulo) return false;
+
+        var pNombre = (document.getElementById("primer_nombre") ? document.getElementById("primer_nombre").value : "").trim();
+        var sNombre = (document.getElementById("segundo_nombre") ? document.getElementById("segundo_nombre").value : "").trim();
+        var pApellido = (document.getElementById("primer_apellido") ? document.getElementById("primer_apellido").value : "").trim();
+        var sApellido = (document.getElementById("segundo_apellido") ? document.getElementById("segundo_apellido").value : "").trim();
+        var docVal = (document.getElementById("documento") ? document.getElementById("documento").value : "").trim();
+        var telVal = (document.getElementById("telefono") ? document.getElementById("telefono").value : "").trim();
+        var correoVal = (document.getElementById("correo") ? document.getElementById("correo").value : "").trim();
+        var dirVal = (document.getElementById("direccion") ? document.getElementById("direccion").value : "").trim();
+        var selectSit = document.getElementById("situacion_laboral");
+        var situacion = selectSit ? selectSit.value : "Laburando";
+        var obsVal = (document.getElementById("observaciones") ? document.getElementById("observaciones").value : "").trim();
+
+        var inputMontoFormat = document.getElementById("monto_prestamo_format");
+        var montoTxt = inputMontoFormat ? inputMontoFormat.value.replace(/\D/g, '') : "0";
+        var capital = parseInt(montoTxt, 10) || 0;
+
+        var inputInteres = document.getElementById("porcentaje_interes");
+        var tasa = parseFloat(inputInteres ? inputInteres.value : "0") || 0;
+        var intereses = Math.round(capital * (tasa / 100));
+        var total = capital + intereses;
+
+        var selectFreq = document.getElementById("frecuencia_pago");
+        var freqVal = selectFreq ? selectFreq.value : "Semanal";
+        var selectTiempo = document.getElementById("tiempo_pago");
+        var tiempoVal = selectTiempo ? selectTiempo.value : "2 meses";
+        var inputCuotas = document.getElementById("numero_cuotas");
+        var cuotas = parseInt(inputCuotas ? inputCuotas.value : "8", 10) || 1;
+        var valorCuota = Math.round(total / cuotas);
+
+        var cobNombreEl = document.getElementById("cobrador_nombre");
+        var cobNombre = cobNombreEl && cobNombreEl.value ? cobNombreEl.value.trim() : "Administrador";
+        var cobTelEl = document.getElementById("cobrador_telefono");
+        var cobTel = cobTelEl && cobTelEl.value ? cobTelEl.value.trim() : "3203826157";
+        var cobCedEl = document.getElementById("cobrador_cedula");
+        var cobCedula = cobCedEl && cobCedEl.value ? cobCedEl.value.trim() : "1090421332";
+        var cobCorreoEl = document.getElementById("cobrador_correo");
+        var cobCorreo = cobCorreoEl && cobCorreoEl.value ? cobCorreoEl.value.trim() : "admin@cobros.com";
+        var cobRolEl = document.getElementById("cobrador_rol");
+        var cobRol = cobRolEl && cobRolEl.value ? cobRolEl.value.trim() : "Administrador";
+
+        var mensajeEl = document.getElementById("mensajeGuardado");
+        function showMsg(txt, isErr) {
+          if (!mensajeEl) return;
+          mensajeEl.textContent = txt;
+          mensajeEl.style.display = "block";
+          mensajeEl.className = isErr ? "mensaje-error" : "mensaje-exito";
+        }
+
+        if (!pNombre || !sNombre || !pApellido || !sApellido) {
+          showMsg("Los dos nombres y los dos apellidos son campos obligatorios.", true);
+          return false;
+        }
+
+        if (!docVal) {
+          showMsg("El número de documento / cédula es obligatorio.", true);
+          return false;
+        }
+
+        var btnGuardar = document.getElementById("btnGuardar");
+        if (btnGuardar) {
+          btnGuardar.disabled = true;
+          btnGuardar.textContent = "Guardando cliente en base de datos...";
+        }
+
+        var codFactura = generarCodigoFacturaLocal();
+        var nombreCompleto = (pNombre + " " + sNombre + " " + pApellido + " " + sApellido).replace(/\s+/g, " ").trim();
+
+        var nuevoCliente = {
+          id: "cli-" + Date.now(),
+          nombre: nombreCompleto,
+          primer_nombre: pNombre,
+          segundo_nombre: sNombre,
+          primer_apellido: pApellido,
+          segundo_apellido: sApellido,
+          documento: docVal,
+          telefono: telVal,
+          correo: correoVal,
+          direccion: dirVal,
+          estado: situacion === "Laburando" ? "Activo" : "Pendiente",
+          situacion_laboral: situacion,
+          tasa_interes: tasa,
+          monto_capital: capital,
+          monto_interes: intereses,
+          monto_deuda: total,
+          tiempo_pago: tiempoVal,
+          frecuencia_pago: freqVal,
+          numero_cuotas: cuotas,
+          valor_cuota: valorCuota,
+          observaciones: obsVal,
+          numero_factura: codFactura,
+          registrado_por_nombre: cobNombre,
+          registrado_por_telefono: cobTel,
+          registrado_por_correo: cobCorreo,
+          registrado_por_cedula: cobCedula,
+          registrado_por_rol: cobRol,
+          created_at: new Date().toISOString()
+        };
+
+        // 1. Guardar de inmediato en almacenamiento local para no perder jamás la información
+        try {
+          var locales = JSON.parse(localStorage.getItem('sistema_clientes') || '[]');
+          locales = locales.filter(function(c) { return String(c.documento).trim() !== docVal; });
+          locales.unshift(nuevoCliente);
+          localStorage.setItem('sistema_clientes', JSON.stringify(locales));
+
+          var historico = JSON.parse(localStorage.getItem('sistema_facturas_historico') || '[]');
+          historico.unshift(nuevoCliente);
+          localStorage.setItem('sistema_facturas_historico', JSON.stringify(historico));
+        } catch (e) {
+          console.warn('Error localStorage:', e);
+        }
+
+        // 2. Guardar directamente en Supabase si está disponible en línea
+        try {
+          if (window.supabase && typeof window.supabase.createClient === 'function') {
+            var client = window.supabase.createClient(
+              'https://vvvveahvvabpzkephwlu.supabase.co',
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2dnZlYWh2dmFicHprZXBod2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0MDQzNzIsImV4cCI6MjEwNDk4MDM3Mn0.AXo3MSol4K7hawxwHsgHlEThGXzZZn4u4WdMXH7k2ts'
+            );
+            client.from('clientes').upsert([{
+              nombre: nuevoCliente.nombre,
+              correo: nuevoCliente.correo,
+              telefono: nuevoCliente.telefono,
+              documento: nuevoCliente.documento,
+              estado: nuevoCliente.estado,
+              direccion: nuevoCliente.direccion,
+              observaciones: nuevoCliente.observaciones || '',
+              monto_deuda: nuevoCliente.monto_deuda
+            }], { onConflict: 'documento' }).then(function() {}).catch(function() {});
+          }
+        } catch (e) {}
+
+        // 3. Notificar al servidor si está activo
+        try {
+          fetch('/api/clientes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoCliente)
+          }).catch(function() {});
+        } catch (e) {}
+
+        // 4. Poblar datos en la factura imprimible y abrir el modal
+        try {
+          var elCod = document.getElementById('facCodigoNumero');
+          if (elCod) elCod.textContent = codFactura;
+          var elFecha = document.getElementById('facFechaEmision');
+          if (elFecha) elFecha.textContent = new Date().toLocaleString('es-CO');
+          var elCliNom = document.getElementById('facClienteNombre');
+          if (elCliNom) elCliNom.textContent = nuevoCliente.nombre;
+          var elCliDoc = document.getElementById('facClienteDocumento');
+          if (elCliDoc) elCliDoc.textContent = nuevoCliente.documento;
+          var elCliTel = document.getElementById('facClienteTelefono');
+          if (elCliTel) elCliTel.textContent = nuevoCliente.telefono || 'Sin teléfono';
+          var elCliSit = document.getElementById('facClienteSituacion');
+          if (elCliSit) elCliSit.textContent = nuevoCliente.situacion_laboral;
+          var elCliCor = document.getElementById('facClienteCorreo');
+          if (elCliCor) elCliCor.textContent = nuevoCliente.correo || 'Sin correo';
+          var elCliDir = document.getElementById('facClienteDireccion');
+          if (elCliDir) elCliDir.textContent = nuevoCliente.direccion || 'Sin dirección';
+
+          var elCap = document.getElementById('facMontoCapital');
+          if (elCap) elCap.textContent = '$' + capital.toLocaleString('es-CO') + ' COP';
+          var elTas = document.getElementById('facTasaInteres');
+          if (elTas) elTas.textContent = tasa + '%';
+          var elInt = document.getElementById('facMontoInteres');
+          if (elInt) elInt.textContent = '$' + intereses.toLocaleString('es-CO') + ' COP';
+          var elTot = document.getElementById('facTotalPagar');
+          if (elTot) elTot.textContent = '$' + total.toLocaleString('es-CO') + ' COP';
+
+          var elPlazo = document.getElementById('facPlazoTiempo');
+          if (elPlazo) elPlazo.textContent = tiempoVal;
+          var elFreq = document.getElementById('facFrecuenciaPago');
+          if (elFreq) elFreq.textContent = freqVal;
+          var elPlan = document.getElementById('facPlanCuotas');
+          if (elPlan) elPlan.textContent = cuotas + ' cuotas de $' + valorCuota.toLocaleString('es-CO') + ' COP (' + freqVal + ')';
+
+          var elCobNom = document.getElementById('facCobradorNombre');
+          if (elCobNom) elCobNom.textContent = cobNombre;
+          var elCobTel = document.getElementById('facCobradorTelefono');
+          if (elCobTel) elCobTel.textContent = cobTel;
+          var elCobRol = document.getElementById('facCobradorRol');
+          if (elCobRol) elCobRol.textContent = cobRol;
+          var elCobCor = document.getElementById('facCobradorCorreo');
+          if (elCobCor) elCobCor.textContent = cobCorreo;
+
+          var elFirmaCob = document.getElementById('facFirmaCobradorNombre');
+          if (elFirmaCob) elFirmaCob.textContent = 'Firma: ' + cobNombre;
+          var elFirmaCli = document.getElementById('facFirmaClienteNombre');
+          if (elFirmaCli) elFirmaCli.textContent = 'Firma: ' + nuevoCliente.nombre;
+          var elFirmaDoc = document.getElementById('facFirmaClienteDoc');
+          if (elFirmaDoc) elFirmaDoc.textContent = 'C.C. ' + nuevoCliente.documento;
+
+          var elModal = document.getElementById('modalFacturaGenerada');
+          if (elModal) elModal.style.display = 'flex';
+        } catch (e) {
+          console.warn('Error al poblar modal:', e);
+        }
+
+        showMsg("✓ ¡Cliente \"" + nuevoCliente.nombre + "\" guardado con éxito! Contrato Financiero #" + codFactura + " generado correctamente.", false);
+
+        if (btnGuardar) {
+          btnGuardar.disabled = false;
+          btnGuardar.textContent = "Guardar cliente y emitir contrato financiero";
+        }
+
+        return false;
+      };
+    </script>
+
     <style>
       /* Estilos para la ventana modal de factura y generación de PDF en 1 hoja */
       .modal-factura-overlay {
