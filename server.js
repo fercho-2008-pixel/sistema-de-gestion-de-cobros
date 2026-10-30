@@ -116,7 +116,35 @@ function generarCodigoFactura(existentes = setCodigosFacturas) {
 
 // Seed in-memory store with demo data if empty
 function initInMemoryStore() {
-  // Inicialización limpia sin registros conflictivos
+  inMemoryUsuarios.set('ferchogarces2008@gmail.com', {
+    id: 'usr-admin-1',
+    nombre: 'fercho',
+    correo: 'ferchogarces2008@gmail.com',
+    rol: 'Administrador',
+    cedula: '1090421332',
+    telefono: '3203826157',
+    created_at: new Date().toISOString()
+  });
+
+  inMemoryUsuarios.set('admin@cobros.com', {
+    id: 'usr-admin-2',
+    nombre: 'Administrador Principal',
+    correo: 'admin@cobros.com',
+    rol: 'Administrador',
+    cedula: '1090421332',
+    telefono: '3203826157',
+    created_at: new Date().toISOString()
+  });
+
+  inMemoryUsuarios.set('cobrador@cobros.com', {
+    id: 'usr-cobrador-1',
+    nombre: 'Cobrador Asignado',
+    correo: 'cobrador@cobros.com',
+    rol: 'Cobrador',
+    cedula: '1110500088',
+    telefono: '3100000000',
+    created_at: new Date().toISOString()
+  });
 }
 initInMemoryStore();
 
@@ -871,7 +899,18 @@ app.get('/api/usuarios', async (req, res) => {
 
         if (!error && Array.isArray(data)) {
           fromDb = true;
-          usuarios = data.filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
+          const mapaUsuarios = new Map();
+          // Incluir cuentas base en memoria para garantizar disponibilidad inmediata tras clonar
+          for (const u of inMemoryUsuarios.values()) {
+            if (u && u.correo) mapaUsuarios.set(u.correo.toLowerCase(), u);
+          }
+          for (const u of data) {
+            if (u && u.correo && !esRegistroExcluido(u.nombre, u.cedula, u.rol)) {
+              const emailK = u.correo.toLowerCase();
+              mapaUsuarios.set(emailK, { ...(mapaUsuarios.get(emailK) || {}), ...u });
+            }
+          }
+          usuarios = Array.from(mapaUsuarios.values());
           for (const u of usuarios) {
             if (u.correo) inMemoryUsuarios.set(u.correo.toLowerCase(), u);
           }
@@ -884,7 +923,7 @@ app.get('/api/usuarios', async (req, res) => {
     }
 
     if (!fromDb) {
-      usuarios = Array.from(inMemoryUsuarios.values()).filter(u => u && u.correo && u.correo.toLowerCase() !== 'admin@cobros.com' && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
+      usuarios = Array.from(inMemoryUsuarios.values()).filter(u => u && u.correo && !esRegistroExcluido(u.nombre, u.cedula, u.rol));
     }
 
     return res.json({ ok: true, data: usuarios, source: fromDb ? 'supabase' : 'in-memory' });

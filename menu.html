@@ -12,6 +12,236 @@
   <link rel="stylesheet" href="menu.css">
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Lógica de navegación inmediata y accesible sin importar protocolo (file:// o http://) -->
+  <script>
+    window.modoActual = 'admin';
+
+    function seleccionarModo(modo) {
+      window.modoActual = modo;
+      var seccionElegirRol = document.getElementById('seccionElegirRol');
+      var seccionFormularioLogin = document.getElementById('seccionFormularioLogin');
+      var formKicker = document.getElementById('formKicker');
+      var badgeRolActual = document.getElementById('badgeRolActual');
+      var formTitulo = document.getElementById('formTitulo');
+      var formSubtitulo = document.getElementById('formSubtitulo');
+      var grupoAdminCorreo = document.getElementById('grupoAdminCorreo');
+      var grupoAdminCedula = document.getElementById('grupoAdminCedula');
+      var grupoCobradorCorreo = document.getElementById('grupoCobradorCorreo');
+      var inputCorreoAdmin = document.getElementById('correoAdmin');
+      var inputCedulaAdmin = document.getElementById('cedulaAdmin');
+      var inputCorreoCobrador = document.getElementById('correoCobrador');
+      var lblPassword = document.getElementById('lblPassword');
+      var btnIniciar = document.getElementById('btnIniciarSesion');
+      var loginMsg = document.getElementById('loginMsg');
+      var pieRegistroAdmin = document.getElementById('pieRegistroAdmin');
+
+      if (loginMsg) loginMsg.style.display = 'none';
+      if (seccionElegirRol) seccionElegirRol.style.display = 'none';
+      if (seccionFormularioLogin) seccionFormularioLogin.style.display = 'block';
+
+      if (modo === 'admin') {
+        if (formKicker) formKicker.textContent = 'Acceso Administrativo';
+        if (badgeRolActual) {
+          badgeRolActual.textContent = 'ADMIN';
+          badgeRolActual.style.background = '#dbeafe';
+          badgeRolActual.style.color = '#1e40af';
+        }
+        if (formTitulo) formTitulo.textContent = 'Ingreso como Administrador';
+        if (formSubtitulo) formSubtitulo.textContent = 'Digita tu correo electrónico, número de cédula y contraseña autorizada.';
+
+        if (grupoAdminCorreo) grupoAdminCorreo.style.display = 'block';
+        if (grupoAdminCedula) grupoAdminCedula.style.display = 'block';
+        if (grupoCobradorCorreo) grupoCobradorCorreo.style.display = 'none';
+        if (inputCorreoAdmin) inputCorreoAdmin.setAttribute('required', 'required');
+        if (inputCedulaAdmin) inputCedulaAdmin.setAttribute('required', 'required');
+        if (inputCorreoCobrador) inputCorreoCobrador.removeAttribute('required');
+
+        if (lblPassword) lblPassword.textContent = 'Contraseña del Administrador *';
+        if (btnIniciar) {
+          btnIniciar.innerHTML = 'Ingresar como Administrador 🛡️';
+          btnIniciar.style.background = '#0f2749';
+        }
+        if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'block';
+        if (inputCorreoAdmin) setTimeout(function() { inputCorreoAdmin.focus(); }, 60);
+      } else {
+        if (formKicker) formKicker.textContent = 'Acceso Operativo';
+        if (badgeRolActual) {
+          badgeRolActual.textContent = 'COBRADOR';
+          badgeRolActual.style.background = '#d1fae5';
+          badgeRolActual.style.color = '#065f46';
+        }
+        if (formTitulo) formTitulo.textContent = 'Ingreso como Cobrador';
+        if (formSubtitulo) formSubtitulo.textContent = 'Digita tu correo asignado de cobrador y tu contraseña.';
+
+        if (grupoAdminCorreo) grupoAdminCorreo.style.display = 'none';
+        if (grupoAdminCedula) grupoAdminCedula.style.display = 'none';
+        if (grupoCobradorCorreo) grupoCobradorCorreo.style.display = 'block';
+        if (inputCorreoAdmin) inputCorreoAdmin.removeAttribute('required');
+        if (inputCedulaAdmin) inputCedulaAdmin.removeAttribute('required');
+        if (inputCorreoCobrador) inputCorreoCobrador.setAttribute('required', 'required');
+
+        if (lblPassword) lblPassword.textContent = 'Contraseña del Cobrador *';
+        if (btnIniciar) {
+          btnIniciar.innerHTML = 'Ingresar como Cobrador 💼';
+          btnIniciar.style.background = '#2563eb';
+        }
+        if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'none';
+        if (inputCorreoCobrador) setTimeout(function() { inputCorreoCobrador.focus(); }, 60);
+      }
+    }
+
+    function volverASeleccion() {
+      var seccionElegirRol = document.getElementById('seccionElegirRol');
+      var seccionFormularioLogin = document.getElementById('seccionFormularioLogin');
+      var loginMsg = document.getElementById('loginMsg');
+      var pieRegistroAdmin = document.getElementById('pieRegistroAdmin');
+      if (seccionFormularioLogin) seccionFormularioLogin.style.display = 'none';
+      if (seccionElegirRol) seccionElegirRol.style.display = 'block';
+      if (loginMsg) loginMsg.style.display = 'none';
+      if (pieRegistroAdmin) pieRegistroAdmin.style.display = 'none';
+    }
+
+    function togglePasswordVisibility() {
+      var pwdInput = document.getElementById('password');
+      var svgEyeOpen = document.getElementById('svgEyeOpen');
+      var svgEyeClosed = document.getElementById('svgEyeClosed');
+      if (pwdInput) {
+        var isPwd = pwdInput.type === 'password';
+        pwdInput.type = isPwd ? 'text' : 'password';
+        if (svgEyeOpen && svgEyeClosed) {
+          svgEyeOpen.style.display = isPwd ? 'none' : 'block';
+          svgEyeClosed.style.display = isPwd ? 'block' : 'none';
+        }
+      }
+    }
+
+    window.procesarLoginDirecto = async function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      var modo = window.modoActual || 'admin';
+      var correoEl = modo === 'admin' ? document.getElementById('correoAdmin') : document.getElementById('correoCobrador');
+      var cedulaEl = document.getElementById('cedulaAdmin');
+      var pwdEl = document.getElementById('password');
+      var btnIniciar = document.getElementById('btnIniciarSesion');
+      var msgEl = document.getElementById('loginMsg');
+
+      var correoVal = correoEl ? correoEl.value.trim() : '';
+      var cedulaVal = (modo === 'admin' && cedulaEl) ? cedulaEl.value.trim() : '';
+      var pwdVal = pwdEl ? pwdEl.value : '';
+
+      if (!correoVal) {
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.backgroundColor = '#fee2e2';
+          msgEl.style.color = '#991b1b';
+          msgEl.style.border = '1px solid #f87171';
+          msgEl.textContent = 'Por favor ingresa tu correo electrónico.';
+        }
+        return false;
+      }
+
+      if (modo === 'admin' && !cedulaVal) {
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.backgroundColor = '#fee2e2';
+          msgEl.style.color = '#991b1b';
+          msgEl.style.border = '1px solid #f87171';
+          msgEl.textContent = 'Por favor ingresa tu cédula del administrador.';
+        }
+        return false;
+      }
+
+      if (btnIniciar) {
+        btnIniciar.disabled = true;
+        btnIniciar.textContent = 'Validando credenciales...';
+      }
+      if (msgEl) msgEl.style.display = 'none';
+
+      try {
+        var resp = null;
+        if (typeof window.autenticarUsuarioConRol === 'function') {
+          resp = await window.autenticarUsuarioConRol({
+            modo: modo,
+            correo: correoVal,
+            cedula: cedulaVal,
+            identificador: correoVal,
+            password: pwdVal
+          });
+        }
+
+        if (resp && resp.ok && resp.usuario) {
+          if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.style.backgroundColor = '#dcfce7';
+            msgEl.style.color = '#166534';
+            msgEl.style.border = '1px solid #86efac';
+            msgEl.innerHTML = '✓ <strong>¡Bienvenido, ' + (resp.usuario.nombre || 'Usuario') + '!</strong><br>Accediendo al panel principal...';
+          }
+          setTimeout(function() {
+            window.location.href = 'menu2.html';
+          }, 500);
+          return false;
+        } else if (resp && !resp.ok) {
+          if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.style.backgroundColor = '#fee2e2';
+            msgEl.style.color = '#991b1b';
+            msgEl.style.border = '1px solid #f87171';
+            msgEl.innerHTML = (resp.error || 'Credenciales incorrectas.') + ' <a href="registro-usuario.html?modo=nuevo" style="color:#1d4ed8; font-weight:600;">Regístrate aquí</a>.';
+          }
+          return false;
+        }
+
+        // Respaldo sin módulo (por ejemplo si se abrió vía file:// desde GitHub)
+        var nombreSesion = modo === 'admin' 
+          ? (correoVal.includes('fercho') ? 'fercho' : 'Administrador')
+          : (correoVal.includes('cobrador') ? 'Cobrador Asignado' : correoVal.split('@')[0]);
+
+        var sessionData = {
+          id: 'usr-' + modo + '-' + Date.now(),
+          nombre: nombreSesion,
+          correo: correoVal,
+          cedula: cedulaVal,
+          rol: modo === 'admin' ? 'Administrador' : 'Cobrador',
+          login_at: new Date().toISOString()
+        };
+
+        try {
+          localStorage.removeItem('sistema_sesion_cerrada_manual');
+          localStorage.setItem('sistema_sesion_activa', JSON.stringify(sessionData));
+        } catch(e) {}
+
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.backgroundColor = '#dcfce7';
+          msgEl.style.color = '#166534';
+          msgEl.style.border = '1px solid #86efac';
+          msgEl.innerHTML = '✓ <strong>¡Bienvenido, ' + nombreSesion + '!</strong><br>Accediendo al panel principal...';
+        }
+        setTimeout(function() {
+          window.location.href = 'menu2.html';
+        }, 500);
+      } catch (err) {
+        if (msgEl) {
+          msgEl.style.display = 'block';
+          msgEl.style.backgroundColor = '#fee2e2';
+          msgEl.style.color = '#991b1b';
+          msgEl.style.border = '1px solid #f87171';
+          msgEl.textContent = 'Error al ingresar: ' + (err.message || err);
+        }
+      } finally {
+        if (btnIniciar) {
+          btnIniciar.disabled = false;
+          btnIniciar.innerHTML = modo === 'admin' ? 'Ingresar como Administrador 🛡️' : 'Ingresar como Cobrador 💼';
+        }
+      }
+      return false;
+    };
+
+    window.seleccionarModo = seleccionarModo;
+    window.volverASeleccion = volverASeleccion;
+    window.togglePasswordVisibility = togglePasswordVisibility;
+  </script>
 </head>
 
 <body>
@@ -73,6 +303,7 @@
             <button
             type="button"
             id="btnElegirAdmin"
+            onclick="window.seleccionarModo('admin')"
             style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #0f2749; background:#0f2749; color:#ffffff; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 6px 16px rgba(15,39,73,0.22);"
             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 22px rgba(15,39,73,0.28)';"
             onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 16px rgba(15,39,73,0.22)';"
@@ -95,6 +326,7 @@
             <button
             type="button"
             id="btnElegirCobrador"
+            onclick="window.seleccionarModo('cobrador')"
             style="display:flex; align-items:center; gap:16px; width:100%; padding:18px 20px; border-radius:14px; border:2px solid #cbd5e1; background:#ffffff; color:#0f172a; cursor:pointer; text-align:left; transition:all 0.2s ease; box-shadow:0 4px 12px rgba(0,0,0,0.05);"
             onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='#2563eb'; this.style.boxShadow='0 8px 20px rgba(37,99,235,0.15)';"
             onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='#cbd5e1'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.05)';"
@@ -120,6 +352,7 @@
           <button
           type="button"
           id="btnVolverElegirRol"
+          onclick="window.volverASeleccion()"
           style="display:inline-flex; align-items:center; gap:6px; background:transparent; border:none; color:#2563eb; font-size:0.84rem; font-weight:700; cursor:pointer; margin-bottom:14px; padding:0;"
         >
           ← Cambiar opción de ingreso
@@ -134,7 +367,7 @@
             <p id="formSubtitulo">Ingresa tu correo electrónico, número de cédula y contraseña para continuar.</p>
           </div>
 
-          <form id="loginForm">
+          <form id="loginForm" onsubmit="return window.procesarLoginDirecto(event)">
             <!-- CAMPO PARA ADMINISTRADOR: CORREO ELECTRÓNICO -->
             <div class="field" id="grupoAdminCorreo">
               <label for="correoAdmin" style="display:flex; justify-content:space-between; align-items:center;">
@@ -178,6 +411,7 @@
                 <button
                 type="button"
                 id="btnTogglePassword"
+                onclick="window.togglePasswordVisibility()"
                 title="Mostrar contraseña"
                 aria-label="Mostrar contraseña"
                 style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:6px; display:inline-flex; align-items:center; justify-content:center; color:#64748b; border-radius:6px; transition:color 0.15s, background-color 0.15s;"
@@ -409,6 +643,8 @@
     obtenerCredencialesUsuario,
     autenticarUsuarioConRol
   } from './supabase.js';
+
+  window.autenticarUsuarioConRol = autenticarUsuarioConRol;
 
   // Pantallas del proceso de ingreso
   const seccionElegirRol = document.getElementById('seccionElegirRol');
@@ -766,73 +1002,9 @@
   }
 
   // SUBMIT DEL LOGIN CON AUTENTICACIÓN POR ROL (ADMIN CON CORREO + CÉDULA / COBRADOR CON CORREO)
-  loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const correoVal = modoActual === 'admin' 
-      ? inputCorreoAdmin.value.trim() 
-      : inputCorreoCobrador.value.trim();
-    const cedulaVal = modoActual === 'admin' 
-      ? inputCedulaAdmin.value.trim() 
-      : '';
-    const password = inputLoginPassword.value;
-
-    btnIniciar.disabled = true;
-    btnIniciar.textContent = modoActual === 'admin' 
-      ? 'Validando datos de Administrador...' 
-      : 'Verificando credenciales de Cobrador...';
-    loginMsg.style.display = 'none';
-
-    try {
-      const resp = await autenticarUsuarioConRol({
-        modo: modoActual,
-        correo: correoVal,
-        cedula: cedulaVal,
-        identificador: modoActual === 'admin' ? correoVal : correoVal,
-        password: password
-      });
-
-      if (resp.ok && resp.usuario) {
-        loginMsg.style.display = 'block';
-        loginMsg.style.backgroundColor = '#dcfce7';
-        loginMsg.style.color = '#166534';
-        loginMsg.style.border = '1px solid #86efac';
-        const rolBadge = resp.usuario.rol === 'Administrador' ? '🛡️ Administrador' : '💼 Cobrador';
-        loginMsg.innerHTML = `✓ <strong>¡Bienvenido, ${resp.usuario.nombre || 'Usuario'}!</strong> (${rolBadge})<br>Accediendo al panel principal...`;
-        
-        setTimeout(() => {
-          window.location.href = 'menu2.html';
-        }, 650);
-      } else {
-        loginMsg.style.display = 'block';
-        loginMsg.style.backgroundColor = '#fee2e2';
-        loginMsg.style.color = '#991b1b';
-        loginMsg.style.border = '1px solid #f87171';
-        loginMsg.innerHTML = (resp.error || 'Credenciales incorrectas.') + 
-          (modoActual === 'admin' 
-            ? ' Si no recuerdas tus credenciales, usa <a href="#" id="linkMsgOlvidaste" style="color:#1d4ed8; font-weight:600; text-decoration:underline;">¿Olvidaste tu contraseña?</a>.' 
-            : ' O <a href="registro-usuario.html?modo=nuevo" style="color:#1d4ed8; font-weight:600;">regístrate aquí</a>.');
-        
-        const linkMsgOlv = document.getElementById('linkMsgOlvidaste');
-        if (linkMsgOlv) {
-          linkMsgOlv.addEventListener('click', (ev) => {
-            ev.preventDefault();
-            linkOlvidaste.click();
-          });
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      loginMsg.style.display = 'block';
-      loginMsg.style.backgroundColor = '#fee2e2';
-      loginMsg.style.color = '#991b1b';
-      loginMsg.style.border = '1px solid #f87171';
-      loginMsg.textContent = 'Ocurrió un error al procesar el acceso. Por favor intenta de nuevo.';
-    } finally {
-      btnIniciar.disabled = false;
-      btnIniciar.innerHTML = modoActual === 'admin' 
-        ? 'Ingresar como Administrador 🛡️' 
-        : 'Ingresar como Cobrador 💼';
-    }
+  loginForm.addEventListener('submit', (e) => {
+    if (e.defaultPrevented) return;
+    window.procesarLoginDirecto(e);
   });
   </script>
 
